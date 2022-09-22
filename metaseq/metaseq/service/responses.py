@@ -30,6 +30,9 @@ class OAIResponse:
                         "top_logprobs": result["top_logprobs"],
                         "finish_reason": "length",  # TODO: implement this
                     },
+                    "all_tokens": result["all_tokens"],
+                    "all_tokens_text": result["all_tokens_text"],
+                    "activations": result["activations"],
                 }
                 for result in self.results
             ],

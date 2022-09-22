@@ -578,6 +578,34 @@ def load_model_ensemble_and_task(
             if emb_key in state["model"] and oproj_key not in state["model"]:
                 state["model"][oproj_key] = state["model"][emb_key]
 
+            # TODO (mchoi): Make this a config
+            # NOTE: Don't turn this on by default unless testing using
+            #       test_activations.py. Else, the difference in keys may break things
+            combine_qkv = True
+            if not combine_qkv:
+                self_attn_proj_keys = [key for key in state["model"] if "self_attn.qkv_proj" in key]
+                for key in self_attn_proj_keys:
+                    key_prefix = ".".join(key.split(".")[:-2])
+                    layer_type, weight_or_bias = key.split(".")[-2:]
+                    if layer_type == "qkv_proj":
+                        if weight_or_bias == "weight":
+                            assert state["model"][key].shape[0] % 3 == 0
+
+                            k_weight, v_weight, q_weight = torch.chunk(state["model"][key], 3, dim=0)
+                            state["model"][f"{key_prefix}.q_proj.weight"] = q_weight
+                            state["model"][f"{key_prefix}.k_proj.weight"] = k_weight
+                            state["model"][f"{key_prefix}.v_proj.weight"] = v_weight
+
+                            del state["model"][key]
+
+                        elif weight_or_bias == "bias":
+                            k_bias, v_bias, q_bias = torch.chunk(state["model"][key], 3)
+                            state["model"][f"{key_prefix}.q_proj.bias"] = q_bias
+                            state["model"][f"{key_prefix}.k_proj.bias"] = k_bias
+                            state["model"][f"{key_prefix}.v_proj.bias"] = v_bias
+
+                            del state["model"][key]
+
             if task is None:
                 task = tasks.setup_task(cfg.task)
 

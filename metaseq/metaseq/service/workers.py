@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 import queue
 import math
+from metaseq.service.constants import UNBATCHED_ARG_DICT
 
 
 @dataclass
@@ -32,12 +33,11 @@ class WorkItem:
         return (self.cost, self.uid) == (other.cost, other.uid)
 
     def queue_key(self):
+        # use this as a hash
+        # if it's not specified then use the default because that's wut
+        # the interactive script will do anyway
         return PriorityQueueRingShard.key_from_dictionary(
-            {
-                "temperature": self.data["temperature"],
-                "top_p": self.data["top_p"],
-                "n": self.data["n"],
-            }
+            {k: self.data.get(k, v) for k, v in UNBATCHED_ARG_DICT.items()}
         )
 
     @staticmethod

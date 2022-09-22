@@ -36,10 +36,13 @@ class KeyedPriorityQueueCollection:
         else:
             return None
 
-    def get_largest_queue(self):
+    def get_largest_queue(self, force_key=None):
         """
         ### Returns the queue with the most jobs
         """
+        if force_key is not None and force_key in self.queues:
+            return self.queues[force_key]
+
         key = self.get_largest_queue_key()
         if key:
             return self.queues[key]

@@ -168,6 +168,7 @@ def do_setup(package_data):
             "torch",
             "tqdm",
             "typing_extensions",
+            "einops",
         ],
         dependency_links=dependency_links,
         packages=find_packages(

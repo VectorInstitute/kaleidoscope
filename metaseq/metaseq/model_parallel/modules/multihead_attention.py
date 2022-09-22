@@ -92,6 +92,8 @@ class ModelParallelMultiheadAttention(nn.Module):
             not self.self_attention or self.qkv_same_dim
         ), "Self-attention requires query, key and value to be of the same size"
 
+        # NOTE: Turn this false ONLY for testing OPT vs HF
+        # TODO (mchoi): Make this into a proper config
         self.combine_qkv_proj = True
         if self.combine_qkv_proj:
 

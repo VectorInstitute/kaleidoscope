@@ -23,7 +23,6 @@ from metaseq import utils
 from metaseq.data import encoders
 from metaseq.dataclass.configs import MetaseqConfig
 from metaseq.dataclass.utils import convert_namespace_to_omegaconf
-from metaseq.distributed import fsdp_enable_wrap, fsdp_wrap
 from metaseq.distributed.utils import (
     get_data_parallel_rank,
     get_data_parallel_world_size,
@@ -493,33 +492,25 @@ class GeneratorInterface:
         task = tasks.setup_task(self.cfg.task)
 
         def _build_model(cfg, task):
-            # fsdp complains about mixed precision, hack it
+            # gets it to go to fp16
             cfg.model.tensor_parallel_init_model_on_gpu = True
             model = task.build_model(cfg.model).cuda()
             model.make_generation_fast_()
-            return fsdp_wrap(model)
+            return model
 
         # Load the model
         overrides = ast.literal_eval(self.cfg.common_eval.model_overrides)
         logger.info("loading model(s) from {}".format(self.cfg.common_eval.path))
 
-        #logger.info(f"Rank {torch.distributed.get_rank()}: {self.cfg.common_eval.path}")
-        # Note: Non-zero ranks loggers are set to DEBUG not INFO
-
-        with fsdp_enable_wrap(
-            self.cfg.distributed_training,
-            use_sharded_state=self.cfg.distributed_training.use_sharded_state,
-        ):
-            models, _model_args, _task = checkpoint_utils.load_model_ensemble_and_task(
-                utils.split_paths(self.cfg.common_eval.path),
-                arg_overrides=overrides,
-                task=task,
-                suffix=self.cfg.checkpoint.checkpoint_suffix,
-                strict=(self.cfg.checkpoint.checkpoint_shard_count == 1),
-                num_shards=self.cfg.checkpoint.checkpoint_shard_count,
-                build_model_hook=_build_model,
-            )
-
+        models, _model_args, _task = checkpoint_utils.load_model_ensemble_and_task(
+            utils.split_paths(self.cfg.common_eval.path),
+            arg_overrides=overrides,
+            task=task,
+            suffix=self.cfg.checkpoint.checkpoint_suffix,
+            strict=(self.cfg.checkpoint.checkpoint_shard_count == 1),
+            num_shards=self.cfg.checkpoint.checkpoint_shard_count,
+            build_model_hook=_build_model,
+        )
         # Set dictionaries
         src_dict = task.source_dictionary
         tgt_dict = task.target_dictionary
@@ -586,7 +577,7 @@ class GeneratorInterface:
         # Initialize generator
         if not best_of:
             best_of = n
-        assert best_of >= n # TODO: This is contrary to the docstring
+        assert best_of >= n
         self.cfg.generation.sampling_topp = top_p if top_p > 0 else -1
         self.cfg.generation.sampling = top_p > 0.0
         self.cfg.generation.beam = best_of
@@ -635,6 +626,7 @@ class GeneratorInterface:
 
             logger.info(f"Preparing generator with settings {self.cfg.generation}")
             need_logprobs = True if logprobs > 0 else False
+
             generator = self.task.build_generator(
                 self.models,
                 self.cfg.generation,
@@ -648,7 +640,9 @@ class GeneratorInterface:
 
             translate_start_time = time.time()
             translations = self.task.inference_step(generator, self.models, batch)
+
             translate_time = time.time() - translate_start_time
+
             total_generation_time += translate_time
 
             all_tokens = translations["tokens"].cpu()[: len(inputs)]
@@ -673,6 +667,9 @@ class GeneratorInterface:
                         tokens, scores, distributions
                     )
 
+                    # didn't cut from prompt
+                    uncut_tokens = tokens
+
                     if echo:
                         # don't cut off prompt
                         pass
@@ -695,13 +692,18 @@ class GeneratorInterface:
 
                     result = {
                         "text": text,
-                        # These tokens are string tokens, not ints
                         "tokens": [self.bpe.bpe.decode([t]) for t in tokens],
                         # text offset is useful for cutting off prompts or prefixes
                         # or evaluating PPL on just a subset of tokens
                         "text_offset": token_offsets,
                         "token_scores": scores_with_eos,
+                        # always send back all the tokens except for the Start of Sequence
+                        "all_tokens": uncut_tokens[1:],
+                        "all_tokens_text": [
+                            self.bpe.bpe.decode([t]) for t in uncut_tokens[1:]
+                        ],
                     }
+
                     if logprobs > 0:
                         # final result is a List[Dict[str, float]]
                         # where each item in the list corresponds to a token in the
@@ -767,5 +769,5 @@ class GeneratorInterface:
 
         # cut off at stop and drop pads
         if distributions is not None:
-            distributions = distributions[mask]
+            distributions = distributions[: len(mask), ...][mask]
         return list(new_tokens), list(new_scores), distributions

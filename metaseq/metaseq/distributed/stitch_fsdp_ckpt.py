@@ -500,7 +500,7 @@ def reshard_megatron_parts(model_parts, new_model_part_count=1):
                 )
                 logger.info(f"max discrepancy {key}: {err}")
 
-    def _conslidate_and_redshard(key, dim):
+    def _consolidate_and_reshard(key, dim):
         consolidated_tensor = torch.cat(
             [model_parts[part_id][key] for part_id in range(len(model_parts))],
             dim=dim,
@@ -548,19 +548,22 @@ def reshard_megatron_parts(model_parts, new_model_part_count=1):
                     )
 
         elif "ffn_layernorm" in key:
-            _conslidate_and_redshard(key, dim=0)
+            _consolidate_and_reshard(key, dim=0)
+
         elif "layer_norm" in key:
             assert_all_close(key)
             _copy_key_to_all_parts(key)
+
         elif "fc1" in key or "k_proj" in key or "q_proj" in key or "v_proj" in key:
             # Bias of CP gets concatenated
             if key.endswith("bias"):
-                _conslidate_and_redshard(key, dim=0)
+                _consolidate_and_reshard(key, dim=0)
             # weights of CP gets concatenated along dim 0
             else:
                 assert key.endswith("weight")
-                _conslidate_and_redshard(key, dim=0)
+                _consolidate_and_reshard(key, dim=0)
                 # FC1 is CP
+
         # FC2 is RP
         elif "fc2" in key or "out_proj" in key:
             # Bias of RP gets replicated
@@ -570,9 +573,11 @@ def reshard_megatron_parts(model_parts, new_model_part_count=1):
             # weights of RP gets concatenated along dim 1
             else:
                 assert key.endswith("weight")
-                _conslidate_and_redshard(key, dim=1)
+                _consolidate_and_reshard(key, dim=1)
+
         elif "embed_tokens.weight" in key:
-            _conslidate_and_redshard(key, dim=0)
+            _consolidate_and_reshard(key, dim=0)
+
         elif "embed_positions" in key:
             if "_float_tensor" in key:
                 # Assume embed positions are non learned ie.e sinusoidal
@@ -581,8 +586,10 @@ def reshard_megatron_parts(model_parts, new_model_part_count=1):
             else:
                 assert_all_close(key)
                 _copy_key_to_all_parts(key)
+
         elif "version" in key:
             _copy_key_to_all_parts(key)
+
         else:
             assert_all_close(key)
             _copy_key_to_all_parts(key)

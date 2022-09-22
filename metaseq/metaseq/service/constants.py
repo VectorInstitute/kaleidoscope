@@ -4,52 +4,65 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+from collections import OrderedDict
+
+# args that cannot be batched unless the value is the same,
+# otherwise it wrong
+# TODO: if the key doesn't exist it defaults to None
+# some stuff like echo should default to False
+UNBATCHED_ARG_DICT = OrderedDict([
+    ["temperature", 1.0],
+    ["top_p", 1.0],
+    ["n", 1],
+    ["best_of", None],
+    # how many of the top logprobs do we want
+    ["logprobs", 0],
+    ["stop", None],
+    ["echo", False],
+    # tuple/list of things
+    ["desired_module_activations", tuple()],
+])
 
 MAX_SEQ_LEN = 2048
 BATCH_SIZE = 2048  # silly high bc we dynamically batch by MAX_BATCH_TOKENS
 MAX_BATCH_TOKENS = 3072
-DEFAULT_PORT = 6010
 MAX_BEAM = 16
 
-# 175B
-#MODEL_PARALLEL = 32
-#TOTAL_WORLD_SIZE = 32
+DEFAULT_PORT = 6969
 
-# Test 125M
+
+# CHECKPOINT_FOLDER should point to a shared drive (e.g. NFS) where the
+# checkpoints from S3 are stored. As an example:
+# CHECKPOINT_FOLDER = "/example/175B/reshard_no_os"
+# $ ls /example/175B/reshard_no_os
+# reshard-model_part-0.pt
+# reshard-model_part-1.pt
+# reshard-model_part-2.pt
+# reshard-model_part-3.pt
+# reshard-model_part-4.pt
+# reshard-model_part-5.pt
+# reshard-model_part-6.pt
+# reshard-model_part-7.pt
+
+# TODO: change this for each model
 MODEL_PARALLEL = 2
 TOTAL_WORLD_SIZE = 2
 
-try:
-    # internal logic denoting where checkpoints are in meta infrastructure
-    from metaseq_internal.constants import LOCAL_SSD, MODEL_SHARED_FOLDER 
-except ImportError: # CHECKPOINT_FOLDER should point to a shared drive (e.g. NFS) where the checkpoints from S3 are stored. As an example:
-    # CHECKPOINT_FOLDER = "/example/175B/reshard_no_os"
-    # $ ls /example/175B/reshard_no_os
-    # reshard-model_part-0.pt
-    # reshard-model_part-1.pt
-    # reshard-model_part-2.pt
-    # reshard-model_part-3.pt
-    # reshard-model_part-4.pt
-    # reshard-model_part-5.pt
-    # reshard-model_part-6.pt
-    # reshard-model_part-7.pt
-    #CHECKPOINT_FOLDER = "/example/175B/reshard_no_os"
-    MODEL_SHARED_FOLDER = "/checkpoint/opt_test/original"
-    #MODEL_SHARED_FOLDER = "/scratch/ssd001/jba/OPT"
+CHECKPOINT_FOLDER = "/checkpoint/opt_test/original/OPT-6.7B"
+#CHECKPOINT_FOLDER = "/checkpoint/opt_test/original/OPT-125M"
 
-    # Choose which model to use
-    MODEL_FOLDER = os.path.join(MODEL_SHARED_FOLDER, "OPT-125M")
+###
 
 # tokenizer files
-BPE_MERGES = os.path.join(MODEL_SHARED_FOLDER, "gpt2-merges.txt")
-BPE_VOCAB = os.path.join(MODEL_SHARED_FOLDER, "gpt2-vocab.json")
+BPE_MERGES = "/scratch/ssd002/projects/opt_test/gpt2-merges.txt"
+BPE_VOCAB = "/scratch/ssd002/projects/opt_test/gpt2-vocab.json"
+# MODEL_FILE = os.path.join(CHECKPOINT_FOLDER, "reshard.pt")
 
-CHECKPOINT_FOLDER = MODEL_FOLDER #os.path.join(MODEL_FOLDER, "reshard_no_os")
+# MEGATRON stuff
+MODEL_FILE = os.path.join(CHECKPOINT_FOLDER, "megatronreshard.pt")
 
-CHECKPOINT_LOCAL = os.path.join(MODEL_FOLDER, "reshard_no_os", "reshard.pt")
 
 LAUNCH_ARGS = [
-    "--memory-efficient-fp16",
     f"--model-parallel-size {MODEL_PARALLEL}",
     f"--distributed-world-size {TOTAL_WORLD_SIZE}",
     "--task language_modeling",
@@ -58,7 +71,7 @@ LAUNCH_ARGS = [
     "--bpe hf_byte_bpe",
     f"--merges-filename {BPE_MERGES}",  # TODO(susanz): hack for getting interactive_hosted working on public repo
     f"--vocab-filename {BPE_VOCAB}",  # TODO(susanz): hack for getting interactive_hosted working on public repo
-    f"--path {CHECKPOINT_FOLDER}/reshard.pt",
+    f"--path {CHECKPOINT_FOLDER}/megatronreshard.pt",
     "--beam 1 --nbest 1",
     "--distributed-port 13000",
     "--checkpoint-shard-count 1",
