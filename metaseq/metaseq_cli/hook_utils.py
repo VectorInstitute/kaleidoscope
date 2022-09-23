@@ -164,12 +164,8 @@ def opt_forward_hook_fn(registered_name, save_dict, aux, m, _, outputs):
         else:
             output = rearrange(output, "s1 s2 b k -> b k s1 s2")
 
-    elif type_m == torch.nn.Linear:
-        # Decoder output projection case
-        output = outputs
-
     else:
-        # VocabParallelEmbedding case
+        # VocabParallelEmbedding and final output_projection case
         output = outputs
 
     # some layers are always in S x B x D, permute them back
