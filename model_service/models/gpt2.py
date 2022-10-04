@@ -4,8 +4,10 @@ import numpy as np
 import time
 import torch
 
-from model_service import AbstractModel
+from .abstract_model import AbstractModel
 from werkzeug.exceptions import HTTPException
+
+import metaseq
 
 from transformers import (
     GPT2LMHeadModel,

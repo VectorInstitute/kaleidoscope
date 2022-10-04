@@ -1,29 +1,15 @@
-import abc
 import argparse
 import flask
+import sys
 import torch
 
 from flask import Flask, request, jsonify
-from models import gpt2
+from models import *
 
 MODEL_CLASSES = { 
-    "gpt2": gpt2,
-    #"opt": opt.OPT())
+    "gpt2": gpt2.GPT2(),
+    "opt_175b": opt_175b.OPT_175B()
 }
-
-
-class AbstractModel(abc.ABC):
-    @abc.abstractmethod
-    def load(self):
-        pass
-
-    @abc.abstractmethod
-    def module_names(self):
-        pass
-
-    @abc.abstractmethod
-    def generate_text(prompt, self):
-        pass
 
 
 service = Flask(__name__)
@@ -54,12 +40,17 @@ def generate_text():
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", default="gpt2", type=str, help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()))
+    parser.add_argument("--model_type", required=True, type=str, help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()))
     args = parser.parse_args()
+
+    # Validate input arguments
+    if args.model_type not in MODEL_CLASSES.keys():
+        print(f"Error: model type {args.model_type} is not supported. Please use one of the following: {', '.join(MODEL_CLASSES.keys())}")
+        sys.exit(1)
 
     # Setup a global model instance
     global model
-    model = gpt2.GPT2() #MODEL_CLASSES[args.model_type]
+    model = MODEL_CLASSES[args.model_type]
 
     # Load the model into GPU memory
     model.load()
