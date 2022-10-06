@@ -28,7 +28,6 @@ def generate_text():
     args["temperature"] = float(request.json["temperature"]) if "temperature" in request.json else 1.0
     args["k"] = float(request.json["k"]) if "k" in request.json else 0
     args["p"] = float(request.json["p"]) if "p" in request.json else 0.9
-    args["device"] = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
     args["num_return_sequences"] = int(request.json["num_return_sequences"]) if "num_return_sequences" in request.json else 1
     args["repetition_penalty"] = float(request.json["repetition_penalty"]) if "repetition_penalty" in request.json else 1.0
 
@@ -42,6 +41,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_type", required=True, type=str, help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()))
     args = parser.parse_args()
+    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Validate input arguments
     if args.model_type not in MODEL_CLASSES.keys():
@@ -53,7 +53,7 @@ def main():
     model = MODEL_CLASSES[args.model_type]
 
     # Load the model into GPU memory
-    model.load()
+    model.load(args.device)
     
     # Start the Flask service and loop endlessly until exiting
     print("Starting model service, press Ctrl+C to exit")

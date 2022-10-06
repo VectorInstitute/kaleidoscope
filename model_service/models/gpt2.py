@@ -7,8 +7,6 @@ import torch
 from .abstract_model import AbstractModel
 from werkzeug.exceptions import HTTPException
 
-import metaseq
-
 from transformers import (
     GPT2LMHeadModel,
     GPT2Tokenizer
@@ -21,11 +19,13 @@ class GPT2(AbstractModel):
         self.model_class = GPT2LMHeadModel
         self.tokenizer_class = GPT2Tokenizer
         self.model = None
+        self.device = None
 
 
-    def load(self):
-        self.model = self.model_class.from_pretrained("/scratch/models/gpt2")
-        self.model.to("cpu")
+    def load(self, device):
+        self.device = device
+        self.model = self.model_class.from_pretrained("/h/coatsworth/scratch/models/gpt2")
+        self.model.to(device)
 
 
     def module_names(self):
@@ -33,9 +33,9 @@ class GPT2(AbstractModel):
 
 
     def generate_text(self, prompt, args):
-        tokenizer = self.tokenizer_class.from_pretrained("/scratch/models/gpt2")
+        tokenizer = self.tokenizer_class.from_pretrained("/h/coatsworth/scratch/models/gpt2")
         encoded_prompt = tokenizer.encode(prompt, add_special_tokens=False, return_tensors="pt")
-        encoded_prompt = encoded_prompt.to(args["device"])
+        encoded_prompt = encoded_prompt.to(self.device)
 
         if encoded_prompt.size()[-1] == 0:
             input_ids = None
