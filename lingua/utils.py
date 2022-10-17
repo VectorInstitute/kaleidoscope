@@ -6,7 +6,6 @@ TODOS:
 import logging
 
 import requests
-from fastapi.responses import PlainTextResponse
 
 from protocols import pack, unpack
 
@@ -45,7 +44,7 @@ def post(addr, obj, field_name= "json"):
 
 
 def server_send(obj):
-    return PlainTextResponse(pack(obj))
+    return pack(obj)
 
 
 def server_parse(bytestream):

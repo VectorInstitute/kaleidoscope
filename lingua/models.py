@@ -302,8 +302,8 @@ class OPT(_ServerModel):
             self.model = self.setup_model()
 
     def generate_text(self, prompts, /, **gen_kwargs):
-        response= requests.post('http://172.17.8.102:8080/v1/engines/175b/completions', json= {"prompt":prompts['prompt'],"max_tokens":prompts['max_tokens'],"temperature":prompts['temperature'],"top_p":prompts['top_p']})
-        print(response)
+        response= requests.post('http://172.17.8.65:8080/completions', json= {"prompt":prompts, **gen_kwargs})
+        print(response.text)
         # encoding = self.tokenizer(prompts, padding=True, return_tensors="pt").to(
         #     self.device_for_input
         # )
@@ -311,8 +311,7 @@ class OPT(_ServerModel):
         # generated_texts = self.tokenizer.batch_decode(
         #     generated_ids, skip_special_tokens=True
         # )
-
-        return response
+        return response.json()
 
     def generate(self, encoding, probes=None, /, **gen_kwargs):
         """encoding must be the batched encodings"""

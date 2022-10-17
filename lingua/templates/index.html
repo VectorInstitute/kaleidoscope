@@ -43,8 +43,12 @@
         <h4>Playground</h4>
         <form action="/generate">
             <div class="form-group">
+                {% if text_output %}
+                <textarea class="form-control" rows="15" id="comment""> {{ text_output }}</textarea>
+                {% else %}
                 <textarea class="form-control" rows="15" id="comment" placeholder="Enter a prompt..."></textarea>
-              </div>
+                {% endif %}
+            </div>
         </form>
         <button type="submit" class="btn bg-success text-white">Submit</button>
     </div>
