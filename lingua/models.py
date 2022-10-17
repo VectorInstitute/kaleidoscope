@@ -6,6 +6,7 @@ in theory we can support all models, but containing the scope for now
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
+import requests
 
 import torch
 import torch.nn as nn
@@ -301,16 +302,17 @@ class OPT(_ServerModel):
             self.model = self.setup_model()
 
     def generate_text(self, prompts, /, **gen_kwargs):
+        response= requests.post('http://172.17.8.102:8080/v1/engines/175b/completions', json= {"prompt":prompts['prompt'],"max_tokens":prompts['max_tokens'],"temperature":prompts['temperature'],"top_p":prompts['top_p']})
+        print(response)
+        # encoding = self.tokenizer(prompts, padding=True, return_tensors="pt").to(
+        #     self.device_for_input
+        # )
+        # generated_ids = self.model.generate(**encoding, **gen_kwargs)
+        # generated_texts = self.tokenizer.batch_decode(
+        #     generated_ids, skip_special_tokens=True
+        # )
 
-        encoding = self.tokenizer(prompts, padding=True, return_tensors="pt").to(
-            self.device_for_input
-        )
-        generated_ids = self.model.generate(**encoding, **gen_kwargs)
-        generated_texts = self.tokenizer.batch_decode(
-            generated_ids, skip_special_tokens=True
-        )
-
-        return generated_texts
+        return response
 
     def generate(self, encoding, probes=None, /, **gen_kwargs):
         """encoding must be the batched encodings"""

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="eng">
+    <head>
+    <meta charset="UTF-8">
+    <script src=""></script>
+    <title>Project Lingua</title>
+    </head>
+    <style>
+        .center {
+            text-align: center
+        }
+
+        /* Style inputs, select elements and textareas */
+        input[type=text], select, textarea{
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        resize: vertical;
+        }
+
+        /* Style the label to display next to the inputs */
+        label {
+        padding: 12px 12px 12px 0;
+        display: inline-block;
+        }
+
+        /* Style the submit button */
+        input[type=submit] {
+        background-color: #04AA6D;
+        color: white;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        }
+
+        /* Style the container */
+        .container {
+        border-radius: 5px;
+        padding: 20px;
+        }
+
+        body {
+            background-color: #f2f2f2;
+        }
+        
+        .column {
+            float: left;
+        }
+
+        .left {
+            width: 75%;
+        }
+
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+    </style>
+    <body>
+        <h1 class="center">Project Lingua</h1>
+        <div class="row">
+            <div class="container column left">
+                <form action="/generate">
+                <div>
+                    <div class="col-25">
+                    <label for="subject">Prompt</label>
+                    </div>
+                    <div class="col-75">
+                    <textarea id="subject" name="subject" placeholder="Type in a prompt.." style="height:500px"></textarea>
+                    </div>
+                </div>
+                <div>
+                    <input type="submit" value="Generate">
+                </div>
+                </form>
+            </div>
+            <div class="column">
+                <div class= "container">
+                    <label for="LLMs">Select a Model</label>
+                    <select name="LLMs" id="LLMs">
+                        <option value="GPT-2">GPT-2</option>
+                        <option value="OPT-125M">OPT-125M</option>
+                        <option value="OPT-175B">OPT-175B</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </body>
+
+</html>

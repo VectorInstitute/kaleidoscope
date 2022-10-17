@@ -111,18 +111,20 @@ async def get_parameters(model_name: str, data: bytes = File()):
 # the suffix here should all match remote models'
 @app.post("/{model_name}/generate_text")
 # async def inference(model_name: str, data: bytes = File()):
-async def generate_text(model_name: str, data: bytes = File()):
-    verify_request(model_name)
+async def generate_text(model_name: str, obj: dict):
+    # verify_request(model_name)
+    print(obj)
 
-    client_input = server_parse(data)
-
-    generated_text = server_grad_func_call(
-        ALL_MODELS[model_name].generate_text,
-        client_input["use_grad"],
-        client_input["prompts"],
-        **client_input["gen_kwargs"],
-    )
-
+    # client_input = server_parse(obj)
+    # print(client_input)
+    generated_text= ALL_MODELS[model_name].generate_text(model_name, obj)
+    # generated_text = server_grad_func_call(
+    #     ALL_MODELS[model_name].generate_text,
+    #     client_input["use_grad"],
+    #     client_input["prompts"],
+    #     **client_input["gen_kwargs"],
+    # )
+    print(generated_text.text)
     return server_send(generated_text)
 
 
