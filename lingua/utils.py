@@ -21,25 +21,19 @@ def check_response(resp):
                 resp.json()["detail"],
             )
         )
-
     logger.debug("addr %s response code %s", resp.url, resp.status_code)
 
 
 def get(addr):
     resp = requests.get(addr)
     check_response(resp)
-
     return unpack(resp.content)
 
 
 def post(addr, obj, field_name= "json"):
     # NOTE: the field_name must match the server's field name
     resp= requests.post(addr, json= obj) # allign with metaseq json request
-    print(obj)
-    print(resp)
-    # resp= requests.post(addr, json= obj)
     check_response(resp)
-
     return resp
 
 

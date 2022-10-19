@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from flask import Flask, render_template, request, jsonify
-from transformers import set_seed
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import asyncio
+import json
 
 from models import ALL_MODELS
 from utils import server_parse, server_send
@@ -39,13 +39,13 @@ ALL_MODEL_NAMES = set(ALL_MODELS.keys())
 #         output = call_with_error_handling(f, *args, **kwargs)
 #     return output
 
-# def verify_request(model_name):
-#     if model_name not in ALL_MODELS.keys():
-#         raise HTTPException(
-#             status_code=422,
-#             detail=f"model_name <model_name> not found, "
-#             "only {ALL_MODEL_NAMES} supported",
-#        )
+def verify_request(model_name):
+    if model_name not in ALL_MODELS.keys():
+        raise HTTPException(
+            status_code=422,
+            detail=f"model_name <model_name> not found, "
+            "only {ALL_MODEL_NAMES} supported",
+       )
 
 
 @app.route("/", methods=['GET'])
@@ -65,23 +65,23 @@ async def module_names(model_name: str):
     return server_send(ALL_MODELS[model_name].module_names)
 
 
-@app.route("/<model_name>/parameter_names/", methods=['GET'])
-async def parameter_names(model_name: str):
-    verify_request(model_name)
-    return server_send(ALL_MODELS[model_name].parameter_names)
+# @app.route("/<model_name>/parameter_names/", methods=['GET'])
+# async def parameter_names(model_name: str):
+#     verify_request(model_name)
+#     return server_send(ALL_MODELS[model_name].parameter_names)
 
 
-@app.route("/<model_name>/probe_points/", methods=['POST'])
-async def probe_points(model_name: str):
-    verify_request(model_name)
-    return server_send(ALL_MODELS[model_name].probe_points)
+# @app.route("/<model_name>/probe_points/", methods=['POST'])
+# async def probe_points(model_name: str):
+#     verify_request(model_name)
+#     return server_send(ALL_MODELS[model_name].probe_points)
 
 
-@app.route("/<model_name>/get_parameters", methods=['POST'])
-async def get_parameters(model_name: str):
-    verify_request(model_name)
-    param_names = server_parse(data)
-    return server_send(ALL_MODELS[model_name].get_parameters(*param_names))
+# @app.route("/<model_name>/get_parameters", methods=['POST'])
+# async def get_parameters(model_name: str):
+#     verify_request(model_name)
+#     param_names = server_parse(data)
+#     return server_send(ALL_MODELS[model_name].get_parameters(*param_names))
 
 
 # the suffix here should all match remote models'
@@ -89,54 +89,50 @@ async def get_parameters(model_name: str):
 # async def inference(model_name: str, data: bytes = File()):
 async def generate_text(model_name: str):
     # verify_request(model_name)
-    data = request.get_json()
+    data= request.form.copy() 
     prompts= data['prompt']
     del data['prompt']
     # client_input = server_parse(obj)
     generated_text= ALL_MODELS[model_name].generate_text(model_name, prompts, **data)
-    print(generated_text['choices'][0]['text'])
+    text_output= generated_text['choices'][0]['text']
+    print(text_output)
     # generated_text = server_grad_func_call(
     #     ALL_MODELS[model_name].generate_text,
     #     client_input["use_grad"],
     #     client_input["prompts"],
     #     **client_input["gen_kwargs"],
     # )
-    return render_template('index.html', models=ALL_MODEL_NAMES, text_output= generated_text['choices'][0]['text']) 
+    return render_template('index.html', models=ALL_MODEL_NAMES, text_output= text_output.lstrip())
 
 
-@app.route("/<model_name>/encode", methods=['POST'])
-async def encode(model_name: str):
-    verify_request(model_name)
+# @app.route("/<model_name>/encode", methods=['POST'])
+# async def encode(model_name: str):
+#     verify_request(model_name)
 
-    client_input = server_parse(data)
+#     client_input = server_parse(data)
 
-    tokens = ALL_MODELS[model_name].encode(
-        client_input["prompts"], **client_input["tokenizer_kwargs"]
-    )
-    return server_send(tokens)
+#     tokens = ALL_MODELS[model_name].encode(
+#         client_input["prompts"], **client_input["tokenizer_kwargs"]
+#     )
+#     return server_send(tokens)
 
 
-@app.route("/<model_name>/call", methods=['POST'])
-async def call(model_name: str):
-    verify_request(model_name)
+# @app.route("/<model_name>/call", methods=['POST'])
+# async def call(model_name: str):
+#     verify_request(model_name)
 
-    client_input = server_parse(data)
+#     client_input = server_parse(data)
 
-    output = server_grad_func_call(
-        ALL_MODELS[model_name].__call__,
-        client_input["use_grad"],
-        client_input["probe_dict"],
-        *client_input["args"],
-        **client_input["kwargs"],
-    )
-    return server_send(output)
+#     output = server_grad_func_call(
+#         ALL_MODELS[model_name].__call__,
+#         client_input["use_grad"],
+#         client_input["probe_dict"],
+#         *client_input["args"],
+#         **client_input["kwargs"],
+#     )
+#     return server_send(output)
 
 
 
 if __name__ == '__main__':
-   #  hostname = socket.gethostname()
-   #  ipaddr = socket.gethostbyname(hostname)
-   #  print(ipaddr)
-   set_seed(6)
-   #  uvicorn.run("fastapi_server:app", host=str(ipaddr), port=8000)
    app.run(host='0.0.0.0', debug=True)

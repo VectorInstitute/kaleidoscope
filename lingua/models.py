@@ -54,10 +54,8 @@ class ProbeContext(AbstractContextManager):
 
 class _ServerModel:
     """a class registery that also defines the interface the models should implement
-
     NOTE and TODO: so far I'm thinking this should only implement "interfaces" i.e no implementation inheritance, just needs to implement specified interfaces to keep things consistent, maybe Protocols will be handy
     """
-
     # this is just a class registery
     def __init_subclass__(cls, /, model_name=None):
         super().__init_subclass__()
@@ -77,6 +75,8 @@ class GPT2XL(_ServerModel):
     )
 
     model: PreTrainedModel = field(default=None, init=False, repr=False, compare=False)
+
+    url: str = None
 
     def __post_init__(self):
         self.lazy_init()
@@ -174,6 +174,8 @@ class GPTJ(_ServerModel):
 
     model: PreTrainedModel = field(default=None, init=False, repr=False, compare=False)
 
+    url: str = None 
+
     def __post_init__(self):
         self.lazy_init()
 
@@ -270,6 +272,8 @@ class OPT(_ServerModel):
 
     model: PreTrainedModel = field(default=None, init=False, repr=False, compare=False)
 
+    url: str = "http://172.17.8.73:8080/completions"
+
     def __post_init__(self):
         self.lazy_init()
 
@@ -302,7 +306,7 @@ class OPT(_ServerModel):
             self.model = self.setup_model()
 
     def generate_text(self, prompts, /, **gen_kwargs):
-        response= requests.post('http://172.17.8.65:8080/completions', json= {"prompt":prompts, **gen_kwargs})
+        response= requests.post(OPT.url, json= {"prompt":prompts, **gen_kwargs})
         print(response.text)
         # encoding = self.tokenizer(prompts, padding=True, return_tensors="pt").to(
         #     self.device_for_input
