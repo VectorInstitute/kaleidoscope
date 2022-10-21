@@ -1,9 +1,13 @@
 import argparse
 import flask
+import requests
+import socket
 import sys
 import torch
 
 from flask import Flask, request, jsonify
+
+import config
 from models import *
 
 MODEL_CLASSES = { 
@@ -54,12 +58,22 @@ def main():
 
     # Load the model into GPU memory
     model.load(args.device)
-    
-    # Start the Flask service and loop endlessly until exiting
+
+    # Inform the gateway service that we are serving a new model instance by calling the /register_model endpoint
+    register_url = f"http://{config.GATEWAY_HOST}/register_model"
+    register_data = {
+        "model_host": config.MODEL_HOST,
+        "model_type": args.model_type
+    }
+    try:
+        response = requests.post(register_url, json=register_data)
+    except:
+        # If we fail to contact the gateway service, print an error but continue running anyway
+        print(f"ERROR: Failed to contact gateway service at {config.GATEWAY_HOST}")
+
+    # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
     print("Starting model service, press Ctrl+C to exit")
-    service.run(host="0.0.0.0", port=8888, threaded=False)
-    while True:
-        pass
+    service.run(host=config.MODEL_HOST.split(':')[0], port=config.MODEL_HOST.split(':')[1])
 
 
 if __name__ == "__main__":
