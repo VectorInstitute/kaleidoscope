@@ -32,7 +32,16 @@ class GPT2(AbstractModel):
         print("Called GPT2.module_names()")
 
 
-    def generate_text(self, prompt, args):
+    def generate_text(self, request):
+
+        prompt = request.json['prompt']
+        length = int(request.json['length']) if 'length' in request.json else 128
+        temperature = float(request.json['temperature']) if 'temperature' in request.json else 1.0
+        top_k = float(request.json['k']) if 'k' in request.json else 0
+        top_p = float(request.json['p']) if 'p' in request.json else 0.9
+        num_return_sequences = int(request.json['num_return_sequences']) if 'num_return_sequences' in request.json else 1
+        repetition_penalty = float(request.json['repetition_penalty']) if 'repetition_penalty' in request.json else 1.0
+
         tokenizer = self.tokenizer_class.from_pretrained("/h/coatsworth/scratch/models/gpt2")
         encoded_prompt = tokenizer.encode(prompt, add_special_tokens=False, return_tensors="pt")
         encoded_prompt = encoded_prompt.to(self.device)
@@ -44,13 +53,13 @@ class GPT2(AbstractModel):
 
         output_sequences = self.model.generate(
             input_ids=input_ids,
-            max_length=args["length"] + len(encoded_prompt[0]),
-            temperature=args["temperature"],
-            top_k=args["k"],
-            top_p=args["p"],
-            repetition_penalty=args["repetition_penalty"],
+            max_length=length + len(encoded_prompt[0]),
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
             do_sample=True,
-            num_return_sequences=args["num_return_sequences"],
+            num_return_sequences=num_return_sequences,
         )
 
         # Remove the batch dimension when returning multiple sequences
@@ -67,7 +76,7 @@ class GPT2(AbstractModel):
             text = tokenizer.decode(generated_sequence, clean_up_tokenization_spaces=True)
 
             # Remove all text after the stop token
-            text = text[: text.find(args["stop_token"]) if "stop_token" in args else None]
+            text = text[: text.find(request['stop_token']) if 'stop_token' in request.json else None]
 
             # Add the prompt at the beginning of the sequence. Remove the excess text that was used for pre-processing
             total_sequence = (
@@ -77,6 +86,6 @@ class GPT2(AbstractModel):
             generated_sequences.append(total_sequence)
             print(total_sequence)
 
-        generated_text = "".join(str(x) for x in total_sequence)
+        generated_text = "".join(str(x) for x in total_sequence).encode('utf-8')
 
         return generated_text

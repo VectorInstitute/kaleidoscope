@@ -10,5 +10,5 @@ class AbstractModel(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def generate_text(prompt, self):
+    def generate_text(self, request):
         pass

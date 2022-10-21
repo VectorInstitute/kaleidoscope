@@ -25,18 +25,7 @@ def module_names():
 
 @service.route("/generate_text", methods=["POST"])
 def generate_text():
-
-    prompt = request.json["prompt"]
-    args = {}
-    args["length"] = int(request.json["length"]) if "length" in request.json else 128
-    args["temperature"] = float(request.json["temperature"]) if "temperature" in request.json else 1.0
-    args["k"] = float(request.json["k"]) if "k" in request.json else 0
-    args["p"] = float(request.json["p"]) if "p" in request.json else 0.9
-    args["num_return_sequences"] = int(request.json["num_return_sequences"]) if "num_return_sequences" in request.json else 1
-    args["repetition_penalty"] = float(request.json["repetition_penalty"]) if "repetition_penalty" in request.json else 1.0
-
-    result = model.generate_text(prompt, args)
-
+    result = model.generate_text(request)
     return result
 
 

@@ -64,7 +64,7 @@ class OPT_125M(AbstractModel):
         return "Placeholder return text for OPT_125M.module_names()"
 
 
-    def generate_text(self, prompt, args):
+    def generate_text(self, request):
         print("Called OPT_125M.generate_text()")
         return "Placeholder return text for OPT_125M.generate_text()"
 
