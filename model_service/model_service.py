@@ -12,7 +12,7 @@ from models import *
 
 MODEL_CLASSES = { 
     "gpt2": gpt2.GPT2(),
-    "opt_175b": opt_175b.OPT_175B()
+    "opt_125m": opt_125m.OPT_125M()
 }
 
 

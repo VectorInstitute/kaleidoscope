@@ -32,7 +32,7 @@ from metaseq.service.responses import OAIResponse
 #from utils.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
 
 
-class OPT_175B(AbstractModel):
+class OPT_125M(AbstractModel):
 
     def __init__(self):
         self.model = None
@@ -60,13 +60,13 @@ class OPT_175B(AbstractModel):
 
 
     def module_names(self):
-        print("Called OPT_175B.module_names()")
-        return "Placeholder return text for OPT_175B.module_names()"
+        print("Called OPT_125M.module_names()")
+        return "Placeholder return text for OPT_125M.module_names()"
 
 
     def generate_text(self, prompt, args):
-        print("Called OPT_175B.generate_text()")
-        return "Placeholder return text for OPT_175B.generate_text()"
+        print("Called OPT_125M.generate_text()")
+        return "Placeholder return text for OPT_125M.generate_text()"
 
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
