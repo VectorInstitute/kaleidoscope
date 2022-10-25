@@ -38,7 +38,9 @@ class RModel:
         #     )
 
         # model based stuff should use this
-        self.model_base_addr = f"http://{self.host}:{self.port}/{self.model_name}"
+        self.model_base_addr = (
+            f"http://{self.host}:{self.port}/{self.model_name}"
+        )
         self.model_create_addr = partial(urljoin, self.model_base_addr)
 
     def generate_text(self, prompts, /, **gen_kwargs):
@@ -98,24 +100,25 @@ class RModel:
 
 if __name__ == "__main__":
     # Sample text generation using default hyperparameters
-    parser = argparse.ArgumentParser(description='remote model test with live mini opt server')
-    parser.add_argument('--host', action='store', required=True)
-    parser.add_argument('--port', action='store', required=True)
-    parser.add_argument('--model_name', action='store')
+    parser = argparse.ArgumentParser(
+        description="remote model test with live mini opt server"
+    )
+    parser.add_argument("--host", action="store", required=True)
+    parser.add_argument("--port", action="store", required=True)
+    parser.add_argument("--model_name", action="store")
     args = parser.parse_args()
-    host= str(args.host)
-    port= int(args.port)
-    model_name= str(args.model_name)
-    rmodel= RModel(host, port, model_name)
-    text_input= str(input("\nEnter text for generation: "))
+    host = str(args.host)
+    port = int(args.port)
+    model_name = str(args.model_name)
+    rmodel = RModel(host, port, model_name)
+    text_input = str(input("\nEnter text for generation: "))
     print("Generating...")
-    response= rmodel.generate_text(text_input)
+    response = rmodel.generate_text(text_input)
     try:
-        print(response.json()['choices'][0]['text'])
+        print(response.json()["choices"][0]["text"])
     except:
         print("Accomodating for different output response structure: ")
         print(response.text)
-
 
     # rmodel = RModel("localhost", 8000, "GPT2XL")
     # rmodel.probe_dict.update({"transformer.wte.post_activation": [TestForwardHook()]})
@@ -127,7 +130,7 @@ if __name__ == "__main__":
     # with torch.no_grad():
     #     output = rmodel(**encoding)
     # breakpoint()
-    
+
     # out = rmodel.generate_text(
     # ["what is the meaning of life?"],
     # do_sample=True,

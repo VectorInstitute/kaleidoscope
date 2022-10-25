@@ -30,9 +30,9 @@ def get(addr):
     return unpack(resp.content)
 
 
-def post(addr, obj, field_name= "json"):
+def post(addr, obj, field_name="json"):
     # NOTE: the field_name must match the server's field name
-    resp= requests.post(addr, json= obj) # allign with metaseq json request
+    resp = requests.post(addr, json=obj)  # allign with metaseq json request
     check_response(resp)
     return resp
 

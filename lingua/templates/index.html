@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <title>Lingua</title>
   <meta charset="utf-8">
@@ -9,22 +10,23 @@
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
   <style>
-  .fakeimg {
-    height: 200px;
-    background: #aaa;
-  }
+    .fakeimg {
+      height: 200px;
+      background: #aaa;
+    }
   </style>
 </head>
+
 <body>
 
-<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
-  <a class="navbar-brand" href="#">Project Lingua</a>
-  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
-    <span class="navbar-toggler-icon"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="collapsibleNavbar">
-    <ul class="navbar-nav">
-      <!-- <li class="nav-item">
+  <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+    <a class="navbar-brand" href="#">Project Lingua</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="collapsibleNavbar">
+      <ul class="navbar-nav">
+        <!-- <li class="nav-item">
         <a class="nav-link" href="#">Link</a>
       </li>
       <li class="nav-item">
@@ -33,75 +35,84 @@
       <li class="nav-item">
         <a class="nav-link" href="#">Link</a>
       </li>     -->
-    </ul>
-  </div>  
-</nav>
-
-<div class="container" style="margin-top:30px">
-  <div class="row">
-    <div class="col-sm-9">
-        <h4>Playground</h4>
-        <form action="/OPT/generate_text" method="post">
-            <div class="form-group">
-                {% if text_output %}
-                <textarea class="form-control" rows="15" id="comment" name="prompt"> {{ text_output }}</textarea>
-                {% else %}
-                <textarea class="form-control" rows="15" id="comment" name="prompt" placeholder="Enter a prompt..."></textarea>
-                {% endif %}
-            </div>
-            <button class="btn bg-success text-white" type="submit" value="submit">Submit</button>
-        </form>
+      </ul>
     </div>
-    <div class="col-sm-2">
-      <h4>Configurations</h4>
-      <div class="dropdown">
-        <button type="button" class="btn bg-light dropdown-toggle" data-toggle="dropdown">
-          Model Type
-        </button>
-        <div class="dropdown-menu">
-          {% for types in models %}
-          <a class="dropdown-item" value={{ types }} href="#"> {{ types }}</a>
-          {% endfor %}
+  </nav>
+
+  <div class="container" style="margin-top:30px">
+    <div class="row">
+      <div class="col">
+        <h4>Playground</h4>
+        <form>
+          <div class="form-group">
+            {% if text_output %}
+            <textarea class="form-control" rows="15" id="comment" name="prompt"
+              form="text-submit">{{ text_output }}</textarea>
+            {% else %}
+            <textarea class="form-control" rows="15" id="comment" name="prompt" placeholder="Enter a prompt..."
+              form="text-submit"></textarea>
+            {% endif %}
+          </div>
+          <button class="btn bg-success text-white" type="submit" value="submit" form="text-submit">Submit</button>
+        </form>
+      </div>
+      <div class="col-sm-auto">
+        <h4>Configurations</h4>
+        <form action="/GPT2/generate_text" method="post" id="text-submit">
+          <!-- <div class="dropdown">˚
+          <button type="button" class="btn bg-light dropdown-toggle" data-toggle="dropdown">
+            Model Type
+          </button>
+          <div class="dropdown-menu">
+            {% for types in models %}
+            <a class="dropdown-item" value={{ types }} href="#"> {{ types }}</a>
+            {% endfor %}
+          </div>
+        </div> -->
+          <div class="form-group">
+            <label for="model-select">Model</label>
+            <select class="form-control" id="model-select">
+              {% for types in models %}
+              <option class="dropdown-item" href="#" value={{ types }}> {{ types }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="response-length-select">Response Length</label>
+            <input type="number" class="form-control" id="response-length-select" value=128 name="length"
+              placeholder=128 max=512 min=1>
+          </div>
+          <div class="form-group">
+            <label for="temperature-select">Temperature</label>
+            <input type="number" class="form-control" id="temperature-select" value=1 name="temperature" placeholder=1
+              max=1 step=0.1 min=0.1>
+          </div>
+          <div class="form-group">
+            <label for="top-p-select">Top-P</label>
+            <input type="number" class="form-control" id="top-p-select" value=0.9 name="p" placeholder=0.9 max="1"
+              step=0.1 min=0.1>
+          </div>
+          <!-- <div class="form-group">
+          <label for="top-k-select">Top-K</label>
+          <input type="number" class="form-control" id="top-k-select" placeholder="">
         </div>
-        <!-- <nav class="navbar bg-light">
-            <ul class="navbar-nav">
-              <li class="nav-item">
-                <a class="nav-link" href="#">Temperature</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#">Maximum length</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#">Stop sequences</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#">Top P</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#">Frequency penalty</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#">Best of</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#">Inject start text</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#">Inject restart text</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="#">Show probabilities</a>
-              </li>
-            </ul>
-        </nav> -->
+        <div class="form-group">
+          <label for="num-return-sequence-select">Number Return Sequences</label>
+          <input type="number" class="form-control" id="num-return-sequence-select" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="repetition-penalty-select">Repetition Penalty</label>
+          <input type="number" class="form-control" id="repetition-penalty-select" placeholder="">
+        </div> -->
+        </form>
       </div>
     </div>
   </div>
-</div>
 
-<footer class="fixed-bottom bg-dark text-center">
-        <a class="text-white small">Copyright (c) 2022 Vector Institute</a>
-</footer>
+  <footer class="fixed-bottom bg-dark text-center">
+    <a class="text-white small">Copyright (c) 2022 Vector Institute</a>
+  </footer>
 
 </body>
+
 </html>
