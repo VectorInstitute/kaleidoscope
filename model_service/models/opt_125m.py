@@ -16,7 +16,6 @@ from .abstract_model import AbstractModel
 from collections import defaultdict
 from werkzeug.exceptions import HTTPException
 
-
 from metaseq import options
 from metaseq.dataclass.configs import MetaseqConfig
 from metaseq.dataclass.utils import convert_namespace_to_omegaconf
@@ -38,20 +37,32 @@ from metaseq.service.responses import OAIResponse
 
 from utils.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
 
+# global state (mutable!)
+cfg = None
+is_model_loaded = False
 logger = build_logger()
+BATCH_QUEUE = PriorityQueueRingShard()
 
 class OPT_125M(AbstractModel):
 
     def __init__(self):
-        self.model = None
         self.device = None
-        self.generator = None
-        self.MODE = None
-        self.BATCH_QUEUE = PriorityQueueRingShard()
 
 
     def load(self, device):
         self.device = device
+        thread = threading.Thread(target=self.load_async, daemon=True)
+        thread.start()
+
+        # Glorious hack: loop until the model has loaded, then return
+        # TODO: Add a signal handler to clean up worker processes on exit
+        while is_model_loaded is False:
+            time.sleep(5)
+            pass
+
+
+    def load_async(self):
+        global MODE, cfg
 
         # dumb defaults overriding
         parser = options.get_generation_parser()
@@ -81,12 +92,12 @@ class OPT_125M(AbstractModel):
 
         if isinstance(prompts, str):
             # single string. tokenize and turn it to the single pre-tokenized case
-            prompts = [encode_fn(self.generator, prompts)]
+            prompts = [encode_fn(generator, prompts)]
         assert isinstance(prompts, list)
         assert len(prompts) > 0
         if isinstance(prompts[0], str):
             # multi string
-            prompts = [encode_fn(self.generator, p) for p in prompts]
+            prompts = [encode_fn(generator, p) for p in prompts]
         elif isinstance(prompts[0], int):
             # single pre-tokenized
             prompts = [prompts]
@@ -104,9 +115,9 @@ class OPT_125M(AbstractModel):
             if stop is None:
                 pass
             elif isinstance(stop, str):
-                stop = [encode_fn(self.generator, stop)[0]]
+                stop = [encode_fn(generator, stop)[0]]
             else:
-                stop = [encode_fn(self.generator, s)[0] for s in stop]
+                stop = [encode_fn(generator, s)[0] for s in stop]
             generation_args["stop"] = stop
         if "temperature" in generation_args:
             generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
@@ -130,7 +141,7 @@ class OPT_125M(AbstractModel):
                 # +1 to always have the EOS token
                 prompt = prompt[-(MAX_SEQ_LEN - gen_len - 1) :]
             request_object = {"input": prompt, **generation_args}
-            self.BATCH_QUEUE.put(
+            BATCH_QUEUE.put(
                 WorkItem(
                     cost=len(prompt) + gen_len,
                     uid=i,
@@ -161,15 +172,18 @@ class OPT_125M(AbstractModel):
         # may then fight for resources.
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
         torch.set_num_threads(1)
+        global generator
+        global is_model_loaded
+        global MODE
 
         # make sure generations are stochastic since we have many workers
         torch.manual_seed(6 + torch.distributed.get_rank())
         torch.cuda.manual_seed(6 + torch.distributed.get_rank())
-        self.MODE = "worker"
-        self.cfg = cfg1
+        MODE = "worker"
+        cfg = cfg1
 
-        self.generator = GeneratorInterface(self.cfg)
-        models = self.generator.load_model()  # noqa: F841
+        generator = GeneratorInterface(cfg)
+        models = generator.load_model()  # noqa: F841
 
         if torch.distributed.get_rank() == 0:
             print(models[0])    # Cleaner to print
@@ -177,14 +191,17 @@ class OPT_125M(AbstractModel):
 
         assert len(models) == 1
 
-        logger.info(f"loaded model {self.cfg.distributed_training.distributed_rank}")
+        logger.info(f"loaded model {cfg.distributed_training.distributed_rank}")
+
         request_object = distributed_utils.broadcast_object(
             None, src_rank=0, group=distributed_utils.get_global_group()
         )
 
         if torch.distributed.get_rank() == 0:
+            logger.info(f"Worker engaged! {get_my_ip()}")
             thread = threading.Thread(target=self.batching_loop, daemon=True)
             thread.start()
+            is_model_loaded = True
         else:
             # useful in FSDP setting
             logger.info(f"Looping engaged! {get_my_ip()}")
@@ -202,18 +219,19 @@ class OPT_125M(AbstractModel):
 
                     if desired_module_activations:
                         hook_dict, _ = get_activation_capture_hook_dict(
-                            self.generator.models[0],
+                            generator.models[0],
                             desired_module_activations,
                             aux=act_retrieval_aux,
                         )
 
-                        with apply_forward_hook(self.generator.models[0], hook_dict):
-                            _ = self.generator.generate(**request_object)
+                        with apply_forward_hook(generator.models[0], hook_dict):
+                            _ = generator.generate(**request_object)
                     else:
-                        _ = self.generator.generate(**request_object)
+                        _ = generator.generate(**request_object)
 
-                except Exception:
+                except Exception as e:
                     # continue looping for the next generation so we don't lock up
+                    print(f"Caught exception: {str(e)}")
                     pass
 
 
@@ -238,6 +256,8 @@ class OPT_125M(AbstractModel):
         :param max_tokens: the maximum number of tokens that can be processed
             concurrently. model specific and empirical.
         """
+        global BATCH_QUEUE
+
         batch_dict = defaultdict(list)
         target_queue = None
         while True:
@@ -251,7 +271,7 @@ class OPT_125M(AbstractModel):
                 # for now, we only have 1 worker, so can always index to shard 0
                 if target_queue is None:
                     # TODO: try to process a request with the same arg
-                    target_queue = self.BATCH_QUEUE.queue_shards[0].get_largest_queue(b_key)
+                    target_queue = BATCH_QUEUE.queue_shards[0].get_largest_queue(b_key)
                 if not target_queue:
                     continue
                 # dynamic batching: group like-sized items to reduce the cost
@@ -302,7 +322,6 @@ class OPT_125M(AbstractModel):
                     unique_dict = {}
 
                     logger.info("length of batch is {}".format(len(batch)))
-
                     for work_item in batch:
                         ro = work_item.data
                         request_object["inputs"].append(ro["input"])
@@ -363,16 +382,16 @@ class OPT_125M(AbstractModel):
 
                         if desired_module_activations:
                             hook_dict, activation_dict = get_activation_capture_hook_dict(
-                                self.generator.models[0],
+                                generator.models[0],
                                 desired_module_activations,
                                 aux=act_retrieval_aux,
                             )
 
-                            with apply_forward_hook(self.generator.models[0], hook_dict):
-                                generations = self.generator.generate(**request_object)
+                            with apply_forward_hook(generator.models[0], hook_dict):
+                                generations = generator.generate(**request_object)
 
                         else:
-                            generations = self.generator.generate(**request_object)
+                            generations = generator.generate(**request_object)
 
                     except RuntimeError:
                         # Probably cuda died. Unfortunately, we need to hard crash
