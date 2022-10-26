@@ -3,6 +3,7 @@
 from flask import Flask, render_template, request
 
 from models import ALL_MODELS
+
 # from utils import server_parse, server_send
 
 
@@ -56,24 +57,21 @@ async def all_models():
 #     return server_send(ALL_MODELS[model_name].get_parameters(*param_names))
 
 
-# the suffix here should all match remote models'
 @gateway.route("/<model_name>/generate_text", methods=["POST"])
 async def generate_text(model_name: str):
-    # verify_request(model_name)
+    verify_request(model_name)
     data = request.form.copy()
     print(data)
     prompts = data["prompt"]
     del data["prompt"]
     # client_input = server_parse(obj)
-    generated_text = ALL_MODELS[model_name].generate_text(
-        model_name, prompts, **data
-    )
+    generated_text = ALL_MODELS[model_name].generate_text(model_name, prompts, **data)
     if isinstance(generated_text, dict):
-        text_output = str("\n" + generated_text["choices"][0]["text"])
+        text_output = prompts + "\n\n" + generated_text["choices"][0]["text"].lstrip()
     else:
-        text_output = generated_text
+        text_output = prompts + "\n\n" + generated_text.lstrip()
     return render_template(
-        "index.html", models=ALL_MODEL_NAMES, text_output=text_output.lstrip()
+        "index.html", models=ALL_MODEL_NAMES, text_output=text_output
     )
 
 

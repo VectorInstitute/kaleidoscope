@@ -9,18 +9,48 @@
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
-  <style>
-    .fakeimg {
-      height: 200px;
-      background: #aaa;
-    }
-  </style>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script type="text/javascript">
+    var EXAMPLES = {
+      "news": {
+        "prompt": "FACEBOOK DEVELOPS ARTIFICIAL INTELLIGENCE FOR TACO RECOMMENDATIONS\nBloomberg News - Menlo Park, CA\n\nThe technology world is reeling after Facebook ($FB) announced today",
+        "length": 256
+      },
+      "arxiv": {
+        "prompt": "Abstract\n\nWe introduce OPT-175B, a 175B parameter language model that",
+        "length": 256
+      },
+      "chatbot": {
+        "prompt": "A chat between a teacher and student who wants to learn about tacos.\n\nTeacher: Hi there. What would you like to learn about today?\nStudent:",
+        "length": 128
+      },
+      "question": {
+        "prompt": "Question: What color is the sky?\nAnswer: blue\n\nQuestion: Who was the first president of the United States?\nAnswer: George Washington\n\nQuestion: Who is the president in 2021?\nAnswer:",
+        "length": 64
+      },
+      "poetry": {
+        "prompt": "A sonnet about Dodos\n\n",
+        "length": 128
+      }
+    };
+    function set_prompt(name) {
+      $("#response-length-select").val(EXAMPLES[name]["length"]);
+      $("#textbox").val(EXAMPLES[name]["prompt"]);
+    };
+
+    function actionOnSubmit() {
+      var e = document.getElementById("model-select");
+      var formaction = e.options[e.selectedIndex].value;
+      document.form1.action = formaction.concat("/generate_text");
+    };
+  </script>
+
 </head>
 
 <body>
 
   <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
-    <a class="navbar-brand" href="#">Project Lingua</a>
+    <a class="navbar-brand" href="/">Project Lingua</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -43,13 +73,19 @@
     <div class="row">
       <div class="col">
         <h4>Playground</h4>
+        <!-- <span>Examples:</span>
+        <span><a href='javascript:set_prompt("news");'>News</a></span>
+        <span><a href='javascript:set_prompt("arxiv");'>ML paper</a></span>
+        <span><a href='javascript:set_prompt("chatbot");'>Chatbot</a></span>
+        <span><a href='javascript:set_prompt("question");'>QA</a></span>
+        <span><a href='javascript:set_prompt("poetry");'>Poetry</a></span> -->
         <form>
           <div class="form-group">
             {% if text_output %}
-            <textarea class="form-control" rows="15" id="comment" name="prompt"
+            <textarea class="form-control" rows="15" id="textbox" name="prompt"
               form="text-submit">{{ text_output }}</textarea>
             {% else %}
-            <textarea class="form-control" rows="15" id="comment" name="prompt" placeholder="Enter a prompt..."
+            <textarea class="form-control" rows="15" id="textbox" name="prompt" placeholder="Enter a prompt..."
               form="text-submit"></textarea>
             {% endif %}
           </div>
@@ -58,22 +94,12 @@
       </div>
       <div class="col-sm-auto">
         <h4>Configurations</h4>
-        <form action="/GPT2/generate_text" method="post" id="text-submit">
-          <!-- <div class="dropdown">˚
-          <button type="button" class="btn bg-light dropdown-toggle" data-toggle="dropdown">
-            Model Type
-          </button>
-          <div class="dropdown-menu">
-            {% for types in models %}
-            <a class="dropdown-item" value={{ types }} href="#"> {{ types }}</a>
-            {% endfor %}
-          </div>
-        </div> -->
+        <form onsubmit="actionOnSubmit()" method="post" id="text-submit" name="form1">
           <div class="form-group">
             <label for="model-select">Model</label>
             <select class="form-control" id="model-select">
               {% for types in models %}
-              <option class="dropdown-item" href="#" value={{ types }}> {{ types }}</option>
+              <option class="dropdown-item" value={{ types }}> {{ types }}</option>
               {% endfor %}
             </select>
           </div>

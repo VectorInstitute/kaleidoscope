@@ -38,9 +38,7 @@ class RModel:
         #     )
 
         # model based stuff should use this
-        self.model_base_addr = (
-            f"http://{self.host}:{self.port}/{self.model_name}"
-        )
+        self.model_base_addr = f"http://{self.host}:{self.port}/{self.model_name}"
         self.model_create_addr = partial(urljoin, self.model_base_addr)
 
     def generate_text(self, prompts, /, **gen_kwargs):

@@ -66,7 +66,7 @@ class _ServerModel:
 @dataclass
 class OPT(_ServerModel):
 
-    device_for_input: str  # where the input should go
+    device_for_input: str
 
     hf_model_name: str = r"facebook/opt-125m"
 
@@ -74,11 +74,9 @@ class OPT(_ServerModel):
         default=None, init=False, repr=False, compare=False
     )
 
-    model: PreTrainedModel = field(
-        default=None, init=False, repr=False, compare=False
-    )
+    model: PreTrainedModel = field(default=None, init=False, repr=False, compare=False)
 
-    url: str = "http://172.17.8.73:8080/completions"
+    url: str = "http://gpu135.cluster.local:6010"
 
     def __post_init__(self):
         self.lazy_init()
@@ -113,7 +111,7 @@ class OPT(_ServerModel):
 
     def generate_text(self, prompts, /, **gen_kwargs):
         response = requests.post(
-            OPT.url, json={"prompt": prompts, **gen_kwargs}
+            OPT.url + "/completions", json={"prompt": prompts, **gen_kwargs}
         )
         print(response.text)
         # encoding = self.tokenizer(prompts, padding=True, return_tensors="pt").to(
@@ -146,11 +144,7 @@ class OPT(_ServerModel):
         return tuple(n for n, _ in self.model.named_parameters())
 
     def get_parameters(self, *names):
-        return {
-            n: p.cpu()
-            for n, p in self.model.named_parameters()
-            if n in set(names)
-        }
+        return {n: p.cpu() for n, p in self.model.named_parameters() if n in set(names)}
 
     @property
     def probe_points(self):
@@ -172,19 +166,17 @@ class OPT(_ServerModel):
 @dataclass
 class GPT2(_ServerModel):
 
-    device_for_input: str  # where the input should go
+    device_for_input: str
 
-    hf_model_name: str = r"facebook/opt-125m"
+    hf_model_name: str = r"huggingface/gpt2"
 
     tokenizer: PreTrainedTokenizerBase = field(
         default=None, init=False, repr=False, compare=False
     )
 
-    model: PreTrainedModel = field(
-        default=None, init=False, repr=False, compare=False
-    )
+    model: PreTrainedModel = field(default=None, init=False, repr=False, compare=False)
 
-    url: str = "http://172.17.8.52:8000"
+    url: str = "http://172.17.8.57:8000"
 
     def __post_init__(self):
         self.lazy_init()
@@ -221,7 +213,6 @@ class GPT2(_ServerModel):
         response = requests.post(
             GPT2.url + "/generate_text", json={"prompt": prompts, **gen_kwargs}
         )
-        print(response.text)
         # encoding = self.tokenizer(prompts, padding=True, return_tensors="pt").to(
         #     self.device_for_input
         # )
@@ -252,11 +243,7 @@ class GPT2(_ServerModel):
         return tuple(n for n, _ in self.model.named_parameters())
 
     def get_parameters(self, *names):
-        return {
-            n: p.cpu()
-            for n, p in self.model.named_parameters()
-            if n in set(names)
-        }
+        return {n: p.cpu() for n, p in self.model.named_parameters() if n in set(names)}
 
     @property
     def probe_points(self):
