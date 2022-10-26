@@ -54,14 +54,15 @@ class OPT_125M(AbstractModel):
         thread = threading.Thread(target=self.load_async, daemon=True)
         thread.start()
 
-        # Glorious hack: loop until the model has loaded, then return
-        # TODO: Add a signal handler to clean up worker processes on exit
+        # Glorious hack: loop until the model has loaded, then return while the thread is still active
+        global is_model_loaded
         while is_model_loaded is False:
-            time.sleep(5)
+            time.sleep(1)
             pass
 
 
     def load_async(self):
+
         global MODE, cfg
 
         # dumb defaults overriding
@@ -202,10 +203,13 @@ class OPT_125M(AbstractModel):
             thread = threading.Thread(target=self.batching_loop, daemon=True)
             thread.start()
             is_model_loaded = True
+            # Now block, and wait
+            while True:
+                time.sleep(1)
+                pass
         else:
             # useful in FSDP setting
             logger.info(f"Looping engaged! {get_my_ip()}")
-
             while True:
                 try:
                     request_object = distributed_utils.broadcast_object(
@@ -267,7 +271,6 @@ class OPT_125M(AbstractModel):
                 b_key, bs_list = (
                     next(iter(batch_dict.items())) if batch_dict else (None, [])
                 )
-
                 # for now, we only have 1 worker, so can always index to shard 0
                 if target_queue is None:
                     # TODO: try to process a request with the same arg
