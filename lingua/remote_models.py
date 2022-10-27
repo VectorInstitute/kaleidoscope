@@ -76,10 +76,7 @@ class RModel:
 
         return post(
             self.model_create_addr("encode"),
-            {
-                "prompts": prompts,
-                "tokenizer_kwargs": tokenizer_kwargs,
-            },
+            {"prompts": prompts, "tokenizer_kwargs": tokenizer_kwargs,},
         )
 
     def __call__(self, *args, **kwargs):

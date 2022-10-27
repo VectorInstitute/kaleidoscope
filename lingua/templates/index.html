@@ -33,16 +33,28 @@
         "length": 128
       }
     };
-    function set_prompt(name) {
-      $("#response-length-select").val(EXAMPLES[name]["length"]);
-      $("#textbox").val(EXAMPLES[name]["prompt"]);
-    };
+    // function set_prompt(name) {
+    //   $("#response-length-select").val(EXAMPLES[name]["length"]);
+    //   $("#textbox").val(EXAMPLES[name]["prompt"]);
+    // };
 
-    function actionOnSubmit() {
-      var e = document.getElementById("model-select");
-      var formaction = e.options[e.selectedIndex].value;
-      document.form1.action = formaction.concat("/generate_text");
-    };
+    $(document).ready(function () {
+      $("#text-submit").submit(function (event) {
+        var selectedModel = document.getElementById("model-select");
+        $.ajax({
+          url: "http://172.17.15.246:3000/".concat(selectedModel.options[selectedModel.selectedIndex].value, "/generate_text"),
+          type: "POST",
+          data: $("#text-submit").serialize()
+          // dataType: "json",
+          // encode: true,
+        }).done(function (data) {
+          $('#textbox').val(data);
+          console.log(data);
+        });
+
+        event.preventDefault();
+      });
+    });
   </script>
 
 </head>
@@ -94,7 +106,8 @@
       </div>
       <div class="col-sm-auto">
         <h4>Configurations</h4>
-        <form onsubmit="actionOnSubmit()" method="post" id="text-submit" name="form1">
+
+        <form id="text-submit" name="form1">
           <div class="form-group">
             <label for="model-select">Model</label>
             <select class="form-control" id="model-select">

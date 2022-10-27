@@ -70,9 +70,10 @@ async def generate_text(model_name: str):
         text_output = prompts + "\n\n" + generated_text["choices"][0]["text"].lstrip()
     else:
         text_output = prompts + "\n\n" + generated_text.lstrip()
-    return render_template(
-        "index.html", models=ALL_MODEL_NAMES, text_output=text_output
-    )
+    return text_output
+    # return render_template(
+    #     "index.html", models=ALL_MODEL_NAMES, text_output=text_output
+    # )
 
 
 if __name__ == "__main__":
