@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Lingua</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script type="text/javascript">
+    var EXAMPLES = {
+      "news": {
+        "prompt": "FACEBOOK DEVELOPS ARTIFICIAL INTELLIGENCE FOR TACO RECOMMENDATIONS\nBloomberg News - Menlo Park, CA\n\nThe technology world is reeling after Facebook ($FB) announced today",
+        "length": 256
+      },
+      "arxiv": {
+        "prompt": "Abstract\n\nWe introduce OPT-175B, a 175B parameter language model that",
+        "length": 256
+      },
+      "chatbot": {
+        "prompt": "A chat between a teacher and student who wants to learn about tacos.\n\nTeacher: Hi there. What would you like to learn about today?\nStudent:",
+        "length": 128
+      },
+      "question": {
+        "prompt": "Question: What color is the sky?\nAnswer: blue\n\nQuestion: Who was the first president of the United States?\nAnswer: George Washington\n\nQuestion: Who is the president in 2021?\nAnswer:",
+        "length": 64
+      },
+      "poetry": {
+        "prompt": "A sonnet about Dodos\n\n",
+        "length": 128
+      }
+    };
+    // function set_prompt(name) {
+    //   $("#response-length-select").val(EXAMPLES[name]["length"]);
+    //   $("#textbox").val(EXAMPLES[name]["prompt"]);
+    // };
+
+    $(document).ready(function () {
+      $("#text-submit").submit(function (event) {
+        var selectedModel = document.getElementById("model-select");
+        $.ajax({
+          url: "http://172.17.15.246:3000/".concat(selectedModel.options[selectedModel.selectedIndex].value, "/generate_text"),
+          type: "POST",
+          data: $("#text-submit").serialize()
+          // dataType: "json",
+          // encode: true,
+        }).done(function (data) {
+          $('#textbox').val(data);
+          console.log(data);
+        });
+
+        event.preventDefault();
+      });
+    });
+  </script>
+
+</head>
+
+<body>
+
+  <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+    <a class="navbar-brand" href="/">Project Lingua</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="collapsibleNavbar">
+      <ul class="navbar-nav">
+        <!-- <li class="nav-item">
+        <a class="nav-link" href="#">Link</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Link</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Link</a>
+      </li>     -->
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container" style="margin-top:30px">
+    <div class="row">
+      <div class="col">
+        <h4>Playground</h4>
+        <!-- <span>Examples:</span>
+        <span><a href='javascript:set_prompt("news");'>News</a></span>
+        <span><a href='javascript:set_prompt("arxiv");'>ML paper</a></span>
+        <span><a href='javascript:set_prompt("chatbot");'>Chatbot</a></span>
+        <span><a href='javascript:set_prompt("question");'>QA</a></span>
+        <span><a href='javascript:set_prompt("poetry");'>Poetry</a></span> -->
+        <form>
+          <div class="form-group">
+            {% if text_output %}
+            <textarea class="form-control" rows="15" id="textbox" name="prompt"
+              form="text-submit">{{ text_output }}</textarea>
+            {% else %}
+            <textarea class="form-control" rows="15" id="textbox" name="prompt" placeholder="Enter a prompt..."
+              form="text-submit"></textarea>
+            {% endif %}
+          </div>
+          <button class="btn bg-success text-white" type="submit" value="submit" form="text-submit">Submit</button>
+        </form>
+      </div>
+      <div class="col-sm-auto">
+        <h4>Configurations</h4>
+
+        <form id="text-submit" name="form1">
+          <div class="form-group">
+            <label for="model-select">Model</label>
+            <select class="form-control" id="model-select">
+              {% for types in models %}
+              <option class="dropdown-item" value={{ types }}> {{ types }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="response-length-select">Response Length</label>
+            <input type="number" class="form-control" id="response-length-select" value=128 name="length"
+              placeholder=128 max=512 min=1>
+          </div>
+          <div class="form-group">
+            <label for="temperature-select">Temperature</label>
+            <input type="number" class="form-control" id="temperature-select" value=1 name="temperature" placeholder=1
+              max=1 step=0.1 min=0.1>
+          </div>
+          <div class="form-group">
+            <label for="top-p-select">Top-P</label>
+            <input type="number" class="form-control" id="top-p-select" value=0.9 name="p" placeholder=0.9 max="1"
+              step=0.1 min=0.1>
+          </div>
+          <!-- <div class="form-group">
+          <label for="top-k-select">Top-K</label>
+          <input type="number" class="form-control" id="top-k-select" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="num-return-sequence-select">Number Return Sequences</label>
+          <input type="number" class="form-control" id="num-return-sequence-select" placeholder="">
+        </div>
+        <div class="form-group">
+          <label for="repetition-penalty-select">Repetition Penalty</label>
+          <input type="number" class="form-control" id="repetition-penalty-select" placeholder="">
+        </div> -->
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <footer class="fixed-bottom bg-dark text-center">
+    <a class="text-white small">Copyright (c) 2022 Vector Institute</a>
+  </footer>
+
+</body>
+
+</html>
