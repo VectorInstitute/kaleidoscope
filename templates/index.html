@@ -5,19 +5,18 @@
   <title>Lingua</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
   <script type="text/javascript">
     var EXAMPLES = {
       "news": {
-        "prompt": "FACEBOOK DEVELOPS ARTIFICIAL INTELLIGENCE FOR TACO RECOMMENDATIONS\nBloomberg News - Menlo Park, CA\n\nThe technology world is reeling after Facebook ($FB) announced today",
+        "prompt": "VECTOR INSTITUTE DEVELOPS ARTIFICIAL INTELLIGENCE FOR HEALTH RECOMMENDATIONS",
         "length": 256
       },
       "arxiv": {
-        "prompt": "Abstract\n\nWe introduce OPT-175B, a 175B parameter language model that",
+        "prompt": "Abstract\n\nWe introduce large language models, models that",
         "length": 256
       },
       "chatbot": {
@@ -25,18 +24,22 @@
         "length": 128
       },
       "question": {
-        "prompt": "Question: What color is the sky?\nAnswer: blue\n\nQuestion: Who was the first president of the United States?\nAnswer: George Washington\n\nQuestion: Who is the president in 2021?\nAnswer:",
+        "prompt": "Question: What color is the sky?\nAnswer: blue\n\nQuestion: Who was the first president of the United States?\nAnswer: George Washington\n\nQuestion: Who is the president in 2022?\nAnswer:",
         "length": 64
       },
       "poetry": {
-        "prompt": "A sonnet about Dodos\n\n",
+        "prompt": "A sonnet about life\n\n",
+        "length": 128
+      },
+      "none": {
+        "prompt": "",
         "length": 128
       }
     };
-    // function set_prompt(name) {
-    //   $("#response-length-select").val(EXAMPLES[name]["length"]);
-    //   $("#textbox").val(EXAMPLES[name]["prompt"]);
-    // };
+    function set_prompt(name) {
+      $("#response-length-select").val(EXAMPLES[name]["length"]);
+      $("#textbox").val(EXAMPLES[name]["prompt"]);
+    };
 
     $(document).ready(function () {
       $("#text-submit").submit(function (event) {
@@ -45,13 +48,10 @@
           url: "http://172.17.15.246:3000/".concat(selectedModel.options[selectedModel.selectedIndex].value, "/generate_text"),
           type: "POST",
           data: $("#text-submit").serialize()
-          // dataType: "json",
-          // encode: true,
         }).done(function (data) {
           $('#textbox').val(data);
           console.log(data);
         });
-
         event.preventDefault();
       });
     });
@@ -62,35 +62,64 @@
 <body>
 
   <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
-    <a class="navbar-brand" href="/">Project Lingua</a>
+    <a class="navbar-brand" href="/">Lingua</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="collapsibleNavbar">
       <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="/">Playground</a>
+        </li>
         <!-- <li class="nav-item">
         <a class="nav-link" href="#">Link</a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="#">Link</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="#">Link</a>
-      </li>     -->
+      </li> -->
       </ul>
     </div>
   </nav>
 
-  <div class="container" style="margin-top:30px">
+  <div class="container-fluid mt-3">
     <div class="row">
       <div class="col">
-        <h4>Playground</h4>
-        <!-- <span>Examples:</span>
-        <span><a href='javascript:set_prompt("news");'>News</a></span>
-        <span><a href='javascript:set_prompt("arxiv");'>ML paper</a></span>
-        <span><a href='javascript:set_prompt("chatbot");'>Chatbot</a></span>
-        <span><a href='javascript:set_prompt("question");'>QA</a></span>
-        <span><a href='javascript:set_prompt("poetry");'>Poetry</a></span> -->
+        <div class="row-fluid col-fluid">
+          <div class="d-inline-block">
+            <h3 class="d-inline-block">Playground</h3>
+            <nav class="navbar navbar-expand-lg navbar-light d-inline-block">
+              <div class="container-fluid">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false"
+                  aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                  <div class="navbar-nav">
+                    <!-- <a class="nav-link active" aria-current="page" href="#">Template</a> -->
+                    <a class="nav-link" href="#">Feature 1</a>
+                    <!-- <a class="nav-link" href="#">Feature 2</a> -->
+                    <div class="dropdown">
+                      <button class="btn dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown"
+                        aria-haspopup="true" aria-expanded="false">
+                        Examples
+                      </button>
+                      <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <a class="dropdown-item" href='javascript:set_prompt("news");'>News</a>
+                        <a class="dropdown-item" href='javascript:set_prompt("arxiv");'>ML paper</a>
+                        <a class="dropdown-item" href='javascript:set_prompt("chatbot");'>Chatbot</a>
+                        <a class="dropdown-item" href='javascript:set_prompt("question");'>QA</a>
+                        <a class="dropdown-item" href='javascript:set_prompt("poetry");'>Poetry</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href='javascript:set_prompt("none");'>None</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </nav>
+          </div>
+        </div>
         <form>
           <div class="form-group">
             {% if text_output %}
@@ -105,9 +134,7 @@
         </form>
       </div>
       <div class="col-sm-auto">
-        <h4>Configurations</h4>
-
-        <form id="text-submit" name="form1">
+        <form id="text-submit" name="submit-form">
           <div class="form-group">
             <label for="model-select">Model</label>
             <select class="form-control" id="model-select">
@@ -130,19 +157,19 @@
             <label for="top-p-select">Top-P</label>
             <input type="number" class="form-control" id="top-p-select" value=0.9 name="p" placeholder=0.9 max="1"
               step=0.1 min=0.1>
+          <!-- </div>
+          <div class="form-group">
+            <label for="top-k-select">Top-K</label>
+            <input type="number" class="form-control" id="top-k-select" placeholder="">
           </div>
-          <!-- <div class="form-group">
-          <label for="top-k-select">Top-K</label>
-          <input type="number" class="form-control" id="top-k-select" placeholder="">
-        </div>
-        <div class="form-group">
-          <label for="num-return-sequence-select">Number Return Sequences</label>
-          <input type="number" class="form-control" id="num-return-sequence-select" placeholder="">
-        </div>
-        <div class="form-group">
-          <label for="repetition-penalty-select">Repetition Penalty</label>
-          <input type="number" class="form-control" id="repetition-penalty-select" placeholder="">
-        </div> -->
+          <div class="form-group">
+            <label for="num-return-sequence-select">Number Return Sequences</label>
+            <input type="number" class="form-control" id="num-return-sequence-select" placeholder="">
+          </div>
+          <div class="form-group">
+            <label for="repetition-penalty-select">Repetition Penalty</label>
+            <input type="number" class="form-control" id="repetition-penalty-select" placeholder="">
+          </div> -->
         </form>
       </div>
     </div>
