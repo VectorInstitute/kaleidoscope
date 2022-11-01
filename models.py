@@ -176,7 +176,7 @@ class GPT2(_ServerModel):
 
     model: PreTrainedModel = field(default=None, init=False, repr=False, compare=False)
 
-    url: str = "http://172.17.8.59:8000"
+    url: str = "http://172.17.8.57:8000"
 
     def __post_init__(self):
         self.lazy_init()
