@@ -23,9 +23,12 @@ def verify_request(model_name):
 
 @gateway.route("/", methods=["GET"])
 async def home():
-    #  return f"sample inference server for models: {set(ALL_MODELS.keys())}"
-    return render_template("index.html", models=ALL_MODEL_NAMES)
+    return render_template("home.html")
 
+@gateway.route("/playground", methods=["GET"])
+async def playground():
+    #  return f"sample inference server for models: {set(ALL_MODELS.keys())}"
+    return render_template("playground.html", models=ALL_MODEL_NAMES)
 
 @gateway.route("/all_models", methods=["GET"])
 async def all_models():
@@ -67,9 +70,9 @@ async def generate_text(model_name: str):
     # client_input = server_parse(obj)
     generated_text = ALL_MODELS[model_name].generate_text(model_name, prompts, **data)
     if isinstance(generated_text, dict):
-        text_output = prompts + "\n\n" + generated_text["choices"][0]["text"].lstrip()
+        text_output = generated_text["choices"][0]["text"].strip()
     else:
-        text_output = prompts + "\n\n" + generated_text.lstrip()
+        text_output = generated_text.strip()
     return text_output
     # return render_template(
     #     "index.html", models=ALL_MODEL_NAMES, text_output=text_output
