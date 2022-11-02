@@ -10,6 +10,14 @@ from models import ALL_MODELS
 gateway = Flask(__name__)
 
 ALL_MODEL_NAMES = set(ALL_MODELS.keys())
+AVAILABLE_MODELS = {}
+
+
+class ModelInstance():
+
+    def __init__(self, type, host):
+        self.type = type
+        self.host = host
 
 
 def verify_request(model_name):
@@ -25,14 +33,35 @@ def verify_request(model_name):
 async def home():
     return render_template("home.html")
 
+
 @gateway.route("/playground", methods=["GET"])
 async def playground():
     #  return f"sample inference server for models: {set(ALL_MODELS.keys())}"
     return render_template("playground.html", models=ALL_MODEL_NAMES)
 
+
 @gateway.route("/all_models", methods=["GET"])
 async def all_models():
     return list(ALL_MODEL_NAMES)
+
+
+@gateway.route("/available_models", methods=["GET"])
+async def available_models():
+    return list(AVAILABLE_MODELS.keys())
+
+
+@gateway.route("/register_model", methods=["GET"])
+async def register_model():
+    # If a model of this type has already been registered, return an error
+    if request.json['model_type'] in AVAILABLE_MODELS.keys():
+        result = f"ERROR: Model type {request.json['model_type']} has already been registered"
+        return result, 450
+
+    # Register model and return success
+    new_model = ModelInstance(request.json['model_type'], request.json['model_host'])
+    AVAILABLE_MODELS[request.json['model_type']] = new_model
+    result = {"result": f"Successfully registered model {request.json['model_type']}"}
+    return result, 200
 
 
 # @gateway.route("/<model_name>/module_names/", methods=["GET"])
@@ -80,4 +109,4 @@ async def generate_text(model_name: str):
 
 
 if __name__ == "__main__":
-    gateway.run(host="0.0.0.0", port=3000, debug=True)
+    gateway.run(host="0.0.0.0", port=3001, debug=True)
