@@ -1,19 +1,21 @@
-# start by pulling the python image
-FROM python:3.8-alpine
+FROM python:3.9.13
 
-# copy the requirements file into the image
-COPY ./requirements.txt /app/requirements.txt
-
-# switch working directory
+# Create app directory
 WORKDIR /app
 
-# install the dependencies and packages in the requirements file
+# Install app dependencies
+COPY requirements.txt ./
+
+# Upgrade pip
+RUN pip install --upgrade pip
+
+# Install dependancies
 RUN pip install -r requirements.txt
 
-# copy every content from the local file to the image
-COPY . /app
+# Bundle app source
+COPY . .
 
-# configure the container to run in an executed manner
-ENTRYPOINT [ "python" ]
+EXPOSE 5000
 
-CMD ["gateway_service.py" ]
+# Run application
+CMD [ "flask", "--app", "gateway_service", "run", "--host", "0.0.0.0", "--port", "5000"]

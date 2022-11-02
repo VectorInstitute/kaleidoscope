@@ -74,7 +74,9 @@ class OPT(_ServerModel):
         default=None, init=False, repr=False, compare=False
     )
 
-    model: PreTrainedModel = field(default=None, init=False, repr=False, compare=False)
+    model: PreTrainedModel = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     url: str = "http://gpu135.cluster.local:6010"
 
@@ -144,7 +146,11 @@ class OPT(_ServerModel):
         return tuple(n for n, _ in self.model.named_parameters())
 
     def get_parameters(self, *names):
-        return {n: p.cpu() for n, p in self.model.named_parameters() if n in set(names)}
+        return {
+            n: p.cpu()
+            for n, p in self.model.named_parameters()
+            if n in set(names)
+        }
 
     @property
     def probe_points(self):
@@ -174,9 +180,11 @@ class GPT2(_ServerModel):
         default=None, init=False, repr=False, compare=False
     )
 
-    model: PreTrainedModel = field(default=None, init=False, repr=False, compare=False)
+    model: PreTrainedModel = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
-    url: str = "http://172.17.8.57:8000"
+    url: str = "http://172.17.8.58:8000"
 
     def __post_init__(self):
         self.lazy_init()
@@ -243,7 +251,11 @@ class GPT2(_ServerModel):
         return tuple(n for n, _ in self.model.named_parameters())
 
     def get_parameters(self, *names):
-        return {n: p.cpu() for n, p in self.model.named_parameters() if n in set(names)}
+        return {
+            n: p.cpu()
+            for n, p in self.model.named_parameters()
+            if n in set(names)
+        }
 
     @property
     def probe_points(self):
