@@ -21,12 +21,12 @@ def verify_request(model_name):
         )
 
 
+@gateway.route("/overview", methods=["GET"])
+async def overview():
+    return render_template("overview.html")
+
 @gateway.route("/", methods=["GET"])
 async def home():
-    return render_template("home.html")
-
-@gateway.route("/playground", methods=["GET"])
-async def playground():
     #  return f"sample inference server for models: {set(ALL_MODELS.keys())}"
     return render_template("playground.html", models=ALL_MODEL_NAMES)
 
