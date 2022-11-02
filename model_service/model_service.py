@@ -65,10 +65,18 @@ def main():
         "model_type": args.model_type
     }
     try:
-        response = requests.post(register_url, json=register_data)
+        response = requests.get(register_url, json=register_data)
+        # HTTP error codes between 450 and 500 are custom to the lingua gateway
+        if int(response.status_code) >= 450 and int(response.status_code) < 500:
+            raise requests.HTTPError(response.content.decode('utf-8'))
+    # If we fail to contact the gateway service, print an error but continue running anyway
+    # TODO: HTTPError probably isn't the best way to catch custom errors
+    except requests.HTTPError as e:
+        print(e)
+    except requests.ConnectionError as e:
+        print(f"Connection error: {e}")
     except:
-        # If we fail to contact the gateway service, print an error but continue running anyway
-        print(f"ERROR: Failed to contact gateway service at {config.GATEWAY_HOST}")
+        print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
 
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
     print("Starting model service, press Ctrl+C to exit")
