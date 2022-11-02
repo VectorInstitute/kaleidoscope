@@ -16,7 +16,9 @@ def check_response(resp):
     if not resp.ok:
         raise ValueError(
             "request to {} not sucessful, error code: {} msg: {}".format(
-                resp.url, resp.status_code, resp.json()["detail"],
+                resp.url,
+                resp.status_code,
+                resp.json()["detail"],
             )
         )
     logger.debug("addr %s response code %s", resp.url, resp.status_code)
