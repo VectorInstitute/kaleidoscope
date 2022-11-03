@@ -10,8 +10,11 @@ from models import ALL_MODELS
 gateway = Flask(__name__)
 
 ALL_MODEL_NAMES = set(ALL_MODELS.keys())
-AVAILABLE_MODELS = {}
 
+
+# Model Instances represents the set of models that are currently active and able to service requests
+
+MODEL_INSTANCES = {}
 
 class ModelInstance():
 
@@ -47,19 +50,19 @@ async def all_models():
 
 @gateway.route("/available_models", methods=["GET"])
 async def available_models():
-    return list(AVAILABLE_MODELS.keys())
+    return list(MODEL_INSTANCES.keys())
 
 
 @gateway.route("/register_model", methods=["GET"])
 async def register_model():
     # If a model of this type has already been registered, return an error
-    if request.json['model_type'] in AVAILABLE_MODELS.keys():
+    if request.json['model_type'] in MODEL_INSTANCES.keys():
         result = f"ERROR: Model type {request.json['model_type']} has already been registered"
         return result, 450
 
     # Register model and return success
     new_model = ModelInstance(request.json['model_type'], request.json['model_host'])
-    AVAILABLE_MODELS[request.json['model_type']] = new_model
+    MODEL_INSTANCES[request.json['model_type']] = new_model
     result = {"result": f"Successfully registered model {request.json['model_type']}"}
     return result, 200
 
