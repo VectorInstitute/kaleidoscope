@@ -1,6 +1,7 @@
 import argparse
 import flask
 import requests
+import signal
 import socket
 import sys
 import torch
@@ -8,6 +9,11 @@ import torch
 from flask import Flask, request, jsonify
 
 import config
+
+
+# Globals
+
+AVAILABLE_MODELS = ["gpt2", "opt_125m"]
 
 
 # Start the Flask service that will hand off requests to the model libraries
@@ -28,8 +34,6 @@ def generate_text():
 # We only want to load the model library that's being requested, not all of them
 # TODO: Is there a way to make this happen automatically, without separate entries?
 
-AVAILABLE_MODELS = ["gpt2", "opt_125m"]
-
 def initialize_model(model_type):
     if model_type == "gpt2":
         from models import gpt2
@@ -37,6 +41,28 @@ def initialize_model(model_type):
     if model_type == "opt_125m":
         from models import opt_125m
         return opt_125m.OPT_125M()
+
+
+# Signal handler to send a remove request to the gateway, if this service is killed by the system
+
+def signal_handler(sig, frame):
+    global model_type
+    print(f"Signal handler called, sending remove request for type={model_type}")
+    send_remove_request(model_type)
+    sys.exit(0)
+
+
+def send_remove_request(model_type):
+    remove_url = f"http://{config.GATEWAY_HOST}/remove_model"
+    remove_data = {
+        "model_type": model_type
+    }
+    try:
+        response = requests.get(remove_url, json=remove_data)
+    except requests.ConnectionError as e:
+        print(f"Connection error: {e}")
+    except:
+        print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
 
 
 def main():
@@ -52,8 +78,9 @@ def main():
         sys.exit(1)
 
     # Setup a global model instance
-    global model
+    global model, model_type
     model = initialize_model(args.model_type)
+    model_type = args.model_type
 
     # Load the model into GPU memory
     model.load(args.device)
@@ -78,9 +105,16 @@ def main():
     except:
         print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
 
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
     print("Starting model service, press Ctrl+C to exit")
     service.run(host=config.MODEL_HOST.split(':')[0], port=config.MODEL_HOST.split(':')[1])
+
+    # Inform the gateway service that we are shutting down and it should remove this model
+    send_remove_request(args.model_type)
 
 
 if __name__ == "__main__":
