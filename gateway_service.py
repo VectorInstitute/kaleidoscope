@@ -2,6 +2,7 @@
 
 from flask import Flask, render_template, request
 
+import config
 from models import ALL_MODELS
 
 # from utils import server_parse, server_send
@@ -111,4 +112,4 @@ async def generate_text(model_name: str):
 
 
 if __name__ == "__main__":
-    gateway.run(debug=True)
+    gateway.run(debug=True, host=config.GATEWAY_HOST, port=config.GATEWAY_PORT)
