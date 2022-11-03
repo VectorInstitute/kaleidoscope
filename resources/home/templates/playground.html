@@ -47,7 +47,7 @@
         loadAnimation();
         var selectedModel = document.getElementById("model-select");
         $.ajax({
-          url: selectedModel.options[selectedModel.selectedIndex].value + "/generate_text",
+          url: "/models/" + selectedModel.options[selectedModel.selectedIndex].value + "/generate_text",
           type: "POST",
           data: $("#text-submit").serialize()
         }).done(function (data) {

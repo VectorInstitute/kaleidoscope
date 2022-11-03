@@ -2,7 +2,6 @@ from flask import Blueprint, request, current_app, make_response
 from flask_ldap3_login import AuthenticationResponseStatus
 from flask_jwt_extended import create_access_token
 
-
 auth = Blueprint('auth', __name__)
 
 @auth.route("/authenticate", methods=["POST"])

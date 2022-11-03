@@ -11,7 +11,6 @@ from protocols import pack, unpack
 
 logger = logging.getLogger(__name__)
 
-
 def check_response(resp):
     if not resp.ok:
         raise ValueError(

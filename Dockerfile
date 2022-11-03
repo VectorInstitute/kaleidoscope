@@ -16,5 +16,4 @@ COPY . /app
 # configure the container to run in an executed manner
 ENTRYPOINT [ "python" ]
 
-EXPOSE 3000
 CMD ["gateway_service.py" ]
