@@ -1,4 +1,5 @@
-FROM python:3.9.13
+# start by pulling the python image
+FROM --platform=linux/amd64 python:3.8
 
 # Create app directory
 WORKDIR /app
@@ -17,5 +18,4 @@ COPY . .
 
 EXPOSE 5000
 
-# Run application
-CMD [ "flask", "--app", "gateway_service", "run", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["gateway_service.py" ]

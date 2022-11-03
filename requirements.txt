@@ -47,3 +47,5 @@ urllib3==1.26.12
 Werkzeug==2.2.2
 wrapt==1.14.1
 zipp==3.9.0
+flask-jwt-extended
+flask-ldap3-login
