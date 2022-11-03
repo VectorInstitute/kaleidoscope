@@ -68,6 +68,16 @@ async def register_model():
     return result, 200
 
 
+@gateway.route("/remove_model", methods=["GET"])
+async def remove_model():
+    # Make sure this model has actually been registered before trying to remove it
+    if request.json['model_type'] in MODEL_INSTANCES.keys():
+        del MODEL_INSTANCES[request.json['model_type']]
+
+    result = {"result": f"Successfully removed model {request.json['model_type']}"}
+    return result, 200
+
+
 # @gateway.route("/<model_name>/module_names/", methods=["GET"])
 # async def module_names(model_name: str):
 #     verify_request(model_name)
