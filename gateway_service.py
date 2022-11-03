@@ -49,8 +49,8 @@ async def all_models():
     return list(ALL_MODEL_NAMES)
 
 
-@gateway.route("/available_models", methods=["GET"])
-async def available_models():
+@gateway.route("/model_instances", methods=["GET"])
+async def model_instances():
     return list(MODEL_INSTANCES.keys())
 
 
