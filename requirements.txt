@@ -25,3 +25,5 @@ typing_extensions==4.4.0
 urllib3==1.26.12
 Werkzeug==2.2.2
 zipp==3.9.0
+flask-jwt-extended
+flask-ldap3-login
