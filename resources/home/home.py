@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required
 from models import ALL_MODELS
 
 ALL_MODEL_NAMES = set(ALL_MODELS.keys())
-MODEL_INSTANCES= {'OPT', 'GPT2'} # Hard coded available models, will be udpated dynamically
+MODEL_INSTANCES= {'OPT'} # Hard coded available models, will be udpated dynamically
 
 home_bp = Blueprint("home", __name__, template_folder='templates')
 
