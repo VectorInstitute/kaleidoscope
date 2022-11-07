@@ -156,26 +156,28 @@
                   aria-label="Toggle navigation">
                   <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-                  <div class="navbar-nav">
-                    <!-- <a class="nav-link active" aria-current="page" href="#">Template</a> -->
-                    <!-- <a class="nav-link" href="/">Feature 1</a> -->
-                    <!-- <a class="nav-link" href="#">Feature 2</a> -->
-                    <div class="dropdown">
-                      <button class="btn dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown"
-                        aria-haspopup="true" aria-expanded="false">
-                        Examples
-                      </button>
-                      <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <a class="dropdown-item" href='javascript:set_prompt("news");'>News</a>
-                        <a class="dropdown-item" href='javascript:set_prompt("arxiv");'>ML paper</a>
-                        <a class="dropdown-item" href='javascript:set_prompt("chatbot");'>Chatbot</a>
-                        <a class="dropdown-item" href='javascript:set_prompt("question");'>QA</a>
-                        <a class="dropdown-item" href='javascript:set_prompt("poetry");'>Poetry</a>
-                      </div>
+                <ul class="nav">
+                  <!-- <li class="nav-item">
+                    <a class="nav-link disabled" href="#">Generate</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link disabled" href="#">Embed</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link disabled" href="#">Benchmark</a>
+                  </li> -->
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                      aria-expanded="false">Examples</a>
+                    <div class="dropdown-menu">
+                      <a class="dropdown-item" href='javascript:set_prompt("news");'>News</a>
+                      <a class="dropdown-item" href='javascript:set_prompt("arxiv");'>ML paper</a>
+                      <a class="dropdown-item" href='javascript:set_prompt("chatbot");'>Chatbot</a>
+                      <a class="dropdown-item" href='javascript:set_prompt("question");'>QA</a>
+                      <a class="dropdown-item" href='javascript:set_prompt("poetry");'>Poetry</a>
                     </div>
-                  </div>
-                </div>
+                  </li>
+                </ul>
               </div>
             </nav>
           </div>
@@ -189,15 +191,6 @@
             <textarea class="form-control" rows="20" id="textbox" name="prompt" placeholder="Enter a prompt..."
               form="text-submit" required></textarea>
             {% endif %}
-          </div>
-          <div>
-            <button class="btn bg-success text-white" type="submit" value="submit" form="text-submit"
-              id="submit-button">Submit</button>
-            <button class="btn bg-success text-white" type="button" id="loader" disabled>
-              <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-              Loading...
-            </button>
-            <button type="button" class="btn btn-light" onclick='javascript:set_prompt("none");'>Clear</button>
           </div>
         </form>
       </div>
@@ -268,10 +261,22 @@
     </div>
   </div>
 
-  <footer class="fixed-bottom navbar-custom text-center">
-    <a class="text-white small">Copyright (c) 2022 Vector Institute</a>
-  </footer>
-
+  <div class="container-fluid">
+    <div class="fixed-bottom bg-white">
+      <div class="py-3 col px-5">
+        <button class="btn bg-success text-white" type="submit" value="submit" form="text-submit"
+          id="submit-button">Submit</button>
+        <button class="btn bg-success text-white" type="button" id="loader" disabled>
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          Loading...
+        </button>
+        <button type="button" class="btn btn-light" onclick='javascript:set_prompt("none");'>Clear</button>
+      </div>
+      <footer class="navbar-custom text-center">
+        <a class="text-white small">© 2022 Vector Institute</a>
+      </footer>
+    </div>
+  </div>
 </body>
 
 </html>
