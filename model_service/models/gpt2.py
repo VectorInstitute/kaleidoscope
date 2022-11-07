@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import numpy as np
 import time
@@ -86,6 +87,12 @@ class GPT2(AbstractModel):
             generated_sequences.append(total_sequence)
             print(total_sequence)
 
-        generated_text = "".join(str(x) for x in total_sequence).encode('utf-8')
+        generated_text = "".join(str(x) for x in total_sequence)
 
-        return generated_text
+        response = {}
+        response['text'] = generated_text
+        response['tokens'] = {}
+        response['logprobs'] = {}
+        response['activations'] = {}
+
+        return json.dumps(response)
