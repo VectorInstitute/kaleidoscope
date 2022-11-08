@@ -63,7 +63,6 @@
       $("#text-submit").submit(function (event) {
         loadAnimation();
         getPromptText();
-        console.log(document.getElementById("textbox-input").textContent)
         var selectedModel = document.getElementById("model-select");
         $.ajax({
           url: "/models/" + selectedModel.options[selectedModel.selectedIndex].value + "/generate_text",
@@ -71,7 +70,7 @@
           data: $("#text-submit").serialize()
         }).done(function (data) {
           loadCompleteAnimation();
-          document.getElementById("textbox-input").innerHTML += "<br/><br/>" + "<b>" + data + "</b>";
+          processData(data);
           console.log(data);
         })
           .fail(function () {
@@ -81,6 +80,12 @@
       });
     });
 
+    function processData(data){
+      //TODO: return processed data with label for each token.
+      processedText= "<b>"+data+"</b>";
+      document.getElementById("textbox-input").innerHTML= document.getElementById("textbox-input").outerText + processedText;
+    };
+
     function loadAnimation() {
       document.getElementById("loader").style.display = "inline";
       document.getElementById("submit-button").style.display = "none";
@@ -89,17 +94,22 @@
     function loadCompleteAnimation() {
       document.getElementById("loader").style.display = "none";
       document.getElementById("submit-button").style.display = "inline";
-      document.getElementById("textbox").style.backgroundColor = "#f6fef6";
+      document.getElementById("textbox-input").style.backgroundColor = "#f6fef6";
     };
 
     function loadFailAnimation() {
       document.getElementById("loader").style.display = "none";
       document.getElementById("submit-button").style.display = "inline";
-      document.getElementById("textbox").style.backgroundColor = "#ffebeb";
+      document.getElementById("textbox-input").style.backgroundColor = "#ffebeb";
+    };
+
+    function clearText(){
+      set_prompt("none");
+      document.getElementById("textbox-input").style.backgroundColor = "transparent";
     };
 
     function getPromptText(){
-      document.getElementById("textbox").value= document.getElementById("textbox-input").textContent
+      document.getElementById("textbox").value= document.getElementById("textbox-input").outerText
     };
 
     function updateScrollValue(val, id) {
@@ -130,6 +140,7 @@
     height: 500px;
     overflow: auto;
     resize: vertical;
+    white-space:pre-wrap;
     }   
   </style>
 </head>
@@ -282,7 +293,7 @@
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           Loading...
         </button>
-        <button type="button" class="btn btn-light" onclick='javascript:set_prompt("none");'>Clear</button>
+        <button type="button" class="btn btn-light" onclick='clearText()'>Clear</button>
       </div>
       <footer class="navbar-custom text-center">
         <a class="text-white small">© 2022 Vector Institute</a>
