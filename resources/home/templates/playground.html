@@ -45,7 +45,7 @@
 
     function set_prompt(name) {
       if (name == "none") {
-        $("#textbox").val(EXAMPLES[name]["prompt"]);
+        $("#textbox-input").html(EXAMPLES[name]["prompt"]);
         $("#response-length-select").val(EXAMPLES[name]["length"]);
         $("#temperature-select").val(EXAMPLES[name]["temperature"]);
         $("#top-p-select").val(EXAMPLES[name]["top-p"]);
@@ -55,13 +55,15 @@
       }
       else {
         $("#response-length-select").val(EXAMPLES[name]["length"]);
-        $("#textbox").val(EXAMPLES[name]["prompt"]);
+        $("#textbox-input").html(EXAMPLES[name]["prompt"]);
       }
     };
 
     $(document).ready(function () {
       $("#text-submit").submit(function (event) {
         loadAnimation();
+        getPromptText();
+        console.log(document.getElementById("textbox-input").textContent)
         var selectedModel = document.getElementById("model-select");
         $.ajax({
           url: "/models/" + selectedModel.options[selectedModel.selectedIndex].value + "/generate_text",
@@ -69,7 +71,7 @@
           data: $("#text-submit").serialize()
         }).done(function (data) {
           loadCompleteAnimation();
-          document.getElementById("textbox").value += "\n\n" + data;
+          document.getElementById("textbox-input").innerHTML += "<br/><br/>" + "<b>" + data + "</b>";
           console.log(data);
         })
           .fail(function () {
@@ -96,6 +98,10 @@
       document.getElementById("textbox").style.backgroundColor = "#ffebeb";
     };
 
+    function getPromptText(){
+      document.getElementById("textbox").value= document.getElementById("textbox-input").textContent
+    };
+
     function updateScrollValue(val, id) {
       document.getElementById(id).value = val;
     };
@@ -115,6 +121,16 @@
     .navbar-custom {
       background-color: #222222;
     }
+    .placeholder:empty:before {
+    content: attr(data-placeholder);
+    }
+    .textarea {
+    -moz-appearance: textfield-multiline;
+    -webkit-appearance: textarea;
+    height: 500px;
+    overflow: auto;
+    resize: vertical;
+    }   
   </style>
 </head>
 
@@ -184,13 +200,9 @@
         </div>
         <form>
           <div class="form-group">
-            {% if text_output %}
-            <textarea class="form-control" rows="20" id="textbox" name="prompt"
-              form="text-submit">{{ text_output }}</textarea>
-            {% else %}
             <textarea class="form-control" rows="20" id="textbox" name="prompt" placeholder="Enter a prompt..."
-              form="text-submit" required></textarea>
-            {% endif %}
+              form="text-submit" style="display:none;"></textarea>
+            <div class="textarea form-control placeholder" id="textbox-input" data-placeholder="Enter a prompt..." contenteditable="true"></div>
           </div>
         </form>
       </div>
