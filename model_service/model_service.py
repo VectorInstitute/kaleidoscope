@@ -47,18 +47,14 @@ def initialize_model(model_type):
 
 def signal_handler(sig, frame):
     global model_type
-    print(f"Signal handler called, sending remove request for type={model_type}")
     send_remove_request(model_type)
     sys.exit(0)
 
 
 def send_remove_request(model_type):
-    remove_url = f"http://{config.GATEWAY_HOST}/remove_model"
-    remove_data = {
-        "model_type": model_type
-    }
+    remove_url = f"http://{config.GATEWAY_HOST}/models/{model_type}/remove"
     try:
-        response = requests.get(remove_url, json=remove_data)
+        response = requests.get(remove_url)
     except requests.ConnectionError as e:
         print(f"Connection error: {e}")
     except:
@@ -85,8 +81,8 @@ def main():
     # Load the model into GPU memory
     model.load(args.device)
 
-    # Inform the gateway service that we are serving a new model instance by calling the /register_model endpoint
-    register_url = f"http://{config.GATEWAY_HOST}/register_model"
+    # Inform the gateway service that we are serving a new model instance by calling the /models/register endpoint
+    register_url = f"http://{config.GATEWAY_HOST}/models/register"
     register_data = {
         "model_host": config.MODEL_HOST,
         "model_type": args.model_type
