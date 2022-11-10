@@ -143,9 +143,23 @@
       margin-bottom: 15vh;
     }
     .parameter-list {
-      overflow: scroll;
+      overflow-y: scroll;
       height: 65vh;
     }
+    .parameter-list::-webkit-scrollbar {
+      width: 2px;
+    }
+    .parameter-list::-webkit-scrollbar-track {
+      border-radius: 10px;
+      box-shadow: inset 0 0 8px #0000001a;
+      margin-top: 3vh;
+    }
+    .parameter-list::-webkit-scrollbar-thumb {
+      background: #007bff;
+      border-radius: 10px;
+      height: 5px;
+    }
+    
   </style>
 </head>
 
@@ -229,12 +243,11 @@
             data-content="The large language model which will generate text. Some models are suitable for specified tasks."></i>
             <select class="form-control" id="model-select">
               {% for types in all_models %}
-              {% if types in active_models %}
-              <option class="dropdown-item" value={{ types }}> {{ types }}</option>
-              {% else %}
-              <option disabled title="Inactive model: please start it's model service" class="dropdown-item" value={{
-                types }}>{{ types }} (Inactive Service)</option>
-              {% endif %}
+                {% if types in active_models %}
+                  <option class="dropdown-item" value={{ types }}> {{ types }}</option>
+                {% else %}
+                  <option disabled title="Inactive model: please start it's model service" class="dropdown-item" value={{ types }}>{{ types }} (Inactive Service)</option>
+                {% endif %}
               {% endfor %}
             </select>
           </div>
@@ -276,10 +289,10 @@
               placeholder=1.0 max=100.0 step=1.0 min=0.0
               onchange="updateScrollValue(this.value, 'repetition-penalty-value');">
           </div>
-          <div class="form-group" tabindex="0" data-toggle="popover" data-trigger="focus"
+          <div class="form-group">
+            <label for="num-return-sequence-select">Number Return Sequences</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="focus"
             title="Number Return Sequences" data-placement="top"
-            data-content="An integer to define the proposition that is desired to be returned.">
-            <label for="num-return-sequence-select">Number Return Sequences</label><i class="bi bi-info-circle small px-1"></i>
+            data-content="An integer to define the proposition that is desired to be returned."></i>
             <input type="number" class="form-control" id="num-return-sequence-select" value=1 name="repetition_penalty"
               placeholder=1>
           </div>
