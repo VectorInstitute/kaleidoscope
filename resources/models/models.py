@@ -60,15 +60,10 @@ async def remove_model(model_name: str):
 
 @models_bp.route("/<model_name>/generate_text", methods=["POST"])
 async def generate_text(model_name: str):
-    #verify_request(model_name)
+    verify_request(model_name)
     data = request.form.copy()
     print(data)
     prompts = data["prompt"]
     del data["prompt"]
-    # client_input = server_parse(obj)
     generated_text = ALL_MODELS[model_name].generate_text(model_name, prompts, **data)
-    if isinstance(generated_text, dict):
-        text_output = generated_text["choices"][0]["text"].strip()
-    else:
-        text_output = generated_text.strip()
-    return text_output
+    return generated_text
