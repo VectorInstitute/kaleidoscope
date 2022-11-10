@@ -13,7 +13,7 @@ import config
 
 # Globals
 
-AVAILABLE_MODELS = ["gpt2", "opt_125m"]
+AVAILABLE_MODELS = ["GPT2", "OPT"]
 
 
 # Start the Flask service that will hand off requests to the model libraries
@@ -35,12 +35,12 @@ def generate_text():
 # TODO: Is there a way to make this happen automatically, without separate entries?
 
 def initialize_model(model_type):
-    if model_type == "gpt2":
-        from models import gpt2
-        return gpt2.GPT2()
-    if model_type == "opt_125m":
-        from models import opt_125m
-        return opt_125m.OPT_125M()
+    if model_type == "GPT2":
+        from models import GPT2
+        return GPT2.GPT2()
+    if model_type == "OPT":
+        from models import OPT
+        return OPT.OPT()
 
 
 # Signal handler to send a remove request to the gateway, if this service is killed by the system

@@ -43,7 +43,7 @@ is_model_loaded = False
 logger = build_logger()
 BATCH_QUEUE = PriorityQueueRingShard()
 
-class OPT_125M(AbstractModel):
+class OPT(AbstractModel):
 
     def __init__(self):
         self.device = None
@@ -82,8 +82,8 @@ class OPT_125M(AbstractModel):
 
 
     def module_names(self):
-        print("Called OPT_125M.module_names()")
-        return "Placeholder return text for OPT_125M.module_names()"
+        print("Called OPT.module_names()")
+        return "Placeholder return text for OPT.module_names()"
 
 
     def generate_text(self, request):
