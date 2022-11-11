@@ -20,7 +20,7 @@ AVAILABLE_MODELS = ["GPT2", "OPT"]
 
 service = Flask(__name__)
 
-@service.route("/module_names", methods=["POST"])
+@service.route("/module_names", methods=["GET"])
 def module_names():
     result = model.module_names()
     return result

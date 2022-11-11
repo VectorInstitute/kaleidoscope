@@ -30,7 +30,11 @@ class GPT2(AbstractModel):
 
 
     def module_names(self):
-        print("Called GPT2.module_names()")
+        return {
+            "module_names": tuple(
+                module[0] for module in self.model.base_model.named_modules() if module[0] != ""
+            )
+        }
 
 
     def generate_text(self, request):

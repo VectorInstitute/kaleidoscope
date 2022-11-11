@@ -82,8 +82,11 @@ class OPT(AbstractModel):
 
 
     def module_names(self):
-        print("Called OPT.module_names()")
-        return "Placeholder return text for OPT.module_names()"
+        return {
+            "module_names": tuple(
+                n for n, _ in generator.models[0].named_modules() if n != ""
+            )
+        }
 
 
     def generate_text(self, request):
