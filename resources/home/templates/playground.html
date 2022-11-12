@@ -92,9 +92,17 @@
     };
 
     function parseData(data){
-      //TODO: return processed data with label for each token.
-      processedText= "<b>"+data['text']+"</b>";
-      document.getElementById("textbox-input").innerHTML= document.getElementById("textbox-input").outerText + processedText;
+      //TODO: refactor data processing based upon request data tokens
+      $("span").removeClass("generated-text-font");
+      var text= data['text'].split(/(\s+)/);
+      textWrapper= $("<span></span>");
+      for(let i=0; i<text.length; i++){
+        var textPanel= "<div><b>Log Probs</b></div><hr><div>"+text[i]+" "+data['logprobs']+"% </div>";
+        labelledText= $("<span class='generated-text' tabindex='0' data-trigger='hover' data-html='true' data-placement='bottom' data-content='"+textPanel+"'></span>").text(text[i]);
+        textWrapper.append(labelledText.popover());
+      }
+      textWrapper.addClass("generated-text-font");
+      $("#textbox-input").append(textWrapper);
     };
 
     function loadAnimation() {
@@ -158,25 +166,31 @@
       overflow-y: scroll;
       height: 65vh;
     }
-    .parameter-list::-webkit-scrollbar {
+    .scrollbar::-webkit-scrollbar {
       width: 2px;
     }
-    .parameter-list::-webkit-scrollbar-track {
+    .scrollbar::-webkit-scrollbar-track {
       border-radius: 10px;
       box-shadow: inset 0 0 8px #0000001a;
+    }
+    .parameter-list::-webkit-scrollbar-track {
       margin-top: 3vh;
     }
-    .parameter-list::-webkit-scrollbar-thumb {
+    .scrollbar::-webkit-scrollbar-thumb {
       background: #007bff;
       border-radius: 10px;
       height: 5px;
     }
-    
+    .generated-text-font{
+      font-weight: bold;
+    }
+    .generated-text:hover{ 
+      background-color: yellow;
+    }
   </style>
 </head>
 
 <body>
-
   <nav class="navbar navbar-expand-sm navbar-custom navbar-dark">
     <a class="navbar-brand" href="/">
       <!-- <img src="" width="30" height="30" class="d-inline-block align-top" alt=""> -->
@@ -191,7 +205,7 @@
           <a class="nav-link" href="/">Overview</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="/">Playground</a>
+          <a class="nav-link" href="/playground">Playground</a>
         </li>
         <!-- <li class="nav-item">
           <a class="nav-link" href="#">Link</a>
@@ -241,24 +255,25 @@
         </div>
         <form>
           <div class="form-group">
-            <textarea class="form-control" rows="20" id="textbox" name="prompt" placeholder="Enter a prompt..."
+            <textarea class="form-control" id="textbox" name="prompt" placeholder="Enter a prompt..."
               form="text-submit" style="display:none;"></textarea>
-            <div class="textarea form-control placeholder" id="textbox-input" data-placeholder="Enter a prompt..." contenteditable="true"></div>
+            <div class="textarea form-control scrollbar placeholder" id="textbox-input" data-placeholder="Enter a prompt..." contenteditable="true"></div>
           </div>
         </form>
       </div>
-      <div class="col-sm-auto parameter-list p-4">
+      <div class="col-sm-auto parameter-list scrollbar p-4">
         <form id="text-submit" name="submit-form">
           <div class="form-group">
             <label for="model-select">Model</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="focus" title="Models"
-            data-placement="bottom"
+            data-placement="auto"
             data-content="The large language model which will generate text. Some models are suitable for specified tasks."></i>
-            <select class="form-control" id="model-select">
+            <select class="form-control" id="model-select" required>
+              <option selected="true" disabled="disabled">Select A Model</option>  
               {% for types in all_models %}
                 {% if types in active_models %}
                   <option class="dropdown-item" value={{ types }}> {{ types }}</option>
                 {% else %}
-                  <option disabled title="Inactive model: please start it's model service" class="dropdown-item" value={{ types }}>{{ types }} (Inactive Service)</option>
+                  <option disabled title="Inactive model: please start it's model service" class="dropdown-item">{{ types }} (Inactive Service)</option>
                 {% endif %}
               {% endfor %}
             </select>
