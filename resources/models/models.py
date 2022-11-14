@@ -25,13 +25,20 @@ def verify_request(model_name):
 
 
 @models_bp.route("/", methods=["GET"])
-async def all_models():
+async def get_all_models():
     return list(ALL_MODEL_NAMES)
 
 
 @models_bp.route("/instances", methods=["GET"])
-async def model_instances():
+async def get_model_instances():
     return list(MODEL_INSTANCES.keys())
+
+
+@models_bp.route("/<model_name>/module_names", methods=["GET"])
+async def get_module_names(model_name: str):
+    verify_request(model_name)
+    module_names= ALL_MODELS[model_name].get_module_names(model_name)
+    return module_names
 
 
 @models_bp.route("/register", methods=["GET"])

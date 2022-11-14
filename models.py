@@ -137,9 +137,11 @@ class OPT(_ServerModel):
         """tokenizes the prompts"""
         return self.tokenizer(prompts, **tokenizer_kwargs)
 
-    @property
-    def module_names(self):
-        return tuple(n for n, _ in self.model.named_modules())
+    def get_module_names(self):
+        response = requests.get(
+            OPT.url + "/module_names")
+        # tuple(n for n, _ in self.model.named_modules())
+        return response
 
     @property
     def parameter_names(self):
@@ -184,7 +186,7 @@ class GPT2(_ServerModel):
         default=None, init=False, repr=False, compare=False
     )
 
-    url: str = "http://172.17.8.58:8000"
+    url: str = "http://172.17.8.59:8000"
 
     def __post_init__(self):
         self.lazy_init()
@@ -228,7 +230,7 @@ class GPT2(_ServerModel):
         # generated_texts = self.tokenizer.batch_decode(
         #     generated_ids, skip_special_tokens=True
         # )
-        return response.text
+        return response.json()
 
     def generate(self, encoding, probes=None, /, **gen_kwargs):
         """encoding must be the batched encodings"""
@@ -242,9 +244,10 @@ class GPT2(_ServerModel):
         """tokenizes the prompts"""
         return self.tokenizer(prompts, **tokenizer_kwargs)
 
-    @property
-    def module_names(self):
-        return tuple(n for n, _ in self.model.named_modules())
+    def get_module_names(self):
+        response = requests.get(
+            GPT2.url + "/module_names")
+        return response.json()
 
     @property
     def parameter_names(self):
