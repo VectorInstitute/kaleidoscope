@@ -128,11 +128,21 @@
     };
 
     function getPromptText(){
-      document.getElementById("textbox").value= document.getElementById("textbox-input").outerText
+      document.getElementById("textbox").value= document.getElementById("textbox-input").outerText;
     };
 
     function updateScrollValue(val, id) {
       document.getElementById(id).value = val;
+    };
+
+    function updateModuleNames(model) {
+      $.get("/models/" + model + "/module_names", 
+      function( data ) {
+        for(let i=0; i<data['module_names'].length; i++){
+          moduleNameOption= $("<option value="+data['module_names'][i]+"></option>").text(data['module_names'][i])
+          $("#module-name-select").append(moduleNameOption);
+        }
+      });
     };
 
     window.onload = function () {
@@ -267,7 +277,7 @@
             <label for="model-select">Model</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="focus" title="Models"
             data-placement="auto"
             data-content="The large language model which will generate text. Some models are suitable for specified tasks."></i>
-            <select class="form-control" id="model-select" required>
+            <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" required>
               <option selected="true" disabled="disabled">Select A Model</option>  
               {% for types in all_models %}
                 {% if types in active_models %}
@@ -323,6 +333,14 @@
             <input type="number" class="form-control" id="num-return-sequence-select" value=1 name="repetition_penalty"
               placeholder=1>
           </div>
+          <div class="form-group">
+            <label for="module-name-select">Module Name</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="focus" title="Module name"
+            data-placement="top"
+            data-content="Information to display how likely was a token to be generated."></i>
+            <select class="form-control" id="module-name-select" required>
+              <option selected="true" disabled="disabled">Show None</option>
+            </select>
+          </div>
         </form>
       </div>
     </div>
@@ -337,7 +355,7 @@
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           Loading...
         </button>
-        <button type="button" class="btn btn-light" onclick='clearText()'>Clear</button>
+        <button type="button" class="btn btn-light" onclick='clearText();'>Clear</button>
       </div>
       <footer class="navbar-custom text-center">
         <a class="text-white small">© 2022 Vector Institute</a>
