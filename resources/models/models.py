@@ -69,7 +69,7 @@ async def remove_model(model_name: str):
 async def generate_text(model_name: str):
     verify_request(model_name)
     data = request.form.copy()
-    print(data)
+    print(f"{data}")
     prompts = data["prompt"]
     del data["prompt"]
     generated_text = ALL_MODELS[model_name].generate_text(model_name, prompts, **data)
