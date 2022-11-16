@@ -1,9 +1,8 @@
 {% extends "home.html" %}
 <!DOCTYPE html>
 <html lang="en">
-  {% block head %}
   <head>
-    <title>Lingua</title>
+    <title>{% block title %} Lingua {% endblock %}</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -12,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
     <script type="text/javascript">
+      {% block script %}
       var EXAMPLES = {
         "news": {
           "prompt": "VECTOR INSTITUTE DEVELOPS ARTIFICIAL INTELLIGENCE FOR HEALTH RECOMMENDATIONS",
@@ -26,7 +26,7 @@
           "length": 128
         },
         "question": {
-          "prompt": "Question: What color is the sky?\nAnswer: blue\n\nQuestion: Who was the first president of the United States?\nAnswer: George Washington\n\nQuestion: Who is the president in 2022?\nAnswer:",
+          "prompt": "Question: What color is the sky?\nAnswer: blue\n\nQuestion: Who was the first prime minister of Canada?\nAnswer: Robert Walpole\n\nQuestion: Who is the prime minister in 2022?\nAnswer:",
           "length": 64
         },
         "poetry": {
@@ -160,11 +160,13 @@
               delay: {show:1000}
           })
       })
+      {% endblock %}
     </script>
     <style>
       .navbar-custom {
         background-color: #222222;
       }
+      {% block style %}
       .placeholder:empty:before {
         content: attr(data-placeholder);
         opacity: 0.5;
@@ -196,18 +198,17 @@
         border-radius: 10px;
         height: 5px;
       }
-      .generated-text-font{
+      .generated-text-font {
         font-weight: bold;
       }
-      .generated-text:hover{ 
+      .generated-text:hover { 
         background-color: yellow;
       }
+      {% endblock %}
     </style>
-    {% endblock %}
   </head>
 
   <body>
-    {% block body %}
     <nav class="navbar sticky-top navbar-expand-sm navbar-custom navbar-dark">
       <a class="navbar-brand" href="/">
         <!-- <img src="" width="30" height="30" class="d-inline-block align-top" alt=""> -->
@@ -233,7 +234,7 @@
         </ul>
       </div>
     </nav>
-
+    {% block body %}
     <div class="mt-3 px-5">
       <div class="row">
         <div class="col">
@@ -355,22 +356,36 @@
       </div>
     </div>
     <div class="fixed-bottom bg-white">
-      <div class="py-3 col px-5 text-center">
-        <button class="btn bg-success text-white" type="submit" value="submit" form="text-submit"
+      <div class="form-row py-3 d-flex justify-content-center align-items-center">
+        <div class="col-auto">
+          <button class="btn bg-success text-white" type="submit" value="submit" form="text-submit"
           id="submit-button">Submit</button>
-        <button class="btn bg-success text-white" type="button" id="loader" disabled>
-          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-          Loading...
-        </button>
-        <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
-        data-placement="auto"
-        data-content="Reset configurations and clear textbox">Clear</button>
-        <!-- <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
-        data-placement="auto" data-delay
-        data-content="Awesome generation! &#128578;"><i class="bi bi-hand-thumbs-up-fill"></i></button>
-        <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
-        data-placement="auto"
-        data-content="Needs improvement &#128528;"><i class="bi bi-hand-thumbs-down-fill"></i></button> -->
+        </div>
+        <div class="col-auto">
+          <button class="btn bg-success text-white" type="button" id="loader" disabled>
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Loading...
+          </button>
+        </div>
+        <div class="col-auto">
+          <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
+          data-placement="auto"
+          data-content="Reset configurations and clear textbox">Clear</button>
+        </div>
+        <div class="col-auto">
+          <div class="form-check">
+            <input class="form-check-input" form="text-submit" name="display_logprob" type="checkbox" id="check-logprob">
+            <label class="form-check-label" for="autoSizingCheck">Display Probabilities</label>
+          </div>
+        </div>
+        <!-- <div class="col-auto">
+          <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
+          data-placement="auto" data-content="Awesome generation! &#128578;"><i class="bi bi-hand-thumbs-up-fill"></i></button>
+        </div>
+        <div class="col-auto">
+          <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
+          data-placement="auto" data-content="Needs improvement &#128528;"><i class="bi bi-hand-thumbs-down-fill"></i></button> 
+        </div> -->
       </div>
       <footer class="navbar-custom text-center">
         <a class="text-white small">© 2022 Vector Institute</a>
