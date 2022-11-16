@@ -52,7 +52,7 @@
           $("#temperature-select").val(EXAMPLES[name]["temperature"]);
           $("#temperature-value").val(EXAMPLES[name]["temperature"]);
           $("#top-p-select").val(EXAMPLES[name]["top-p"]);
-          $("#top-p-value").val(EXAMPLES[name]["top"]);
+          $("#topp-value").val(EXAMPLES[name]["top-p"]);
           $("#top-k-select").val(EXAMPLES[name]["top-k"]);
           $("#repetition-penalty-select").val(EXAMPLES[name]["repetition-penalty"]);
           $("#repetition-penalty-value").val(EXAMPLES[name]["repetition-penalty"]);
@@ -323,7 +323,7 @@
               <label for="top-k-select">Top-K</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Top-K"
               data-placement="top"
               data-content="An integer to define the top tokens considered within the sample operation to create new text"></i>
-              <input type="number" class="form-control id=" top-k-select" value=0.0 name="k" placeholder=1.0 max=100.0
+              <input type="number" class="form-control" id="top-k-select" value=0.0 name="k" placeholder=1.0 max=100.0
                 step=0.1 min=0.0>
             </div>
             <div class="form-group">
