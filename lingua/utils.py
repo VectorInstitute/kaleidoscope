@@ -1,13 +1,10 @@
 """
 TODOS:
     1. eventually we need to seperate this out to client and server utils
-
 """
 import logging
 
 import requests
-
-from protocols import pack, unpack
 
 logger = logging.getLogger(__name__)
 
@@ -26,19 +23,11 @@ def check_response(resp):
 def get(addr):
     resp = requests.get(addr)
     check_response(resp)
-    return unpack(resp.content)
+    return resp.json()
 
 
-def post(addr, obj, field_name="json"):
-    # NOTE: the field_name must match the server's field name
-    resp = requests.post(addr, json=obj)  # allign with metaseq json request
+def post(addr, obj):
+    resp = requests.post(addr, data=obj)  # allign with metaseq json request
     check_response(resp)
-    return resp
+    return resp.json()
 
-
-def server_send(obj):
-    return pack(obj)
-
-
-def server_parse(bytestream):
-    return unpack(bytestream)
