@@ -1,19 +1,15 @@
 from flask import Blueprint, request, current_app
+# import sqlalchemy as sa
 
 from . import MODEL_INSTANCES
 from models import ALL_MODELS
+from db import db
+
 ALL_MODEL_NAMES = set(ALL_MODELS.keys())
 
 models_bp = Blueprint("models", __name__)
 
 # Model Instances represents the set of models that are currently active and able to service requests
-
-class ModelInstance():
-
-    def __init__(self, type, host):
-        self.type = type
-        self.host = host
-
 
 def verify_request(model_name):
     if model_name not in ALL_MODELS.keys():
@@ -23,40 +19,66 @@ def verify_request(model_name):
             "only {ALL_MODEL_NAMES} supported",
         )
 
+class ModelInstance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String)
+    host = db.Column(db.String)
+
+    def __init__(self, type, host):
+        self.type = type
+        self.host = host
 
 @models_bp.route("/", methods=["GET"])
 async def all_models():
     return list(ALL_MODEL_NAMES)
 
-
 @models_bp.route("/instances", methods=["GET"])
 async def model_instances():
-    return list(MODEL_INSTANCES.keys())
+    model_instance_query = db.select(ModelInstance)
+    model_instances = db.session.execute(model_instance_query).all()
+    return list(model_instances), 200
 
-
-@models_bp.route("/register", methods=["GET"])
+@models_bp.route("/register", methods=["POST"])
 async def register_model():
     # If a model of this type has already been registered, return an error
-    if request.json['model_type'] in MODEL_INSTANCES.keys():
-        result = f"ERROR: Model type {request.json['model_type']} has already been registered"
-        return result, 450
+    model_type = request.json['model_type']
+    model_host = request.json['model_host']
+
+    model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
+    model_instance = db.session.execute(model_instance_query).first()
+
+    current_app.logger.info(model_instance)
+
+    if model_instance is not None:
+        result = f"ERROR: Model type {model_type} has already been registered"
+        return result, 403
 
     # Register model and return success
-    new_model = ModelInstance(request.json['model_type'], request.json['model_host'])
-    MODEL_INSTANCES[request.json['model_type']] = new_model
+    new_model_instance = ModelInstance(model_type, model_host)
+
+    db.session.add(new_model_instance)
+    db.session.commit()
+
     result = {"result": f"Successfully registered model {request.json['model_type']}"}
     return result, 200
 
+@models_bp.route("/<model_type>", methods=["DELETE"])
+async def remove_model(model_type: str):
 
-@models_bp.route("/<model_name>/remove", methods=["GET"])
-async def remove_model(model_name: str):
-    # Make sure this model has actually been registered before trying to remove it
-    if model_name in MODEL_INSTANCES.keys():
-        del MODEL_INSTANCES[model_name]
+    model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
+    model_instance = db.session.execute(model_instance_query).first()
 
-    result = {"result": f"Successfully removed model {model_name}"}
+    current_app.logger.info(model_instance)
+
+    if model_instance is None:
+        result = {"result": f"Model not found."}
+        return result, 404
+
+    db.session.delete(model_instance[0])
+    db.session.commit()
+
+    result = {"result": f"Model removed."}
     return result, 200
-
 
 @models_bp.route("/<model_name>/generate_text", methods=["POST"])
 async def generate_text(model_name: str):
