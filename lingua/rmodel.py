@@ -38,14 +38,14 @@ class RModel:
         """TODO: should support batching
         """
         model_generate_addr = urljoin(self.model_base_addr, "generate_text")
-        generate_configs= {}
+        generate_configs = {}
         generate_configs['prompt']= prompt
         generate_configs.update(gen_kwargs)
-        generate_configs['use_grad']= torch.is_grad_enabled()
+        generate_configs['use_grad'] = torch.is_grad_enabled()
         print(f"Submission: {generate_configs}")
-        generation= post(model_generate_addr, generate_configs)
-        GenerationObj= namedtuple('GenObj', generation.keys())
-        results= GenerationObj(**generation)
+        generation = post(model_generate_addr, generate_configs)
+        GenerationObj = namedtuple('GenObj', generation.keys())
+        results = GenerationObj(**generation)
         print(f"Success: {results}")
         return results
 
