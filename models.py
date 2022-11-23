@@ -2,6 +2,7 @@ from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 import requests
+import re
 
 import torch
 import torch.nn as nn
@@ -78,7 +79,7 @@ class OPT(_ServerModel):
         default=None, init=False, repr=False, compare=False
     )
 
-    url: str = "http://gpu135.cluster.local:6010"
+    url: str = "http://172.17.8.52:8888"
 
     def __post_init__(self):
         self.lazy_init()
@@ -112,10 +113,18 @@ class OPT(_ServerModel):
             self.model = self.setup_model()
 
     def generate_text(self, prompts, /, **gen_kwargs):
-        response = requests.post(
-            OPT.url + "/completions", json={"prompt": prompts, **gen_kwargs}
+        result = requests.post(
+            OPT.url + "/generate_text", json={"prompt": prompts, **gen_kwargs}
         )
-        print(response.text)
+        result_output= result.json()
+        print(f"{result_output}")
+        response = {}
+        response['text'] = result_output['choices'][0]['text']
+        response['text_tokens'] = result_output['choices'][0]['all_tokens_text']
+        response['tokens'] = result_output['choices'][0]['logprobs']['tokens']
+        response['logprobs'] = result_output['choices'][0]['logprobs']['token_logprobs']
+        response['activations'] = result_output['choices'][0]['activations']
+
         # encoding = self.tokenizer(prompts, padding=True, return_tensors="pt").to(
         #     self.device_for_input
         # )
@@ -123,7 +132,7 @@ class OPT(_ServerModel):
         # generated_texts = self.tokenizer.batch_decode(
         #     generated_ids, skip_special_tokens=True
         # )
-        return response.json()
+        return response
 
     def generate(self, encoding, probes=None, /, **gen_kwargs):
         """encoding must be the batched encodings"""
@@ -186,7 +195,7 @@ class GPT2(_ServerModel):
         default=None, init=False, repr=False, compare=False
     )
 
-    url: str = "http://172.17.8.59:8000"
+    url: str = "http://172.17.8.52:8001"
 
     def __post_init__(self):
         self.lazy_init()
@@ -220,9 +229,13 @@ class GPT2(_ServerModel):
             self.model = self.setup_model()
 
     def generate_text(self, prompts, /, **gen_kwargs):
-        response = requests.post(
+        result = requests.post(
             GPT2.url + "/generate_text", json={"prompt": prompts, **gen_kwargs}
         )
+        response= result.json()
+        tokenized_text = response['text']
+        response['text_tokens'] = re.split("(\s+)", tokenized_text)
+
         # encoding = self.tokenizer(prompts, padding=True, return_tensors="pt").to(
         #     self.device_for_input
         # )
@@ -230,7 +243,7 @@ class GPT2(_ServerModel):
         # generated_texts = self.tokenizer.batch_decode(
         #     generated_ids, skip_special_tokens=True
         # )
-        return response.json()
+        return response
 
     def generate(self, encoding, probes=None, /, **gen_kwargs):
         """encoding must be the batched encodings"""

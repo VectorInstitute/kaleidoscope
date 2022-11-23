@@ -91,15 +91,29 @@
   function parseData(data){
     //TODO: refactor data processing based upon request data tokens
     $("span").removeClass("generated-text-font");
-    var text= data['text'].split(/(\s+)/);
-    textWrapper= $("<span></span>");
-    for(let i=0; i<text.length; i++){
-      var textPanel= "<div><b>Log Probs</b></div><hr><div>"+text[i]+" "+data['logprobs']+"% </div>";
-      labelledText= $("<span class='generated-text' tabindex='0' data-trigger='hover' data-html='true' data-placement='bottom' data-content='"+textPanel+"'></span>").text(text[i]);
-      textWrapper.append(labelledText.popover());
+    var text= data['tokens'];
+    var logProbTokens= data['logprobs'];
+    try {
+      var logProbs= [];
+      logProbTokens.forEach(token =>{
+        var logProbPercentage= (Math.exp(token)*100).toFixed(3);
+        logProbs.push(logProbPercentage);
+      });
     }
-    textWrapper.addClass("generated-text-font");
-    $("#textbox-input").append(textWrapper);
+    catch (err) {
+      console.log("log probability calculation error")
+      console.log(logProbTokens)
+    }
+    finally {
+      textWrapper= $("<span></span>");
+      for(let i=0; i<text.length; i++){
+        var textPanel= "<div><b>Log Probabilities</b></div><hr><div><b>"+text[i]+"</b>= "+logProbs[i]+"% </div>";
+        labelledText= $("<span class='generated-text' tabindex='0' data-trigger='hover' data-html='true' data-placement='bottom' data-content='"+textPanel+"'></span>").text(text[i]);
+        textWrapper.append(labelledText.popover());
+      }
+      textWrapper.addClass("generated-text-font");
+      $("#textbox-input").append(textWrapper);
+    }
   };
 
   function loadAnimation() {
@@ -249,12 +263,12 @@
             data-placement="auto"
             data-content="The large language model which will generate text. Some models are suitable for specified tasks."></i>
             <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" required>
-              <option selected="true" disabled="disabled">Select A Model</option>  
+              <option selected disabled value="">Select A Model</option>  
               {% for types in all_models %}
                 {% if types in active_models %}
                   <option value={{ types }}> {{ types }}</option>
                 {% else %}
-                  <option disabled title="Inactive model: please start it's model service">{{ types }} (Inactive Service)</option>
+                  <option disabled title="Inactive model: please start its model service!">{{ types }} (Inactive)</option>
                 {% endif %}
               {% endfor %}
             </select>
@@ -305,7 +319,7 @@
               placeholder=1>
           </div>
           <div class="form-group">
-            <label for="module-name-select">Module Name</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Module name"
+            <label for="module-name-select">Module Name</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Module Name"
             data-placement="top"
             data-content="Information to display how likely was a token to be generated."></i>
             <select class="form-control" id="module-name-select" required>
@@ -333,12 +347,6 @@
         <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
         data-placement="auto"
         data-content="Reset configurations and clear textbox">Clear</button>
-      </div>
-      <div class="col-auto">
-        <div class="form-check">
-          <input class="form-check-input" form="text-submit" name="display_logprob" type="checkbox" id="check-logprob">
-          <label class="form-check-label" for="autoSizingCheck">Display Probabilities</label>
-        </div>
       </div>
       <!-- <div class="col-auto">
         <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
