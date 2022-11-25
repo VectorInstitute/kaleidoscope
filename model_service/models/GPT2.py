@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import numpy as np
+import random
 import time
 import torch
 
@@ -72,6 +73,7 @@ class GPT2(AbstractModel):
             output_sequences.squeeze_()
 
         generated_sequences = []
+        random_logprobs = []
 
         for generated_sequence_idx, generated_sequence in enumerate(output_sequences):
             print(f"=== GENERATED SEQUENCE {generated_sequence_idx + 1} ===")
@@ -91,12 +93,17 @@ class GPT2(AbstractModel):
             generated_sequences.append(total_sequence)
             print(total_sequence)
 
+            # TODO: Add the real logprobs
+            for i in range(len(generated_sequence)):
+                random_logprobs.append(random.uniform(-3, -0.001))
+
+
         generated_text = "".join(str(x) for x in total_sequence)
 
         response = {}
         response['text'] = generated_text
         response['tokens'] = {}
-        response['logprobs'] = {}
+        response['logprobs'] = random_logprobs
         response['activations'] = {}
 
         return json.dumps(response)
