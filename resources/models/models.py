@@ -47,7 +47,8 @@ async def get_module_names(model_name: str):
     return module_names
 
 
-@models_bp.route("/register", methods=["POST"])async def register_model():
+@models_bp.route("/register", methods=["POST"])
+async def register_model():
     # If a model of this type has already been registered, return an error
     model_type = request.json['model_type']
     model_host = request.json['model_host']
