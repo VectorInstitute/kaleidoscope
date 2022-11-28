@@ -29,8 +29,9 @@ class ModelInstance(db.Model):
         self.host = host
 
 @models_bp.route("/", methods=["GET"])
-async def all_models():
+async def get_all_models():
     return list(ALL_MODEL_NAMES)
+
 
 @models_bp.route("/instances", methods=["GET"])
 async def model_instances():
@@ -38,8 +39,15 @@ async def model_instances():
     model_instances = db.session.execute(model_instance_query).all()
     return list(model_instances), 200
 
-@models_bp.route("/register", methods=["POST"])
-async def register_model():
+
+@models_bp.route("/<model_name>/module_names", methods=["GET"])
+async def get_module_names(model_name: str):
+    verify_request(model_name)
+    module_names= ALL_MODELS[model_name].get_module_names(model_name)
+    return module_names
+
+
+@models_bp.route("/register", methods=["POST"])async def register_model():
     # If a model of this type has already been registered, return an error
     model_type = request.json['model_type']
     model_host = request.json['model_host']
@@ -84,7 +92,6 @@ async def remove_model(model_type: str):
 async def generate_text(model_name: str):
     verify_request(model_name)
     data = request.form.copy()
-    print(data)
     prompts = data["prompt"]
     del data["prompt"]
     generated_text = ALL_MODELS[model_name].generate_text(model_name, prompts, **data)

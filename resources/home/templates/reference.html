@@ -1,0 +1,77 @@
+{% extends "home.html" %}
+
+{% block title %}API Reference{% endblock %}
+
+{% block body %}
+    <div class="jumbotron">
+        <h1 class="display-4">Lingua SDK</h1>
+        <p class="lead">Vector Institute's models can be intefraced from the playground and SDK</p>
+        <hr class="my-4">
+        <p class="lead">SDKs</p>
+        <ul class="list-inline">
+            <li class="list-inline-item text-muted">Python</li>
+            <li class="list-inline-item p-1 border"><code>pip install lingua</code></li>
+        </ul>
+    </div>
+    <div class="col-3" id="accordion">
+        <div class="card">
+            <div class="card-header" id="headingOne">
+            <h5 class="mb-0">
+                <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                /generate_text
+                </button>
+            </h5>
+            </div>
+            <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
+            <div class="card-body">
+                Generate text
+            </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header" id="headingTwo">
+            <h5 class="mb-0">
+                <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                /module_names
+                </button>
+            </h5>
+            </div>
+            <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
+            <div class="card-body">
+                Retrieve module names
+            </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header" id="headingThree">
+            <h5 class="mb-0">
+                <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                /embed_text
+                </button>
+            </h5>
+            </div>
+            <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
+            <div class="card-body">
+                Retrieve token embeddings
+            </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header" id="headingFour">
+            <h5 class="mb-0">
+                <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                /tokenize_text
+                </button>
+            </h5>
+            </div>
+            <div id="collapseFour" class="collapse" aria-labelledby="headingFour" data-parent="#accordion">
+            <div class="card-body">
+                Generate tokens
+            </div>
+            </div>
+        </div>
+    </div>
+    <footer class="fixed-bottom navbar-custom text-center">
+        <a class="text-white small">© 2022 Vector Institute</a>
+    </footer>
+{% endblock %}

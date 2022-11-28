@@ -1,314 +1,308 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "home.html" %}
 
-<head>
-  <title>Lingua</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
-  <script type="text/javascript">
-    var EXAMPLES = {
-      "news": {
-        "prompt": "VECTOR INSTITUTE DEVELOPS ARTIFICIAL INTELLIGENCE FOR HEALTH RECOMMENDATIONS",
-        "length": 256
-      },
-      "arxiv": {
-        "prompt": "Abstract\n\nWe introduce large language models, models that",
-        "length": 256
-      },
-      "chatbot": {
-        "prompt": "A chat between a teacher and student who wants to learn about tacos.\n\nTeacher: Hi there. What would you like to learn about today?\nStudent:",
-        "length": 128
-      },
-      "question": {
-        "prompt": "Question: What color is the sky?\nAnswer: blue\n\nQuestion: Who was the first president of the United States?\nAnswer: George Washington\n\nQuestion: Who is the president in 2022?\nAnswer:",
-        "length": 64
-      },
-      "poetry": {
-        "prompt": "A sonnet about life\n\n",
-        "length": 128
-      },
-      "none": {
-        "prompt": "",
-        "length": 128,
-        "temperature": 1,
-        "top-p": 0.9,
-        "top-k": 0.0,
-        "repetition-penalty": 1.0,
-        "num-return-sequences": 1
-      }
-    };
+{% block title %}Playground{% endblock %}
 
-    function set_prompt(name) {
-      if (name == "none") {
-        $("#textbox-input").html(EXAMPLES[name]["prompt"]);
-        $("#response-length-select").val(EXAMPLES[name]["length"]);
-        $("#temperature-select").val(EXAMPLES[name]["temperature"]);
-        $("#top-p-select").val(EXAMPLES[name]["top-p"]);
-        $("#top-k-select").val(EXAMPLES[name]["top-k"]);
-        $("#repetition-penalty-select").val(EXAMPLES[name]["repetition-penalty"]);
-        $("#num-return-sequence-select").val(EXAMPLES[name]["num-return-sequences"]);
-      }
-      else {
-        $("#response-length-select").val(EXAMPLES[name]["length"]);
-        $("#textbox-input").html(EXAMPLES[name]["prompt"]);
-      }
-    };
+{% block script %}
+  var EXAMPLES = {
+    "news": {
+      "prompt": "VECTOR INSTITUTE DEVELOPS ARTIFICIAL INTELLIGENCE FOR HEALTH RECOMMENDATIONS",
+      "length": 256
+    },
+    "arxiv": {
+      "prompt": "Abstract\n\nWe introduce large language models, models that",
+      "length": 256
+    },
+    "chatbot": {
+      "prompt": "A chat between a teacher and student who wants to learn about tacos.\n\nTeacher: Hi there. What would you like to learn about today?\nStudent:",
+      "length": 128
+    },
+    "question": {
+      "prompt": "Question: What color is the sky?\nAnswer: blue\n\nQuestion: Who was the first prime minister of Canada?\nAnswer: Robert Walpole\n\nQuestion: Who is the prime minister in 2022?\nAnswer:",
+      "length": 64
+    },
+    "poetry": {
+      "prompt": "A sonnet about life\n\n",
+      "length": 128
+    },
+    "none": {
+      "prompt": "",
+      "length": 128,
+      "temperature": 1,
+      "top-p": 0.9,
+      "top-k": 0.0,
+      "repetition-penalty": 1.0,
+      "num-return-sequences": 1
+    }
+  };
 
-    $(document).ready(function () {
-      $("#text-submit").submit(function (event) {
-        loadAnimation();
-        getPromptText();
-        var selectedModel = document.getElementById("model-select");
-        var formData= getFormData();
-        console.log(JSON.stringify(formData))
-        $.ajax({
-          url: "/models/" + selectedModel.options[selectedModel.selectedIndex].value + "/generate_text",
-          type: "POST",
-          data: formData
-        }).done(function (data) {
-          loadCompleteAnimation();
-          parseData(data);
-          console.log(data);
-        })
-          .fail(function () {
-            loadFailAnimation();
-          });
-        event.preventDefault();
-      });
+  function set_prompt(name) {
+    if (name == "none") {
+      $("#textbox-input").html(EXAMPLES[name]["prompt"]);
+      $("#response-length-select").val(EXAMPLES[name]["length"]);
+      $("#response-length-value").val(EXAMPLES[name]["length"]);
+      $("#temperature-select").val(EXAMPLES[name]["temperature"]);
+      $("#temperature-value").val(EXAMPLES[name]["temperature"]);
+      $("#top-p-select").val(EXAMPLES[name]["top-p"]);
+      $("#topp-value").val(EXAMPLES[name]["top-p"]);
+      $("#top-k-select").val(EXAMPLES[name]["top-k"]);
+      $("#repetition-penalty-select").val(EXAMPLES[name]["repetition-penalty"]);
+      $("#repetition-penalty-value").val(EXAMPLES[name]["repetition-penalty"]);
+      $("#num-return-sequence-select").val(EXAMPLES[name]["num-return-sequences"]);
+    }
+    else {
+      $("#response-length-select").val(EXAMPLES[name]["length"]);
+      $("#response-length-value").val(EXAMPLES[name]["length"]);
+      $("#textbox-input").html(EXAMPLES[name]["prompt"]);
+    }
+  };
+
+  $(document).ready(function () {
+    $("#text-submit").submit(function (event) {
+      loadAnimation();
+      getPromptText();
+      var selectedModel = document.getElementById("model-select");
+      var formData= getFormData();
+      console.log(JSON.stringify(formData))
+      $.ajax({
+        url: "/models/" + selectedModel.options[selectedModel.selectedIndex].value + "/generate_text",
+        type: "POST",
+        data: formData
+      }).done(function (data) {
+        loadCompleteAnimation();
+        parseData(data);
+        console.log(data);
+      })
+        .fail(function () {
+          loadFailAnimation();
+        });
+      event.preventDefault();
     });
+  });
 
-    function getFormData() {
-      unstructuredFormData= $("#text-submit").serializeArray();
-      submissionData= {};
-      $.map(unstructuredFormData, function( input, i ) {
-        submissionData[input.name] = input.value;
+  function getFormData() {
+    unstructuredFormData= $("#text-submit").serializeArray();
+    submissionData= {};
+    $.map(unstructuredFormData, function( input, i ) {
+      submissionData[input.name] = input.value;
+    });
+    return submissionData
+  };
+
+  function parseData(data){
+    //TODO: refactor data processing based upon request data tokens
+    $("span").removeClass("generated-text-font");
+    var text= data['tokens'];
+    var logProbTokens= data['logprobs'];
+    textWrapper= $("<span></span>");
+    try {
+      var logProbs= [];
+      logProbTokens.forEach(token =>{
+        var logProbPercentage= (Math.exp(token)*100).toFixed(3);
+        logProbs.push(logProbPercentage);
       });
-      return submissionData
-    };
-
-    function parseData(data){
-      //TODO: refactor data processing based upon request data tokens
-      $("span").removeClass("generated-text-font");
-      var text= data['text'].split(/(\s+)/);
-      textWrapper= $("<span></span>");
+    }
+    catch (err) {
+      console.log(Log probability calculation error: " + err);
+    }
+    finally {
       for(let i=0; i<text.length; i++){
-        var textPanel= "<div><b>Log Probs</b></div><hr><div>"+text[i]+" "+data['logprobs']+"% </div>";
+        var textPanel= "<div><b>Log Probabilities</b></div><hr><div><b>"+text[i]+"</b>= "+logProbs[i]+"% </div>";
         labelledText= $("<span class='generated-text' tabindex='0' data-trigger='hover' data-html='true' data-placement='bottom' data-content='"+textPanel+"'></span>").text(text[i]);
         textWrapper.append(labelledText.popover());
       }
       textWrapper.addClass("generated-text-font");
       $("#textbox-input").append(textWrapper);
-    };
+    }
+  };
 
-    function loadAnimation() {
-      document.getElementById("loader").style.display = "inline";
-      document.getElementById("submit-button").style.display = "none";
-    };
+  function loadAnimation() {
+    document.getElementById("loader").style.display = "inline";
+    document.getElementById("submit-button").style.display = "none";
+  };
 
-    function loadCompleteAnimation() {
-      document.getElementById("loader").style.display = "none";
-      document.getElementById("submit-button").style.display = "inline";
-      document.getElementById("textbox-input").style.backgroundColor = "#f6fef6";
-    };
+  function loadCompleteAnimation() {
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("submit-button").style.display = "inline";
+    document.getElementById("textbox-input").style.backgroundColor = "#f6fef6";
+  };
 
-    function loadFailAnimation() {
-      document.getElementById("loader").style.display = "none";
-      document.getElementById("submit-button").style.display = "inline";
-      document.getElementById("textbox-input").style.backgroundColor = "#ffebeb";
-    };
+  function loadFailAnimation() {
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("submit-button").style.display = "inline";
+    document.getElementById("textbox-input").style.backgroundColor = "#ffebeb";
+  };
 
-    function clearText(){
-      set_prompt("none");
-      document.getElementById("textbox-input").style.backgroundColor = "transparent";
-    };
+  function clearText(){
+    set_prompt("none");
+    document.getElementById("textbox-input").style.backgroundColor = "transparent";
+  };
 
-    function getPromptText(){
-      document.getElementById("textbox").value= document.getElementById("textbox-input").outerText
-    };
+  function getPromptText(){
+    document.getElementById("textbox").value= document.getElementById("textbox-input").outerText;
+  };
 
-    function updateScrollValue(val, id) {
-      document.getElementById(id).value = val;
-    };
+  function updateScrollValue(val, id) {
+    document.getElementById(id).value = val;
+  };
 
-    window.onload = function () {
-      document.getElementById("loader").style.display = "none";
-    };
+  function updateModuleNames(model) {
+    $.get("/models/" + model + "/module_names", 
+    function( data ) {
+      for(let i=0; i<data['module_names'].length; i++){
+        moduleNameOption= $("<option value="+data['module_names'][i]+"></option>").text(data['module_names'][i])
+        $("#module-name-select").append(moduleNameOption);
+      }
+    });
+  };
 
-    $(function () {
-      $('[data-toggle="popover"]').popover()
-    })
-  </script>
-  <style>
-    .navbar-custom {
-      background-color: #222222;
-    }
-    .placeholder:empty:before {
-      content: attr(data-placeholder);
-      opacity: 0.5;
-    }
-    .textarea {
-      -moz-appearance: textfield-multiline;
-      -webkit-appearance: textarea;
-      overflow: auto;
-      resize: vertical;
-      white-space:pre-wrap;
-      height: 60vh;
-    }
-    .body-content {
-      margin-bottom: 15vh;
-    }
-    .parameter-list {
-      overflow-y: scroll;
-      height: 65vh;
-    }
-    .scrollbar::-webkit-scrollbar {
-      width: 2px;
-    }
-    .scrollbar::-webkit-scrollbar-track {
-      border-radius: 10px;
-      box-shadow: inset 0 0 8px #0000001a;
-    }
-    .parameter-list::-webkit-scrollbar-track {
-      margin-top: 3vh;
-    }
-    .scrollbar::-webkit-scrollbar-thumb {
-      background: #007bff;
-      border-radius: 10px;
-      height: 5px;
-    }
-    .generated-text-font{
-      font-weight: bold;
-    }
-    .generated-text:hover{ 
-      background-color: yellow;
-    }
-  </style>
-</head>
+  window.onload = function () {
+    document.getElementById("loader").style.display = "none";
+  };
 
-<body>
-  <nav class="navbar navbar-expand-sm navbar-custom navbar-dark">
-    <a class="navbar-brand" href="/">
-      <!-- <img src="" width="30" height="30" class="d-inline-block align-top" alt=""> -->
-      Lingua
-    </a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="collapsibleNavbar">
-      <ul class="navbar-nav">
-        <li class="nav-item">
-          <a class="nav-link" href="/">Overview</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/playground">Playground</a>
-        </li>
-        <!-- <li class="nav-item">
-          <a class="nav-link" href="#">Link</a>
-        </li> -->
-      </ul>
-    </div>
-  </nav>
+  $(function () {
+    $('[data-toggle="popover"]').popover({
+          delay: {show:1000}
+      })
+  })
+{% endblock %}
 
-  <div class="container-fluid body-content mt-3 px-5">
+{% block style %}
+  .placeholder:empty:before {
+    content: attr(data-placeholder);
+    opacity: 0.5;
+  }
+  .textarea {
+    -moz-appearance: textfield-multiline;
+    -webkit-appearance: textarea;
+    overflow: auto;
+    resize: vertical;
+    white-space:pre-wrap;
+    height:65vh;
+  }
+  .parameter-list {
+    overflow-y: scroll;
+    height: 70vh;
+  }
+  .scrollbar::-webkit-scrollbar {
+    width: 2px;
+  }
+  .scrollbar::-webkit-scrollbar-track {
+    border-radius: 10px;
+    box-shadow: inset 0 0 8px #0000001a;
+  }
+  .parameter-list::-webkit-scrollbar-track {
+    margin-top: 3vh;
+  }
+  .scrollbar::-webkit-scrollbar-thumb {
+    background: #007bff;
+    border-radius: 10px;
+    height: 5px;
+  }
+  .generated-text-font {
+    font-weight: bold;
+  }
+  .generated-text:hover { 
+    background-color: yellow;
+  }
+{% endblock %}
+
+{% block body %}
+  <div class="mt-3 px-5">
     <div class="row">
+      <!-- main column -->
       <div class="col">
-        <div class="row-fluid col-fluid">
+        <div class="row-fluid">
           <div class="d-inline-block">
             <h3 class="d-inline-block">Playground</h3>
-            <nav class="navbar navbar-expand-lg navbar-light d-inline-block">
+            <nav class="navbar navbar-expand-sm navbar-light d-inline-block">
               <div class="container-fluid">
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                  data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false"
-                  aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleSubNavbar">
                   <span class="navbar-toggler-icon"></span>
                 </button>
-                <ul class="nav">
-                  <!-- <li class="nav-item">
-                    <a class="nav-link disabled" href="#">Generate</a>
-                  </li>
-                  <li class="nav-item">
-                    <a class="nav-link disabled" href="#">Embed</a>
-                  </li>
-                  <li class="nav-item">
-                    <a class="nav-link disabled" href="#">Benchmark</a>
-                  </li> -->
-                  <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
-                      aria-expanded="false">Examples</a>
-                    <div class="dropdown-menu">
-                      <a class="dropdown-item" href='javascript:set_prompt("news");'>News</a>
-                      <a class="dropdown-item" href='javascript:set_prompt("arxiv");'>ML paper</a>
-                      <a class="dropdown-item" href='javascript:set_prompt("chatbot");'>Chatbot</a>
-                      <a class="dropdown-item" href='javascript:set_prompt("question");'>QA</a>
-                      <a class="dropdown-item" href='javascript:set_prompt("poetry");'>Poetry</a>
-                    </div>
-                  </li>
-                </ul>
+                <div class="collapse navbar-collapse" id="collapsibleSubNavbar">
+                  <ul class="nav">
+                    <li class="nav-item dropdown">
+                      <a class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                        aria-expanded="false">Examples</a>
+                      <div class="dropdown-menu">
+                        <a class="dropdown-item" href='javascript:set_prompt("news");'>News</a>
+                        <a class="dropdown-item" href='javascript:set_prompt("arxiv");'>ML paper</a>
+                        <a class="dropdown-item" href='javascript:set_prompt("chatbot");'>Chatbot</a>
+                        <a class="dropdown-item" href='javascript:set_prompt("question");'>QA</a>
+                        <a class="dropdown-item" href='javascript:set_prompt("poetry");'>Poetry</a>
+                      </div>
+                    </li>
+                    <!-- <li class="nav-item">
+                      <a class="nav-link" href="#">Embed</a>
+                    </li> -->
+                    <!-- <li class="nav-item">
+                      <a class="nav-link disabled" href="#">Benchmark</a>
+                    </li> -->
+                  </ul>
+                </div>
               </div>
             </nav>
           </div>
         </div>
-        <form>
-          <div class="form-group">
-            <textarea class="form-control" id="textbox" name="prompt" placeholder="Enter a prompt..."
-              form="text-submit" style="display:none;"></textarea>
-            <div class="textarea form-control scrollbar placeholder" id="textbox-input" data-placeholder="Enter a prompt..." contenteditable="true"></div>
-          </div>
-        </form>
+        <div class="row-fluid">
+          <form>
+            <div class="form-group">
+              <textarea class="form-control" id="textbox" name="prompt" placeholder="Enter a prompt..."
+                form="text-submit" style="display:none;"></textarea>
+              <div class="textarea form-control scrollbar placeholder" id="textbox-input" data-placeholder="Enter a prompt..." contenteditable="true"></div>
+            </div>
+          </form>
+        </div>
       </div>
-      <div class="col-sm-auto parameter-list scrollbar p-4">
+      <!-- configurations column -->
+      <div class="col-sm-auto scrollbar parameter-list p-4">
         <form id="text-submit" name="submit-form">
           <div class="form-group">
-            <label for="model-select">Model</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="focus" title="Models"
+            <label for="model-select">Model</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Models"
             data-placement="auto"
             data-content="The large language model which will generate text. Some models are suitable for specified tasks."></i>
-            <select class="form-control" id="model-select" required>
-              <option selected="true" disabled="disabled">Select A Model</option>  
+            <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" required>
+              <option selected disabled value="">Select A Model</option>  
               {% for types in all_models %}
                 {% if types in active_models %}
-                  <option class="dropdown-item" value={{ types }}> {{ types }}</option>
+                  <option value={{ types }}> {{ types }}</option>
                 {% else %}
-                  <option disabled title="Inactive model: please start it's model service" class="dropdown-item">{{ types }} (Inactive Service)</option>
+                  <option disabled title="Inactive model: please start its model service!">{{ types }} (Inactive)</option>
                 {% endif %}
               {% endfor %}
             </select>
           </div>
           <div class="form-group">
-            <label for="response-length-select">Response Length</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="focus" title="Response Length"
+            <label for="response-length-select">Response Length</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Response Length"
             data-placement="top" data-content="An integer to define the maximum number of tokens to generate."></i>
-            <output class="float-right" id="response-length">128</output>
-            <input type="range" class="custom-range" id="response-length-select" value=128 name="length" placeholder=128
-              max=512 min=1 oninput="updateScrollValue(this.value, 'response-length');">
+            <output class="float-right" id="response-length-value">128</output>
+            <input type="range" class="custom-range" id="response-length-select" value=128 name="max-tokens" placeholder=128
+              max=512 min=1 oninput="updateScrollValue(this.value, 'response-length-value');">
           </div>
           <div class="form-group">
-            <label for="temperature-select">Temperature</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="focus" title="Temperature"
+            <label for="temperature-select">Temperature</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Temperature"
             data-placement="top" data-content="A decimal to define the temperature of the sampling operation."></i>
             <output class="float-right" id="temperature-value">1</output>
             <input type="range" class="custom-range" id="temperature-select" value=1 name="temperature" placeholder=1
               max=1 step=0.1 min=0.1 oninput="updateScrollValue(this.value, 'temperature-value');">
           </div>
           <div class="form-group">
-            <label for="top-p-select">Top-P</label><i class="bi bi-info-circle small px-1"  tabindex="0" data-toggle="popover" data-trigger="focus" title="Top-P"
+            <label for="top-p-select">Top-P</label><i class="bi bi-info-circle small px-1"  tabindex="0" data-toggle="popover" data-trigger="hover" title="Top-P"
             data-placement="top"
             data-content="A decimal to define the tokens that are within the sample operation of text generation"></i>
             <output class="float-right" id="topp-value">0.9</output>
-            <input type="range" class="custom-range" id="top-p-select" value=0.9 name="p" placeholder=0.9 max=1 step=0.1
+            <input type="range" class="custom-range" id="top-p-select" value=0.9 name="top-p" placeholder=0.9 max=1 step=0.1
               min=0.1 oninput="updateScrollValue(this.value, 'topp-value');">
           </div>
           <div class="form-group">
-            <label for="top-k-select">Top-K</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="focus" title="Top-K"
+            <label for="top-k-select">Top-K</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Top-K"
             data-placement="top"
             data-content="An integer to define the top tokens considered within the sample operation to create new text"></i>
-            <input type="number" class="form-control id=" top-k-select" value=0.0 name="k" placeholder=1.0 max=100.0
+            <input type="number" class="form-control" id="top-k-select" value=0.0 name="top-k" placeholder=1.0 max=100.0
               step=0.1 min=0.0>
           </div>
           <div class="form-group">
-            <label for="repetition-penalty-select">Repetition Penalty</label><i class="bi bi-info-circle small px-1"  tabindex="0" data-toggle="popover" data-trigger="focus" title="Repetition Penalty"
+            <label for="repetition-penalty-select">Repetition Penalty</label><i class="bi bi-info-circle small px-1"  tabindex="0" data-toggle="popover" data-trigger="hover" title="Repetition Penalty"
             data-placement="top"
             data-content="The more frequently a token is used within text generation the more it is penalized to not be picked in successive generation passes."></i>
             <output class="float-right" id="repetition-penalty-value">1.0</output>
@@ -317,33 +311,53 @@
               oninput="updateScrollValue(this.value, 'repetition-penalty-value');">
           </div>
           <div class="form-group">
-            <label for="num-return-sequence-select">Number Return Sequences</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="focus"
+            <label for="num-return-sequence-select">Number Return Sequences</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover"
             title="Number Return Sequences" data-placement="top"
             data-content="An integer to define the proposition that is desired to be returned."></i>
             <input type="number" class="form-control" id="num-return-sequence-select" value=1 name="repetition_penalty"
               placeholder=1>
           </div>
+          <div class="form-group">
+            <label for="module-name-select">Module Name</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Module Name"
+            data-placement="top"
+            data-content="Information to display how likely was a token to be generated."></i>
+            <select class="form-control" id="module-name-select" required>
+              <option selected="true">Show None</option>
+            </select>
+          </div>
         </form>
       </div>
     </div>
   </div>
-
-  <div class="container-fluid">
-    <div class="fixed-bottom bg-white">
-      <div class="py-3 col px-5">
+  <!-- footer panel -->
+  <div class="fixed-bottom bg-white">
+    <div class="form-row py-3 d-flex justify-content-center align-items-center">
+      <div class="col-auto">
         <button class="btn bg-success text-white" type="submit" value="submit" form="text-submit"
-          id="submit-button">Submit</button>
+        id="submit-button">Submit</button>
+      </div>
+      <div class="col-auto">
         <button class="btn bg-success text-white" type="button" id="loader" disabled>
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           Loading...
         </button>
-        <button type="button" class="btn btn-light" onclick='clearText()'>Clear</button>
       </div>
-      <footer class="navbar-custom text-center">
-        <a class="text-white small">© 2022 Vector Institute</a>
-      </footer>
+      <div class="col-auto">
+        <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
+        data-placement="auto"
+        data-content="Reset configurations and clear textbox">Clear</button>
+      </div>
+      <!-- <div class="col-auto">
+        <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
+        data-placement="auto" data-content="Awesome generation! &#128578;"><i class="bi bi-hand-thumbs-up-fill"></i></button>
+      </div>
+      <div class="col-auto">
+        <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
+        data-placement="auto" data-content="Needs improvement &#128528;"><i class="bi bi-hand-thumbs-down-fill"></i></button> 
+      </div> -->
     </div>
+    <footer class="navbar-custom text-center">
+      <a class="text-white small">© 2022 Vector Institute</a>
+    </footer>
   </div>
-</body>
-
-</html>
+{% endblock %}

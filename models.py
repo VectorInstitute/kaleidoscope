@@ -2,6 +2,7 @@ from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 import requests
+import re
 
 import torch
 import torch.nn as nn
@@ -78,7 +79,7 @@ class OPT(_ServerModel):
         default=None, init=False, repr=False, compare=False
     )
 
-    url: str = "http://gpu135.cluster.local:6010"
+    url: str = "http://172.17.8.51:8000"
 
     def __post_init__(self):
         self.lazy_init()
@@ -104,42 +105,43 @@ class OPT(_ServerModel):
         self.model = None
 
     def lazy_init(self):
-
         if self.tokenizer is None:
             self.tokenizer = self.setup_tokenizer()
-
         if self.model is None:
             self.model = self.setup_model()
 
     def generate_text(self, prompts, /, **gen_kwargs):
-        response = requests.post(
-            OPT.url + "/completions", json={"prompt": prompts, **gen_kwargs}
+        max_tokens= gen_kwargs['max-tokens']
+        top_p= gen_kwargs['top-p']
+        del gen_kwargs['max-tokens']
+        del gen_kwargs['top-p']
+        result = requests.post(
+            OPT.url + "/generate_text", json={"prompt": prompts, "max_tokens": max_tokens, "top_p": top_p, **gen_kwargs}
         )
-        print(response.text)
-        # encoding = self.tokenizer(prompts, padding=True, return_tensors="pt").to(
-        #     self.device_for_input
-        # )
-        # generated_ids = self.model.generate(**encoding, **gen_kwargs)
-        # generated_texts = self.tokenizer.batch_decode(
-        #     generated_ids, skip_special_tokens=True
-        # )
-        return response.json()
+        result_output= result.json()
+        print(f"{result_output}")
+        response = {}
+        response['text'] = result_output['choices'][0]['text']
+        response['text_tokens'] = result_output['choices'][0]['all_tokens_text']
+        response['tokens'] = result_output['choices'][0]['logprobs']['tokens']
+        response['logprobs'] = result_output['choices'][0]['logprobs']['token_logprobs']
+        response['activations'] = result_output['choices'][0]['activations']
+        return response
 
     def generate(self, encoding, probes=None, /, **gen_kwargs):
         """encoding must be the batched encodings"""
         encoding = encoding.to(self.device_for_input)
-
         generated_ids = self.model.generate(**encoding, **gen_kwargs)
-
         return generated_ids
 
     def encode(self, prompts, /, **tokenizer_kwargs):
         """tokenizes the prompts"""
         return self.tokenizer(prompts, **tokenizer_kwargs)
 
-    @property
-    def module_names(self):
-        return tuple(n for n, _ in self.model.named_modules())
+    def get_module_names(self):
+        response = requests.get(
+            OPT.url + "/module_names")
+        return response.json()
 
     @property
     def parameter_names(self):
@@ -184,7 +186,7 @@ class GPT2(_ServerModel):
         default=None, init=False, repr=False, compare=False
     )
 
-    url: str = "http://172.17.8.58:8000"
+    url: str = "http://172.17.8.50:8000"
 
     def __post_init__(self):
         self.lazy_init()
@@ -210,41 +212,41 @@ class GPT2(_ServerModel):
         self.model = None
 
     def lazy_init(self):
-
         if self.tokenizer is None:
             self.tokenizer = self.setup_tokenizer()
-
         if self.model is None:
             self.model = self.setup_model()
 
     def generate_text(self, prompts, /, **gen_kwargs):
-        response = requests.post(
-            GPT2.url + "/generate_text", json={"prompt": prompts, **gen_kwargs}
+        max_tokens= gen_kwargs['max-tokens']
+        top_p= gen_kwargs['top-p']
+        top_k= gen_kwargs['top-k']
+        del gen_kwargs['max-tokens']
+        del gen_kwargs['top-p']
+        del gen_kwargs['top-k']
+        result = requests.post(
+            GPT2.url + "/generate_text", json={"prompt": prompts, "length": max_tokens, "p": top_p, "k": top_k, **gen_kwargs}
         )
-        # encoding = self.tokenizer(prompts, padding=True, return_tensors="pt").to(
-        #     self.device_for_input
-        # )
-        # generated_ids = self.model.generate(**encoding, **gen_kwargs)
-        # generated_texts = self.tokenizer.batch_decode(
-        #     generated_ids, skip_special_tokens=True
-        # )
-        return response.text
+        response= result.json()
+        tokenized_text = response['text']
+        response['tokens'] = re.split("(\s+)", tokenized_text)
+
+        return response
 
     def generate(self, encoding, probes=None, /, **gen_kwargs):
         """encoding must be the batched encodings"""
         encoding = encoding.to(self.device_for_input)
-
         generated_ids = self.model.generate(**encoding, **gen_kwargs)
-
         return generated_ids
 
     def encode(self, prompts, /, **tokenizer_kwargs):
         """tokenizes the prompts"""
         return self.tokenizer(prompts, **tokenizer_kwargs)
 
-    @property
-    def module_names(self):
-        return tuple(n for n, _ in self.model.named_modules())
+    def get_module_names(self):
+        response = requests.get(
+            GPT2.url + "/module_names")
+        return response.json()
 
     @property
     def parameter_names(self):
