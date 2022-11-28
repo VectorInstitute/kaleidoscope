@@ -4,8 +4,10 @@ from flask import Flask
 from flask_ldap3_login import LDAP3LoginManager
 from flask_jwt_extended import JWTManager
 
+
 from config import Config
 from auth import auth
+from db import db
 from resources.home import home
 from resources.models import models
 
@@ -19,6 +21,10 @@ def create_app():
     app.register_blueprint(auth)
     app.register_blueprint(home.home_bp)
     app.register_blueprint(models.models_bp, url_prefix='/models')
+
+    db.init_app(app)
+    with app.app_context():
+        db.create_all()
 
     return app
 

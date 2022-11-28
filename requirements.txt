@@ -49,3 +49,6 @@ wrapt==1.14.1
 zipp==3.9.0
 flask-jwt-extended
 flask-ldap3-login
+flask-sqlalchemy
+Flask-Migrate
+psycopg2-binary
