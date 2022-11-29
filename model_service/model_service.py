@@ -54,7 +54,7 @@ def signal_handler(sig, frame):
 def send_remove_request(model_type):
     remove_url = f"http://{config.GATEWAY_HOST}/models/{model_type}/remove"
     try:
-        response = requests.get(remove_url)
+        response = requests.delete(remove_url)
     except requests.ConnectionError as e:
         print(f"Connection error: {e}")
     except:
@@ -88,7 +88,7 @@ def main():
         "model_type": args.model_type
     }
     try:
-        response = requests.get(register_url, json=register_data)
+        response = requests.post(register_url, json=register_data)
         # HTTP error codes between 450 and 500 are custom to the lingua gateway
         if int(response.status_code) >= 450 and int(response.status_code) < 500:
             raise requests.HTTPError(response.content.decode('utf-8'))
