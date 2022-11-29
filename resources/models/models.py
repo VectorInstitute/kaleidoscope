@@ -71,7 +71,7 @@ async def register_model():
     result = {"result": f"Successfully registered model {request.json['model_type']}"}
     return result, 200
 
-@models_bp.route("/<model_type>", methods=["DELETE"])
+@models_bp.route("/<model_type>/remove", methods=["DELETE"])
 async def remove_model(model_type: str):
 
     model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
