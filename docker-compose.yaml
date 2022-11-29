@@ -4,9 +4,9 @@ services:
   web:
     depends_on:
       - "db"
-    # build: .
+    build: .
     image: gateway:latest
-    # command: python gateway_service.py
+    command: gateway_service.py
     ports:
       - 3001:3001
   db:
