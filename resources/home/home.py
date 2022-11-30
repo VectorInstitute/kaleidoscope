@@ -1,5 +1,6 @@
 from flask import Blueprint, redirect, render_template, request
 from flask_jwt_extended import jwt_required
+import json
 import requests
 
 from models import ALL_MODELS
@@ -36,9 +37,9 @@ async def login():
     auth_url = request.url_root + "authenticate"
     result = requests.post(auth_url, auth=(request.form["username"], request.form["password"]))
     if result.status_code == 401:
-        return render_template("login.html", result=result)
+        return render_template("login.html", result="Login failed: " + json.loads(result.text)["msg"])
 
-    return redirect(request.url_root, 200)
+    return redirect(request.url_root, 302)
 
 @home_bp.route("/reference", methods=["GET"])
 async def reference():

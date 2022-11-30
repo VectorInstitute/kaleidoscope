@@ -55,9 +55,7 @@
       <div class="alert alert-light bg-light" role="alert">
         <h4 class="alert-heading">Login</h4>
         <!-- TODO: Figure out how to plumb back the actual result text -->
-        {% for reason in result %}
-            <p><b>Login unsuccessful</b></p>
-        {% endfor %}
+        <p><b>{{result}}</b></p>
         <form method="POST" action="/login">
           <table>
             <tr>
