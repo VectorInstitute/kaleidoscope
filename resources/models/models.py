@@ -4,6 +4,7 @@ from flask import Blueprint, request, current_app
 from . import MODEL_INSTANCES
 from models import ALL_MODELS
 from db import db
+import sys
 
 ALL_MODEL_NAMES = set(ALL_MODELS.keys())
 
@@ -37,7 +38,11 @@ async def get_all_models():
 async def model_instances():
     model_instance_query = db.select(ModelInstance)
     model_instances = db.session.execute(model_instance_query).all()
-    return list(model_instances), 200
+    instances= {model : "Available" for model in ALL_MODELS}
+    for model in model_instances: 
+        instances[str(model[0].type)]= "Active"
+    print(f"{instances}", file=sys.stderr)
+    return instances, 200
 
 
 @models_bp.route("/<model_name>/module_names", methods=["GET"])
