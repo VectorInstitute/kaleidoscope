@@ -1,5 +1,6 @@
-from flask import Blueprint, redirect, render_template, request
+from flask import Blueprint, current_app, redirect, render_template, request
 from flask_jwt_extended import jwt_required
+
 import json
 import requests
 
