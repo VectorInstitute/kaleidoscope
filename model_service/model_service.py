@@ -13,7 +13,7 @@ import config
 
 # Globals
 
-AVAILABLE_MODELS = ["GPT2", "OPT"]
+AVAILABLE_MODELS = ["GPT2", "OPT", "Galactica"]
 
 
 # Start the Flask service that will hand off requests to the model libraries
@@ -41,6 +41,9 @@ def initialize_model(model_type):
     if model_type == "OPT":
         from models import OPT
         return OPT.OPT()
+    if model_type == "Galactica":
+        from models import Galactica
+        return Galactica.Galactica()
 
 
 # Signal handler to send a remove request to the gateway, if this service is killed by the system
