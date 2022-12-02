@@ -24,7 +24,8 @@ class RModel:
         self.create_addr = partial(urljoin, self.base_addr)
         # TODO: can cache this
         all_model_names = get(self.create_addr("models"))
-        print(f"Available models: {all_model_names}")
+        model_instance_names = get(self.create_addr("models/instances"))
+        print(f"Available models: {all_model_names} \nActive models: {model_instance_names}")
         if self.model_name not in all_model_names:
             raise ValueError(
                 "asked for model {} but server only supports model "
@@ -33,6 +34,10 @@ class RModel:
 
         self.model_base_addr = f"http://{self.host}:{self.port}/models/{self.model_name}/"
         self.model_create_addr = partial(urljoin, self.model_base_addr)
+
+    def get_models(self):
+        model_instance_names = get(self.create_addr("models/instances"))
+        return model_instance_names
 
     def generate_text(self, prompt, /, **gen_kwargs):
         """TODO: should support batching
@@ -46,7 +51,7 @@ class RModel:
         generation = post(model_generate_addr, generate_configs)
         GenerationObj = namedtuple('GenObj', generation.keys())
         results = GenerationObj(**generation)
-        print(f"Success: {results}")
+        print(f"Success:\n{results.text}")
         return results
 
     @cached_property

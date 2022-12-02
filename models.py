@@ -111,12 +111,14 @@ class OPT(_ServerModel):
     #         self.model = self.setup_model()
 
     def generate_text(self, prompts, /, **gen_kwargs):
-        max_tokens= gen_kwargs['max-tokens']
-        top_p= gen_kwargs['top-p']
-        del gen_kwargs['max-tokens']
-        del gen_kwargs['top-p']
+        params= gen_kwargs.keys()
+        if 'max-tokens' in params or 'top-p' in params:
+            gen_kwargs['max_tokens']= gen_kwargs['max-tokens']
+            gen_kwargs['top_p']= gen_kwargs['top-p']
+            del gen_kwargs['max-tokens']
+            del gen_kwargs['top-p']
         result = requests.post(
-            self.url + "/generate_text", json={"prompt": prompts, "max_tokens": max_tokens, "top_p": top_p, **gen_kwargs}
+            self.url + "/generate_text", json={"prompt": prompts, **gen_kwargs}
         )
         result_output= result.json()
         print(f"{result_output}")
@@ -218,19 +220,20 @@ class GPT2(_ServerModel):
     #         self.model = self.setup_model()
 
     def generate_text(self, prompts, /, **gen_kwargs):
-        max_tokens= gen_kwargs['max-tokens']
-        top_p= gen_kwargs['top-p']
-        top_k= gen_kwargs['top-k']
-        del gen_kwargs['max-tokens']
-        del gen_kwargs['top-p']
-        del gen_kwargs['top-k']
+        params= gen_kwargs.keys()
+        if 'max-tokens' in params or 'top-p' in params or 'top-k' in params:
+            gen_kwargs['length']= gen_kwargs['max-tokens']
+            gen_kwargs['p']= gen_kwargs['top-p']
+            gen_kwargs['k']= gen_kwargs['top-k']
+            del gen_kwargs['max-tokens']
+            del gen_kwargs['top-p']
+            del gen_kwargs['top-k']
         result = requests.post(
-            self.url + "/generate_text", json={"prompt": prompts, "length": max_tokens, "p": top_p, "k": top_k, **gen_kwargs}
+            self.url + "/generate_text", json={"prompt": prompts, **gen_kwargs}
         )
         response= result.json()
         tokenized_text = response['text']
         response['tokens'] = re.split("(\s+)", tokenized_text)
-
         return response
 
     # def generate(self, encoding, probes=None, /, **gen_kwargs):
