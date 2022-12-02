@@ -35,7 +35,7 @@
     }
   };
 
-  function set_prompt(name) {
+  function setPrompt(name) {
     if (name == "none") {
       $("#textbox-input").html(EXAMPLES[name]["prompt"]);
       $("#response-length-select").val(EXAMPLES[name]["length"]);
@@ -56,15 +56,13 @@
     }
   };
 
-  function loadlink(){
+  function loadInstances(){
     $.ajax({
       url : "/models/instances",
       type : "GET",
       success : function (data){
-        console.log(typeof(data));
         console.log(data);
         for (const model in data) {
-          console.log(`${model}: ${data[model]}`);
           var currentModel= $('#'+model)
           if (data[model] == "Active"){
             currentModel.attr("title", "Active service!");
@@ -87,7 +85,7 @@
   }
 
   setInterval(function(){
-      loadlink() // fetch model instances every 10 seconds
+    loadInstances() // fetch model instances every 10 seconds
   }, 10000);
 
   $(document).ready(function () {
@@ -166,7 +164,7 @@
   };
 
   function clearText(){
-    set_prompt("none");
+    setPrompt("none");
     document.getElementById("textbox-input").style.backgroundColor = "transparent";
   };
 
@@ -258,11 +256,11 @@
                       <a class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
                         aria-expanded="false">Examples</a>
                       <div class="dropdown-menu">
-                        <a class="dropdown-item" href='javascript:set_prompt("news");'>News</a>
-                        <a class="dropdown-item" href='javascript:set_prompt("arxiv");'>ML paper</a>
-                        <a class="dropdown-item" href='javascript:set_prompt("chatbot");'>Chatbot</a>
-                        <a class="dropdown-item" href='javascript:set_prompt("question");'>QA</a>
-                        <a class="dropdown-item" href='javascript:set_prompt("poetry");'>Poetry</a>
+                        <a class="dropdown-item" href='javascript:setPrompt("news");'><i class="bi bi-newspaper"></i> News</a>
+                        <a class="dropdown-item" href='javascript:setPrompt("arxiv");'><i class="bi bi-file-text"></i> ML paper</a>
+                        <a class="dropdown-item" href='javascript:setPrompt("chatbot");'><i class="bi bi-chat-left-dots-fill"></i> Chatbot</a>
+                        <a class="dropdown-item" href='javascript:setPrompt("question");'><i class="bi bi-question-circle"></i> QA</a>
+                        <a class="dropdown-item" href='javascript:setPrompt("poetry");'><i class="bi bi-brush"></i> Poetry</a>
                       </div>
                     </li>
                     <!-- <li class="nav-item">
