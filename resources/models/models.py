@@ -31,25 +31,35 @@ class ModelInstance(db.Model):
 
 @models_bp.route("/", methods=["GET"])
 async def get_all_models():
-    return list(ALL_MODEL_NAMES)
+    return list(ALL_MODEL_NAMES), 200
 
+
+def get_active_models():
+    model_instance_query = db.select(ModelInstance)
+    model_instances = db.session.execute(model_instance_query).all()
+    active_models= {model[0].type : "http://"+model[0].host for model in model_instances}
+    return active_models
+
+def get_current_model(model_name):
+    active_models= get_active_models()
+    selected_model = ALL_MODELS[model_name](active_models[model_name])
+    return selected_model
 
 @models_bp.route("/instances", methods=["GET"])
 async def model_instances():
-    model_instance_query = db.select(ModelInstance)
-    model_instances = db.session.execute(model_instance_query).all()
-    instances= {model : "Available" for model in ALL_MODELS}
-    for model in model_instances: 
-        instances[str(model[0].type)]= "Active"
-    print(f"{instances}", file=sys.stderr)
+    model_instances= get_active_models()
+    instances= {model : "Inactive" for model in ALL_MODELS}
+    for model in model_instances.keys(): 
+        instances[model]= "Active"
     return instances, 200
 
 
 @models_bp.route("/<model_name>/module_names", methods=["GET"])
 async def get_module_names(model_name: str):
     verify_request(model_name)
-    module_names= ALL_MODELS[model_name].get_module_names(model_name)
-    return module_names
+    selected_model= get_current_model(model_name)
+    module_names = selected_model.get_module_names()
+    return module_names, 200
 
 
 @models_bp.route("/register", methods=["POST"])
@@ -72,6 +82,8 @@ async def register_model():
 
     db.session.add(new_model_instance)
     db.session.commit()
+    print(f"{model_type} and {model_host} registered", file=sys.stderr)
+    ALL_MODELS[model_type].url= model_host
 
     result = {"result": f"Successfully registered model {request.json['model_type']}"}
     return result, 200
@@ -100,5 +112,6 @@ async def generate_text(model_name: str):
     data = request.form.copy()
     prompts = data["prompt"]
     del data["prompt"]
-    generated_text = ALL_MODELS[model_name].generate_text(model_name, prompts, **data)
-    return generated_text
+    selected_model= get_current_model(model_name)
+    generated_text = selected_model.generate_text(prompts, **data)
+    return generated_text, 200
