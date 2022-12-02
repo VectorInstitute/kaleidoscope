@@ -56,6 +56,40 @@
     }
   };
 
+  function loadlink(){
+    $.ajax({
+      url : "/models/instances",
+      type : "GET",
+      success : function (data){
+        console.log(typeof(data));
+        console.log(data);
+        for (const model in data) {
+          console.log(`${model}: ${data[model]}`);
+          var currentModel= $('#'+model)
+          if (data[model] == "Active"){
+            currentModel.attr("title", "Active service!");
+            currentModel.prop('disabled', false);
+            currentModel.text(model);
+            currentModel.val(model);
+          }
+          else{
+            var selectedModel= $("#model-select option:selected");
+            if (selectedModel.val() == model){
+              $("#model-select").val('');
+            }
+            currentModel.attr("title", "Inactive model: please start its model service!");
+            currentModel.prop('disabled', true);
+            currentModel.text(model + " (Inactive)");
+          }
+        }
+      }
+    });
+  }
+
+  setInterval(function(){
+      loadlink() // fetch model instances every 10 seconds
+  }, 10000);
+
   $(document).ready(function () {
     $("#text-submit").submit(function (event) {
       loadAnimation();
@@ -71,8 +105,7 @@
         loadCompleteAnimation();
         parseData(data);
         console.log(data);
-      })
-        .fail(function () {
+      }).fail(function () {
           loadFailAnimation();
         });
       event.preventDefault();
@@ -262,13 +295,9 @@
             data-placement="auto"
             data-content="The large language model which will generate text. Some models are suitable for specified tasks."></i>
             <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" required>
-              <option selected disabled value="">Select A Model</option>  
+              <option selected id="null-model" disabled value="">Select A Model</option>  
               {% for types in all_models %}
-                {% if types in active_models %}
-                  <option value={{ types }}> {{ types }}</option>
-                {% else %}
-                  <option disabled title="Inactive model: please start its model service!">{{ types }} (Inactive)</option>
-                {% endif %}
+                  <option disabled id="{{ types }}" value="{{ types }}" title="Inactive model: please start its model service!">{{ types }} (Inactive)</option>
               {% endfor %}
             </select>
           </div>
