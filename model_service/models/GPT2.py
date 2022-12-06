@@ -3,6 +3,7 @@ import json
 import logging
 import numpy as np
 import random
+import re
 import time
 import torch
 
@@ -102,7 +103,7 @@ class GPT2(AbstractModel):
 
         response = {}
         response['text'] = generated_text
-        response['tokens'] = {}
+        response['tokens'] = re.split("(\s+)", generated_text)
         response['logprobs'] = random_logprobs
         response['activations'] = {}
 

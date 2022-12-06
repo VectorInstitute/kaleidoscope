@@ -167,8 +167,14 @@ class OPT(AbstractModel):
                 raise generations
             results += generations
 
-        # transform the result into the openai format
-        return OAIResponse(results).__dict__()
+        # Ensure output format is consistent with other lingua models
+        response = {}
+        response['text'] = results[0]['text']
+        response['tokens'] = results[0]['tokens']
+        response['logprobs'] = results[0]['token_scores']
+        response['activations'] = {}
+
+        return response
 
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
