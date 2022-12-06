@@ -42,10 +42,10 @@ class GPT2(AbstractModel):
     def generate_text(self, request):
 
         prompt = request.json['prompt']
-        length = int(request.json['length']) if 'length' in request.json else 128
+        length = int(request.json['max-tokens']) if 'max-tokens' in request.json else 128
         temperature = float(request.json['temperature']) if 'temperature' in request.json else 1.0
-        top_k = float(request.json['k']) if 'k' in request.json else 0
-        top_p = float(request.json['p']) if 'p' in request.json else 0.9
+        top_k = float(request.json['top-k']) if 'top-k' in request.json else 0
+        top_p = float(request.json['top-p']) if 'top-p' in request.json else 0.9
         num_return_sequences = int(request.json['num_return_sequences']) if 'num_return_sequences' in request.json else 1
         repetition_penalty = float(request.json['repetition_penalty']) if 'repetition_penalty' in request.json else 1.0
 
