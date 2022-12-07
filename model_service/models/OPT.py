@@ -112,8 +112,8 @@ class OPT(AbstractModel):
 
         if "min_tokens" in generation_args:
             generation_args["min_tokens"] = int(generation_args["min_tokens"])
-        if "max_tokens" in generation_args:
-            generation_args["max_tokens"] = int(generation_args["max_tokens"])
+        if "max-tokens" in generation_args:
+            generation_args["max_tokens"] = int(generation_args["max-tokens"])
         if "stop" in generation_args:
             stop = generation_args["stop"]
             if stop is None:
@@ -127,8 +127,8 @@ class OPT(AbstractModel):
             generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
         else:
             generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
-        if "top_p" in generation_args:
-            generation_args["top_p"] = round(float(generation_args["top_p"]), 1)
+        if "top-p" in generation_args:
+            generation_args["top_p"] = round(float(generation_args["top-p"]), 1)
         else:
             generation_args["top_p"] = UNBATCHED_ARG_DICT["top_p"]
         # beam search top n
@@ -167,8 +167,14 @@ class OPT(AbstractModel):
                 raise generations
             results += generations
 
-        # transform the result into the openai format
-        return OAIResponse(results).__dict__()
+        # Ensure output format is consistent with other lingua models
+        response = {}
+        response['text'] = results[0]['text']
+        response['tokens'] = results[0]['tokens']
+        response['logprobs'] = results[0]['token_scores']
+        response['activations'] = {}
+
+        return response
 
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):

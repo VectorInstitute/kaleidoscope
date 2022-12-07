@@ -3,6 +3,7 @@ import json
 import logging
 import numpy as np
 import random
+import re
 import time
 import torch
 
@@ -41,10 +42,10 @@ class GPT2(AbstractModel):
     def generate_text(self, request):
 
         prompt = request.json['prompt']
-        length = int(request.json['length']) if 'length' in request.json else 128
+        length = int(request.json['max-tokens']) if 'max-tokens' in request.json else 128
         temperature = float(request.json['temperature']) if 'temperature' in request.json else 1.0
-        top_k = float(request.json['k']) if 'k' in request.json else 0
-        top_p = float(request.json['p']) if 'p' in request.json else 0.9
+        top_k = float(request.json['top-k']) if 'top-k' in request.json else 0
+        top_p = float(request.json['top-p']) if 'top-p' in request.json else 0.9
         num_return_sequences = int(request.json['num_return_sequences']) if 'num_return_sequences' in request.json else 1
         repetition_penalty = float(request.json['repetition_penalty']) if 'repetition_penalty' in request.json else 1.0
 
@@ -74,6 +75,7 @@ class GPT2(AbstractModel):
 
         generated_sequences = []
         random_logprobs = []
+        random_tokens= []
 
         for generated_sequence_idx, generated_sequence in enumerate(output_sequences):
             print(f"=== GENERATED SEQUENCE {generated_sequence_idx + 1} ===")
@@ -93,8 +95,11 @@ class GPT2(AbstractModel):
             generated_sequences.append(total_sequence)
             print(total_sequence)
 
+            # TODO: Add the real text tokens
+            random_tokens.extend(re.split("(\s+)", total_sequence))
+
             # TODO: Add the real logprobs
-            for i in range(len(generated_sequence)):
+            for i in range(len(random_tokens):
                 random_logprobs.append(random.uniform(-3, -0.001))
 
 
@@ -102,7 +107,7 @@ class GPT2(AbstractModel):
 
         response = {}
         response['text'] = generated_text
-        response['tokens'] = {}
+        response['tokens'] = random_tokens
         response['logprobs'] = random_logprobs
         response['activations'] = {}
 

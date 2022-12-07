@@ -1,25 +1,13 @@
-from flask import Blueprint, request, current_app
-# import sqlalchemy as sa
-
-from . import MODEL_INSTANCES
-from models import ALL_MODELS
 from db import db
+from flask import Blueprint, request, current_app
+import re
+import requests
 import sys
+from werkzeug.exceptions import HTTPException
 
-ALL_MODEL_NAMES = set(ALL_MODELS.keys())
+from . import *
 
-models_bp = Blueprint("models", __name__)
-
-# Model Instances represents the set of models that are currently active and able to service requests
-
-def verify_request(model_name):
-    if model_name not in ALL_MODELS.keys():
-        raise HTTPException(
-            status_code=422,
-            detail=f"model_name <model_name> not found, "
-            "only {ALL_MODEL_NAMES} supported",
-        )
-
+# Model Instances represent models that are currently active and able to service requests
 class ModelInstance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String)
@@ -29,64 +17,73 @@ class ModelInstance(db.Model):
         self.type = type
         self.host = host
 
+
+def verify_request(model_name):
+    if model_name not in ALL_MODEL_NAMES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"model_name <model_name> not found, "
+            "only {ALL_MODEL_NAMES} supported",
+        )
+
+
+models_bp = Blueprint("models", __name__)
+
+
 @models_bp.route("/", methods=["GET"])
 async def get_all_models():
     return list(ALL_MODEL_NAMES), 200
 
 
-def get_active_models():
-    model_instance_query = db.select(ModelInstance)
-    model_instances = db.session.execute(model_instance_query).all()
-    active_models= {model[0].type : "http://"+model[0].host for model in model_instances}
-    return active_models
-
-def get_current_model(model_name):
-    active_models= get_active_models()
-    selected_model = ALL_MODELS[model_name](active_models[model_name])
-    return selected_model
-
 @models_bp.route("/instances", methods=["GET"])
 async def model_instances():
-    model_instances= get_active_models()
-    instances= {model : "Inactive" for model in ALL_MODELS}
-    for model in model_instances.keys(): 
-        instances[model]= "Active"
+    model_instance_query = db.select(ModelInstance)
+    model_instances = db.session.execute(model_instance_query).all()
+
+    instances = {model : "Inactive" for model in ALL_MODEL_NAMES}
+    for model in model_instances:
+        instances[model[0].type] = "Active"
     return instances, 200
 
 
-@models_bp.route("/<model_name>/module_names", methods=["GET"])
-async def get_module_names(model_name: str):
-    verify_request(model_name)
-    selected_model= get_current_model(model_name)
-    module_names = selected_model.get_module_names()
-    return module_names, 200
+@models_bp.route("/<model_type>/module_names", methods=["GET"])
+async def get_module_names(model_type: str):
+    verify_request(model_type)
+
+    # Retrieve the host url for the requested model
+    model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
+    model_instance = db.session.execute(model_instance_query).first()
+    current_app.logger.info(f"Requesting module names for {model_type}")
+    model_host = model_instance[0].host
+
+    # Retrieve module names and return
+    response = requests.get("http://" + model_host + "/module_names")
+    return response.json(), 200
 
 
 @models_bp.route("/register", methods=["POST"])
 async def register_model():
-    # If a model of this type has already been registered, return an error
+
     model_type = request.json['model_type']
     model_host = request.json['model_host']
 
     model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
     model_instance = db.session.execute(model_instance_query).first()
 
-    current_app.logger.info(model_instance)
-
+    # If a model of this type has already been registered, return an error
     if model_instance is not None:
         result = f"ERROR: Model type {model_type} has already been registered"
         return result, 403
 
     # Register model and return success
     new_model_instance = ModelInstance(model_type, model_host)
-
     db.session.add(new_model_instance)
     db.session.commit()
-    print(f"{model_type} and {model_host} registered", file=sys.stderr)
-    ALL_MODELS[model_type].url= model_host
+    current_app.logger.info(f"Registered new model instance {model_type} ({model_host})")
 
     result = {"result": f"Successfully registered model {request.json['model_type']}"}
     return result, 200
+
 
 @models_bp.route("/<model_type>/remove", methods=["DELETE"])
 async def remove_model(model_type: str):
@@ -94,7 +91,7 @@ async def remove_model(model_type: str):
     model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
     model_instance = db.session.execute(model_instance_query).first()
 
-    current_app.logger.info(model_instance)
+    current_app.logger.info(f"Removing model instance of {model_type}")
 
     if model_instance is None:
         result = {"result": f"Model not found."}
@@ -106,12 +103,20 @@ async def remove_model(model_type: str):
     result = {"result": f"Model removed."}
     return result, 200
 
-@models_bp.route("/<model_name>/generate_text", methods=["POST"])
-async def generate_text(model_name: str):
-    verify_request(model_name)
+
+@models_bp.route("/<model_type>/generate_text", methods=["POST"])
+async def generate_text(model_type: str):
+    verify_request(model_type)
+
+    model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
+    model_instance = db.session.execute(model_instance_query).first()
+
     data = request.form.copy()
-    prompts = data["prompt"]
+    prompt = data["prompt"]
     del data["prompt"]
-    selected_model= get_current_model(model_name)
-    generated_text = selected_model.generate_text(prompts, **data)
-    return generated_text, 200
+
+    result = requests.post(
+        "http://" + model_instance[0].host + "/generate_text", json={"prompt": prompt, **data}
+    ).json()
+    current_app.logger.info(f"Generate text result: {result}")
+    return result, 200
