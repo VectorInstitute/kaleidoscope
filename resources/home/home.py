@@ -46,4 +46,4 @@ async def reference():
 @home_bp.route("/playground", methods=["GET"])
 async def playground():
     #  return f"sample inference server for models: {set(ALL_MODELS.keys())}"
-    return render_template("playground.html", all_models=ALL_MODEL_NAMES, active_models={})
+    return render_template("playground.html", all_models=ALL_MODEL_NAMES)
