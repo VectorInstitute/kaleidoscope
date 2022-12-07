@@ -7,8 +7,9 @@ class Config(object):
     GATEWAY_PORT = 3001
 
     JWT_SECRET_KEY = 'abc123'
-    JWT_TOKEN_LOCATION = 'cookies'
-    JWT_ACCESS_COOKIE_PATH = '/api/'
+    #JWT_TOKEN_LOCATION = 'cookies'
+    JWT_COOKIE_SECURE = False
+    #JWT_ACCESS_COOKIE_PATH = '/api/'
     JWT_REFRESH_COOKIE_PATH = '/token/refresh'
 
     LDAP_HOST = "172.17.15.251"
