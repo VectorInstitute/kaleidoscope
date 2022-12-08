@@ -99,7 +99,7 @@ class GPT2(AbstractModel):
             random_tokens.extend(re.split("(\s+)", total_sequence))
 
             # TODO: Add the real logprobs
-            for i in range(len(random_tokens):
+            for i in range(len(random_tokens)):
                 random_logprobs.append(random.uniform(-3, -0.001))
 
 
