@@ -106,7 +106,7 @@ async def remove_model(model_type: str):
 
 
 @models_bp.route("/<model_type>/generate_text", methods=["POST"])
-@jwt_required
+@jwt_required()
 async def generate_text(model_type: str):
     verify_request(model_type)
 
