@@ -51,13 +51,66 @@
         <p class="lead">A Vector Institute product.</p>
       </div>
     </div>
+    <!-- information column -->
     <div class="col">
-      <div class="alert alert-light bg-light" role="alert">
-        <h4 class="alert-heading">Welcome!</h4>
-        <p>Vector has committed to support inference and analysis capabilities for LLMs with Lingua</p>
-        <hr>
-        <p class="mb-0">We welcome additional contributions and feedback. For any additional inquiries please contact the
-          respective administrators.</p>
+      <div class="row-fluid">
+        <div class="alert alert-light bg-light" role="alert">
+          <h4 class="alert-heading">Welcome!</h4>
+          <p>Vector has committed to support inference and analysis capabilities for LLMs with Lingua</p>
+          <hr>
+          <p class="mb-0">We welcome additional contributions and feedback. For any additional inquiries please contact the
+            respective administrators.</p>
+        </div>
+      </div>
+      <!-- FAQ -->
+      <div class="row-fluid">
+        <div class="alert alert-light bg-light" role="alert">
+          <h4 class="alert-heading">FAQ</h4>
+          <div class="accordion mt-3" id="accordionExample">
+            <div class="card">
+              <div class="card-header" id="headingOne">
+                <h2 class="mb-0">
+                  <button class="btn text-left alert-heading" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                    What is it?
+                  </button>
+                </h2>
+              </div>
+              <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+                <div class="card-body">
+                  An <a href="https://github.com/VectorInstitute/lingua">open sourced</a> web service and tooling framework to interact with Large Language Models (LLMs).
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header" id="headingTwo">
+                <h2 class="mb-0">
+                  <button class="btn text-left alert-heading collapsed" type="button" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                    How do I upload a language model?
+                  </button>
+                </h2>
+              </div>
+              <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionExample">
+                <div class="card-body">
+                  To speed up the process, you may send a request to the Vector Institute Team with your desired LLM or clone the repository and configure your model in <code>lingua/model_service/models/</code>.
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header" id="headingThree">
+                <h2 class="mb-0">
+                  <button class="btn text-left alert-heading collapsed" type="button" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                    I have a feature request!
+                  </button>
+                </h2>
+              </div>
+              <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordionExample">
+                <div class="card-body">
+                  That is great! Please file a GitHub <a href="https://github.com/VectorInstitute/lingua/issues">issue</a> in the Lingua repository and we will take a look at it as soon as possible.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <footer class="fixed-bottom navbar-custom text-center">
