@@ -18,6 +18,10 @@ def create_app():
     ldap_manager = LDAP3LoginManager(app)  
     jwt = JWTManager(app)
 
+    @jwt.expired_token_loader
+    def expired_token_callback(header, payload):
+        return redirect(url_for('home.login'))
+
     @jwt.invalid_token_loader
     def invalid_token_callback(err_msg):
         return redirect(url_for('home.login'))

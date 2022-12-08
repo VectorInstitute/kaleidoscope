@@ -1,5 +1,6 @@
 from db import db
 from flask import Blueprint, request, current_app
+from flask_jwt_extended import jwt_required
 import re
 import requests
 import sys
@@ -105,6 +106,7 @@ async def remove_model(model_type: str):
 
 
 @models_bp.route("/<model_type>/generate_text", methods=["POST"])
+@jwt_required
 async def generate_text(model_type: str):
     verify_request(model_type)
 
