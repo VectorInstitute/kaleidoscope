@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask_ldap3_login import LDAP3LoginManager
 from flask_jwt_extended import JWTManager
 
@@ -17,6 +17,18 @@ def create_app():
 
     ldap_manager = LDAP3LoginManager(app)  
     jwt = JWTManager(app)
+
+    @jwt.expired_token_loader
+    def expired_token_callback(header, payload):
+        return redirect(url_for('home.login'))
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(err_msg):
+        return redirect(url_for('home.login'))
+    
+    @jwt.unauthorized_loader
+    def unauth_callback(err_msg):
+        return redirect(url_for('home.login'))
 
     app.register_blueprint(auth)
     app.register_blueprint(home.home_bp)

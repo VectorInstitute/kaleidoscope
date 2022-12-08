@@ -95,6 +95,12 @@
     loadInstances() // fetch model instances every 10 seconds
   }, 10000);
 
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
   // text generation request
   $(document).ready(function () {
     $("#text-submit").submit(function (event) {
@@ -106,12 +112,17 @@
       $.ajax({
         url: "/models/" + selectedModel.options[selectedModel.selectedIndex].value + "/generate_text",
         type: "POST",
+        headers: {
+          "Authorization": "Bearer " + getCookie(access_token_cookie)
+        },
         data: formData
       }).done(function (data) {
         loadCompleteAnimation();
         parseData(data);
         console.log(data);
-      }).fail(function () {
+      }).fail(function (data) {
+          console.log(data)
+          window.href = '/login'
           loadFailAnimation();
         });
       event.preventDefault();
@@ -202,6 +213,9 @@
   };
 
   window.onload = function () {
+    if (document.cookie.indexOf("access_token_cookie=") == -1) {
+      window.href = '/login'
+    } 
     document.getElementById("loader").style.display = "none";
   };
 
