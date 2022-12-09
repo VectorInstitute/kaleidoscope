@@ -88,14 +88,9 @@
     loadInstances() // fetch model instances every 10 seconds
   }, 10000);
 
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-  }
-
   $(document).ready(function () {
     $("#text-submit").submit(function (event) {
+      event.preventDefault();
       loadAnimation();
       getPromptText();
       var selectedModel = document.getElementById("model-select");
@@ -105,7 +100,7 @@
         url: "/models/" + selectedModel.options[selectedModel.selectedIndex].value + "/generate_text",
         type: "POST",
         headers: {
-          "Authorization": "Bearer " + getCookie(access_token_cookie)
+          "Authorization": "Bearer " + localStorage.getItem("accessToken")
         },
         data: formData
       }).done(function (data) {
@@ -117,7 +112,6 @@
           window.href = '/login'
           loadFailAnimation();
         });
-      event.preventDefault();
     });
   });
 
@@ -198,9 +192,9 @@
   };
 
   window.onload = function () {
-    if (document.cookie.indexOf("access_token_cookie=") == -1) {
-      window.href = '/login'
-    } 
+    if (localStorage.getItem("accessToken") == null) {
+      location.href = "/login"
+    }
     document.getElementById("loader").style.display = "none";
   };
 
@@ -306,7 +300,7 @@
             <label for="model-select">Model</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Models"
             data-placement="auto"
             data-content="The large language model which will generate text. Some models are suitable for specified tasks."></i>
-            <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" required>
+            <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" >
               <option selected id="null-model" disabled value="">Select A Model</option>  
               {% for types in all_models %}
                   <option disabled id="{{ types }}" value="{{ types }}" title="Inactive model: please start its model service!">{{ types }} (Inactive)</option>

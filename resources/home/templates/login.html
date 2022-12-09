@@ -29,6 +29,8 @@
         })
 
         if (response.status == 200) {
+          const responseBody = await response.json()
+          localStorage.setItem("accessToken", responseBody.token)
           location.href = '/playground';
         } else {
           const alertString = `
@@ -43,7 +45,6 @@
           $("#submitButton").removeClass("d-none disabled")
           $("#loader").addClass("d-none")
         }
-        console.log(response)
       }
     </script>
     <style>
