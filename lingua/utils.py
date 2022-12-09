@@ -26,8 +26,8 @@ def get(addr):
     return resp.json()
 
 
-def post(addr, obj):
-    resp = requests.post(addr, data=obj)  # allign with metaseq json request
+def post(addr, obj, auth_key):
+    resp = requests.post(addr, data=obj, headers={'Authorization': 'Bearer '+auth_key}) 
     check_response(resp)
     return resp.json()
 

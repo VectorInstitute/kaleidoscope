@@ -16,6 +16,7 @@ class RModel:
     host: str
     port: int
     model_name: str
+    auth_key: str
 
     probe_dict: Dict = field(default_factory=dict, repr=False, compare=False)
 
@@ -40,15 +41,14 @@ class RModel:
         return model_instance_names
 
     def generate_text(self, prompt, /, **gen_kwargs):
-        """TODO: should support batching
-        """
+        """TODO: should support batching"""
         model_generate_addr = urljoin(self.model_base_addr, "generate_text")
         generate_configs = {}
         generate_configs['prompt']= prompt
         generate_configs.update(gen_kwargs)
         generate_configs['use_grad'] = torch.is_grad_enabled()
         print(f"Submission: {generate_configs}")
-        generation = post(model_generate_addr, generate_configs)
+        generation = post(model_generate_addr, generate_configs, self.auth_key)
         GenerationObj = namedtuple('GenObj', generation.keys())
         results = GenerationObj(**generation)
         print(f"Success:\n{results.text}")
