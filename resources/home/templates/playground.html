@@ -113,10 +113,12 @@
       }).done(function (data) {
         loadCompleteAnimation();
         parseData(data);
-        console.log(data);
       }).fail(function (data) {
           console.log(data)
-          location.href = '/login'
+          if (400 <= data.status && data.status <= 499) {
+            localStorage.removeItem("accessToken");
+            location.href = '/login';
+          }
           loadFailAnimation();
         });
     });

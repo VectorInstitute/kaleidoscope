@@ -18,18 +18,6 @@ def create_app():
     ldap_manager = LDAP3LoginManager(app)  
     jwt = JWTManager(app)
 
-    # @jwt.expired_token_loader
-    # def expired_token_callback(header, payload):
-    #     return redirect(url_for('home.login'))
-
-    # @jwt.invalid_token_loader
-    # def invalid_token_callback(err_msg):
-    #     return redirect(url_for('home.login'))
-    
-    # @jwt.unauthorized_loader
-    # def unauth_callback(err_msg):
-    #     return redirect(url_for('home.login'))
-
     app.register_blueprint(auth)
     app.register_blueprint(home.home_bp)
     app.register_blueprint(models.models_bp, url_prefix='/models')
