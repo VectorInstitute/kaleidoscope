@@ -300,7 +300,7 @@
             <label for="model-select">Model</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Models"
             data-placement="auto"
             data-content="The large language model which will generate text. Some models are suitable for specified tasks."></i>
-            <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" >
+            <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" required>
               <option selected id="null-model" disabled value="">Select A Model</option>  
               {% for types in all_models %}
                   <option disabled id="{{ types }}" value="{{ types }}" title="Inactive model: please start its model service!">{{ types }} (Inactive)</option>
