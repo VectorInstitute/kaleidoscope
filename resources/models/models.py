@@ -120,7 +120,5 @@ async def generate_text(model_type: str):
     result = requests.post(
         "http://" + model_instance[0].host + "/generate_text", json={"prompt": prompt, **data}
     ).json()
-    result['tokens'] = re.split("(\s+)", result['text'])
     current_app.logger.info(f"Generate text result: {result}")
-
     return result, 200

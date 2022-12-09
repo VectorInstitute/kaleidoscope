@@ -3,6 +3,10 @@
 {% block title %}Playground{% endblock %}
 
 {% block script %}
+  // constants for text generation eta
+  var TIME_CONSTANT = 3;
+  var TIME_PER_TOKEN = 0.12;
+
   var EXAMPLES = {
     "news": {
       "prompt": "VECTOR INSTITUTE DEVELOPS ARTIFICIAL INTELLIGENCE FOR HEALTH RECOMMENDATIONS",
@@ -56,6 +60,7 @@
     }
   };
 
+  // model instances request
   function loadInstances(){
     $.ajax({
       url : "/models/instances",
@@ -83,6 +88,8 @@
       }
     });
   }
+
+  loadInstances() // fetch upon page refresh
 
   setInterval(function(){
     loadInstances() // fetch model instances every 10 seconds
@@ -152,9 +159,16 @@
   };
 
   function loadAnimation() {
+    getTextGenerationETA();
     document.getElementById("loader").style.display = "inline";
     document.getElementById("submit-button").style.display = "none";
   };
+
+  function getTextGenerationETA(){
+    var responseLength = $("#response-length-select").val();
+    var eta = Math.round(TIME_PER_TOKEN * responseLength + TIME_CONSTANT);
+    $("#eta").text(eta);
+  }
 
   function loadCompleteAnimation() {
     document.getElementById("loader").style.display = "none";
@@ -294,7 +308,7 @@
         </div>
       </div>
       <!-- configurations column -->
-      <div class="col-sm-auto scrollbar parameter-list p-4">
+      <div class="col-sm-3 col-auto scrollbar parameter-list p-4">
         <form id="text-submit" name="submit-form">
           <div class="form-group">
             <label for="model-select">Model</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Models"
@@ -374,7 +388,7 @@
       <div class="col-auto">
         <button class="btn bg-success text-white" type="button" id="loader" disabled>
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-          Loading...
+          Appx. <span id="eta">X</span> seconds
         </button>
       </div>
       <div class="col-auto">

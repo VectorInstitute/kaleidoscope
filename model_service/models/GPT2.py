@@ -75,6 +75,7 @@ class GPT2(AbstractModel):
 
         generated_sequences = []
         random_logprobs = []
+        random_tokens= []
 
         for generated_sequence_idx, generated_sequence in enumerate(output_sequences):
             print(f"=== GENERATED SEQUENCE {generated_sequence_idx + 1} ===")
@@ -94,8 +95,11 @@ class GPT2(AbstractModel):
             generated_sequences.append(total_sequence)
             print(total_sequence)
 
+            # TODO: Add the real text tokens
+            random_tokens.extend(re.split("(\s+)", total_sequence))
+
             # TODO: Add the real logprobs
-            for i in range(len(generated_sequence)):
+            for i in range(len(random_tokens)):
                 random_logprobs.append(random.uniform(-3, -0.001))
 
 
@@ -103,7 +107,7 @@ class GPT2(AbstractModel):
 
         response = {}
         response['text'] = generated_text
-        response['tokens'] = re.split("(\s+)", generated_text)
+        response['tokens'] = random_tokens
         response['logprobs'] = random_logprobs
         response['activations'] = {}
 
