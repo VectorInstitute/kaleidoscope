@@ -27,24 +27,13 @@ async def home():
 
 @home_bp.route("/login", methods=["GET"])
 async def login():
-    # GET requests display the login form
-    # if request.method == "GET":
     return render_template("login.html")
-
-    # # POST requests handle the login
-    # auth_url = request.url_root + "authenticate"
-    # result = requests.post(auth_url, auth=(request.form["username"], request.form["password"]))
-    # if result.status_code == 401:
-    #     return render_template("login.html", result="Login failed: " + json.loads(result.text)["msg"])
-
-    # return redirect(request.url_root, 302)
 
 @home_bp.route("/reference", methods=["GET"])
 async def reference():
     return render_template("reference.html")
 
 @home_bp.route("/playground", methods=["GET"])
-# @jwt_required(locations=['cookies'])
 async def playground():
     #  return f"sample inference server for models: {set(ALL_MODELS.keys())}"
     return render_template("playground.html", all_models=ALL_MODEL_NAMES)
