@@ -33,15 +33,7 @@
           localStorage.setItem("accessToken", responseBody.token)
           location.href = '/playground';
         } else {
-          const alertString = `
-            <div id="alert" class="alert alert-danger alert-dismissible fade show" role="alert"> 
-                  Invalid Username or Password
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
-                </button>
-            </div> 
-          `
-          $("#alertContainer").append(alertString)
+          $( "#alert" ).show().delay(1500).fadeOut(500);
           $("#submitButton").removeClass("d-none disabled")
           $("#loader").addClass("d-none")
         }
@@ -50,6 +42,15 @@
     <style>
       .navbar-custom {
         background-color: #222222;
+      }
+      .logo-crop {
+        width: 25px; 
+        height: 30px; 
+        object-position: left; 
+        object-fit: cover;
+      }
+      .alert-display {
+        display: none;
       }
       .div-center {
         width: 400px;
@@ -92,12 +93,12 @@
     <!-- top navigation bar -->
     <nav class="navbar sticky-top navbar-expand-sm navbar-custom navbar-dark">
       <a class="navbar-brand" href="/">
-        <!-- <img src="" width="30" height="30" class="d-inline-block align-top" alt=""> -->
+        <img class="d-inline-block align-top logo-crop" src="https://vectorinstitute.ai/wp-content/uploads/2020/06/logo_uniligual_white_horizontal_trademark.png" title="Vector Light Logo" alt="Vector Light Logo">
         Lingua
       </a>
     </nav>
     {% block body %}
-    <div id="alertContainer"></div>
+    <div class="alert alert-danger alert-display" id="alert" role="alert">Invalid Username or Password</div>
     <div class="div-center">
       <div class="content">
         <div class="col">
