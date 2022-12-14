@@ -17,7 +17,6 @@ def verify_request(model_name):
         )
 
 @home_bp.route("/health")
-@jwt_required()
 async def heartbeat():
     return "Still Alive"
 

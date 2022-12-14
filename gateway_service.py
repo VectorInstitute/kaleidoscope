@@ -32,9 +32,17 @@ def make_celery(app):
     celery = Celery(
         app.import_name,
         backend=app.config['CELERY_BACKEND_URL'],
-        broker=app.config['CELERY_BROKER_URL']
+        broker=app.config['CELERY_BROKER_URL'],
+        include=['tasks']
     )
     celery.conf.update(app.config)
+
+    celery.conf.beat_schedule = {
+        "verify_health": {
+            "task": "tasks.verify_model_instance_health",
+            "schedule": 10.0
+        }
+    }
 
     class ContextTask(celery.Task):
         def __call__(self, *args, **kwargs):
@@ -42,6 +50,8 @@ def make_celery(app):
                 return self.run(*args, **kwargs)
 
     celery.Task = ContextTask
+    app.celery = celery
+    return celery
 
 app = create_app()
 celery = make_celery(app)

@@ -1,15 +1,16 @@
-from db import db
-from flask import Blueprint, request, current_app
-from flask_jwt_extended import jwt_required
 import re
 import requests
 import sys
+
+from flask import Blueprint, request, current_app
+from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import HTTPException
 
-from . import *
+from db import db, BaseMixin
+from . import ALL_MODEL_NAMES
 
 # Model Instances represent models that are currently active and able to service requests
-class ModelInstance(db.Model):
+class ModelInstance(BaseMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String)
     host = db.Column(db.String)
@@ -17,6 +18,17 @@ class ModelInstance(db.Model):
     def __init__(self, type, host):
         self.type = type
         self.host = host
+
+    @property
+    def base_addr(self):
+        return f"http://{self.host}"
+
+    def is_healthly(self):
+        try:
+            response = requests.get(self.base_addr + "/health")
+            return response.status_code == 200
+        except:
+            return False
 
 
 def verify_request(model_name):

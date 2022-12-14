@@ -1,6 +1,11 @@
-from gateway_service import celery
+from celery import shared_task
 
-@celery.task()
-def add_together(a, b):
-    return a + b
+from resources.models.models import ModelInstance
+
+@shared_task
+def verify_model_instance_health():
+    model_instances = ModelInstance.query.all()
+    for model_instance in model_instances:
+        if not model_instance.is_healthly():
+            model_instance.destroy()
 
