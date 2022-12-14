@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from flask import Flask, redirect, url_for
+from flask import Flask
 from flask_ldap3_login import LDAP3LoginManager
 from flask_jwt_extended import JWTManager
-
+from celery import Celery
 
 from config import Config
 from auth import auth
@@ -28,7 +28,23 @@ def create_app():
 
     return app
 
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        backend=app.config['CELERY_BACKEND_URL'],
+        broker=app.config['CELERY_BROKER_URL']
+    )
+    celery.conf.update(app.config)
+
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+    celery.Task = ContextTask
+
 app = create_app()
+celery = make_celery(app)
 
 if __name__ == "__main__":
     app.run(host=Config.GATEWAY_HOST, port=Config.GATEWAY_PORT)

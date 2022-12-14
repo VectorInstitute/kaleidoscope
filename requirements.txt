@@ -52,3 +52,4 @@ flask-ldap3-login
 flask-sqlalchemy
 Flask-Migrate
 psycopg2-binary
+celery

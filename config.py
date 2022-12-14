@@ -18,3 +18,6 @@ class Config(object):
     LDAP_BIND_DIRECT_GET_USER_INFO = False
 
     SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:vector@lingua-db-1/test'
+
+    CELERY_BROKER_URL = 'sqla+postgresql+psycopg2://postgres:vector@lingua-db-1/test'
+    CELERY_BACKEND_URL = 'db+postgresql://postgres:vector@lingua-db-1/test'

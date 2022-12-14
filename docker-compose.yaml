@@ -9,6 +9,13 @@ services:
     command: gateway_service.py
     ports:
       - 3001:3001
+  web-worker:
+    depends_on:
+      - "db"
+    build: .
+    image: gateway:latest
+    entrypoint: celery
+    command: -A gateway_service.celery worker
   db:
     image: postgres
     volumes:
