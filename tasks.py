@@ -6,6 +6,6 @@ from resources.models.models import ModelInstance
 def verify_model_instance_health():
     model_instances = ModelInstance.query.all()
     for model_instance in model_instances:
-        if not model_instance.is_healthly():
+        if not model_instance.is_healthy():
             model_instance.destroy()
 
