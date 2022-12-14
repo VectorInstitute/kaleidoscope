@@ -20,6 +20,10 @@ AVAILABLE_MODELS = ["GPT2", "OPT", "Galactica"]
 
 service = Flask(__name__)
 
+@service.route("/health", methods=["GET"])
+def health():
+    return {"msg": "Still Alive"}, 200
+
 @service.route("/module_names", methods=["GET"])
 def module_names():
     result = model.module_names()
