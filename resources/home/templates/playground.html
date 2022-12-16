@@ -100,19 +100,20 @@
       event.preventDefault();
       loadAnimation();
       getPromptText();
-      var selectedModel = document.getElementById("model-select");
+      var selectedModel = $("#model-select").find(":selected").val();
       var formData= getFormData();
       console.log(JSON.stringify(formData))
       $.ajax({
-        url: "/models/" + selectedModel.options[selectedModel.selectedIndex].value + "/generate_text",
+        url: "/models/" + selectedModel + "/generate_text",
         type: "POST",
         headers: {
           "Authorization": "Bearer " + localStorage.getItem("accessToken")
         },
         data: formData
       }).done(function (data) {
+        console.log(selectedModel);
         loadCompleteAnimation();
-        parseData(data);
+        parseData(data, selectedModel);
       }).fail(function (data) {
           console.log(data)
           if (400 <= data.status && data.status <= 499) {
@@ -133,7 +134,7 @@
     return submissionData
   };
 
-  function parseData(data){
+  function parseData(data, selectedModel){
     //TODO: refactor data processing based upon request data tokens
     $("span").removeClass("generated-text-font");
     var text= data['tokens'];
@@ -147,11 +148,21 @@
       });
     }
     catch (err) {
-      console.log("Log probability calculation error: " + err);
+      console.log("Log probability error: " + err);
     }
     finally {
       for(let i=0; i<text.length; i++){
-        var textPanel= "<div><b>Log Probabilities</b></div><hr><div><b>"+text[i]+"</b>= "+logProbs[i]+"% </div>";
+        var textPanel= `
+          <div class="font-weight-light">
+            <h6>${selectedModel}</h6>
+            <hr>
+            <div>
+              <h6>Log Probabilities</h6>
+              <div>
+                <strong>${text[i]}</strong>= ${logProbs[i]}%
+              </div>
+            </div>
+          </div>`;
         labelledText= $("<span class='generated-text' tabindex='0' data-trigger='hover' data-html='true' data-placement='bottom' data-content='"+textPanel+"'></span>").text(text[i]);
         textWrapper.append(labelledText.popover());
       }
@@ -198,6 +209,7 @@
   };
 
   function updateModuleNames(model) {
+    $("#module-name-select").empty()
     $.get("/models/" + model + "/module_names", 
     function( data ) {
       for(let i=0; i<data['module_names'].length; i++){
@@ -206,6 +218,13 @@
       }
     });
   };
+
+  function copyAuthKey(){
+    authKey= localStorage.getItem("accessToken");
+    console.log(authKey);
+    $("#auth-key").attr("data-content", authKey);
+  };
+
 
   window.onload = function () {
     if (localStorage.getItem("accessToken") == null) {
@@ -287,6 +306,9 @@
                         <a class="dropdown-item" href='javascript:setPrompt("poetry");'><i class="bi bi-brush"></i> Poetry</a>
                       </div>
                     </li>
+                    <li>
+                      <button type="button" class="btn btn-light" id="auth-key" onclick='copyAuthKey();' data-toggle="popover" title="Token to copy" data-toggle="popover"><i class="bi bi-clipboard"></i> API Key</button>
+                    </li>
                     <!-- <li class="nav-item">
                       <a class="nav-link" href="#">Embed</a>
                     </li> -->
@@ -335,22 +357,22 @@
             data-placement="top" data-content="A decimal to define the temperature of the sampling operation."></i>
             <output class="float-right" id="temperature-value">1</output>
             <input type="range" class="custom-range" id="temperature-select" value=1 name="temperature" placeholder=1
-              max=1 step=0.1 min=0.1 oninput="updateScrollValue(this.value, 'temperature-value');">
+              max=1 step=0.01 min=0.01 oninput="updateScrollValue(this.value, 'temperature-value');">
           </div>
           <div class="form-group">
             <label for="top-p-select">Top-P</label><i class="bi bi-info-circle small px-1"  tabindex="0" data-toggle="popover" data-trigger="hover" title="Top-P"
             data-placement="top"
             data-content="A decimal to define the tokens that are within the sample operation of text generation"></i>
             <output class="float-right" id="topp-value">0.9</output>
-            <input type="range" class="custom-range" id="top-p-select" value=0.9 name="top-p" placeholder=0.9 max=1 step=0.1
-              min=0.1 oninput="updateScrollValue(this.value, 'topp-value');">
+            <input type="range" class="custom-range" id="top-p-select" value=0.9 name="top-p" placeholder=0.9 max=1 step=0.01
+              min=0 oninput="updateScrollValue(this.value, 'topp-value');">
           </div>
           <div class="form-group">
             <label for="top-k-select">Top-K</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Top-K"
             data-placement="top"
             data-content="An integer to define the top tokens considered within the sample operation to create new text"></i>
-            <input type="number" class="form-control" id="top-k-select" value=0.0 name="top-k" placeholder=1.0 max=100.0
-              step=0.1 min=0.0>
+            <input type="number" class="form-control" id="top-k-select" value=0 name="top-k" placeholder=1 max=100
+              step=1 min=0>
           </div>
           <div class="form-group">
             <label for="repetition-penalty-select">Repetition Penalty</label><i class="bi bi-info-circle small px-1"  tabindex="0" data-toggle="popover" data-trigger="hover" title="Repetition Penalty"
@@ -358,7 +380,7 @@
             data-content="The more frequently a token is used within text generation the more it is penalized to not be picked in successive generation passes."></i>
             <output class="float-right" id="repetition-penalty-value">1.0</output>
             <input type="range" class="custom-range" id="repetition-penalty-select" value=1.0 name="repetition_penalty"
-              placeholder=1.0 max=100.0 step=1.0 min=0.0
+              placeholder=1.0 max=2.0 step=0.01 min=0.0
               oninput="updateScrollValue(this.value, 'repetition-penalty-value');">
           </div>
           <div class="form-group">
@@ -373,7 +395,7 @@
             data-placement="top"
             data-content="Information to display how likely was a token to be generated."></i>
             <select class="form-control" id="module-name-select" required>
-              <option selected="true">Show None</option>
+              <option>Show None</option>
             </select>
           </div>
         </form>
