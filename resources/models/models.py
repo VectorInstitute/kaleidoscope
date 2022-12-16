@@ -23,7 +23,7 @@ class ModelInstance(BaseMixin, db.Model):
     def base_addr(self):
         return f"http://{self.host}"
 
-    def is_healthly(self):
+    def is_healthy(self):
         try:
             response = requests.get(self.base_addr + "/health")
             return response.status_code == 200
