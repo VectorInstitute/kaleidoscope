@@ -25,8 +25,9 @@ class RModel:
         self.create_addr = partial(urljoin, self.base_addr)
         # TODO: can cache this
         all_model_names = get(self.create_addr("models"))
-        model_instance_names = get(self.create_addr("models/instances"))
-        print(f"Available models: {all_model_names} \nActive models: {model_instance_names}")
+        model_instances = get(self.create_addr("models/instances"))
+        active_model_instances = [models for models in model_instances if model_instances[models]=="Active"]
+        print(f"Available models: {all_model_names} \nActive models: {active_model_instances}")
         if self.model_name not in all_model_names:
             raise ValueError(
                 "asked for model {} but server only supports model "
@@ -36,9 +37,6 @@ class RModel:
         self.model_base_addr = f"http://{self.host}:{self.port}/models/{self.model_name}/"
         self.model_create_addr = partial(urljoin, self.model_base_addr)
 
-    def get_models(self):
-        model_instance_names = get(self.create_addr("models/instances"))
-        return model_instance_names
 
     def generate_text(self, prompt, /, **gen_kwargs):
         """TODO: should support batching"""
@@ -47,11 +45,19 @@ class RModel:
         generate_configs['prompt']= prompt
         generate_configs.update(gen_kwargs)
         generate_configs['use_grad'] = torch.is_grad_enabled()
+
+        parameters= gen_kwargs.keys()
+        gen_kwargs['max-tokens'] = gen_kwargs.pop('max_tokens') if 'max_tokens' in parameters else gen_kwargs.pop('max-tokens')
+        gen_kwargs['top-k'] = gen_kwargs.pop('top_k') if 'top_k' in parameters else gen_kwargs.pop('top-k')
+        gen_kwargs['top-p'] = gen_kwargs.pop('top_p') if 'top_p' in parameters else gen_kwargs.pop('top-p')
+        gen_kwargs['repetition_penalty'] = gen_kwargs.pop('rep_penalty') if 'rep_penalty' in parameters else gen_kwargs.pop('repetition_penalty')
+        gen_kwargs['num_return_sequences'] = gen_kwargs.pop('num_sequences') if 'num_sequences' in parameters else gen_kwargs.pop('num_return_sequences')
+
         print(f"Submission: {generate_configs}")
         generation = post(model_generate_addr, generate_configs, self.auth_key)
         GenerationObj = namedtuple('GenObj', generation.keys())
         results = GenerationObj(**generation)
-        print(f"Success:\n{results.text}")
+        print(f"Success:\n{prompt} {results.text}")
         return results
 
     @cached_property
@@ -65,6 +71,10 @@ class RModel:
     @cached_property
     def probe_points(self):
         return get(self.model_create_addr("probe_points"))
+
+    def get_models(self):
+        model_instance_names = get(self.create_addr("models/instances"))
+        return model_instance_names
 
     def get_parameters(self, *names):
         return post(self.model_create_addr("get_parameters"), names)
