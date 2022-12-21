@@ -47,11 +47,12 @@ class RModel:
         generate_configs['use_grad'] = torch.is_grad_enabled()
 
         parameters= gen_kwargs.keys()
-        gen_kwargs['max-tokens'] = gen_kwargs.pop('max_tokens') if 'max_tokens' in parameters else gen_kwargs.pop('max-tokens')
-        gen_kwargs['top-k'] = gen_kwargs.pop('top_k') if 'top_k' in parameters else gen_kwargs.pop('top-k')
-        gen_kwargs['top-p'] = gen_kwargs.pop('top_p') if 'top_p' in parameters else gen_kwargs.pop('top-p')
-        gen_kwargs['repetition_penalty'] = gen_kwargs.pop('rep_penalty') if 'rep_penalty' in parameters else gen_kwargs.pop('repetition_penalty')
-        gen_kwargs['num_return_sequences'] = gen_kwargs.pop('num_sequences') if 'num_sequences' in parameters else gen_kwargs.pop('num_return_sequences')
+
+        generate_configs['max-tokens'] = generate_configs.pop('max_tokens') if 'max_tokens' in parameters else None
+        generate_configs['top-k'] = generate_configs.pop('top_k') if 'top_k' in parameters else None
+        generate_configs['top-p'] = generate_configs.pop('top_p') if 'top_p' in parameters else None
+        generate_configs['num_return_sequences'] = generate_configs.pop('num_sequences') if 'num_sequences' in parameters else None
+        generate_configs['repetition_penalty'] = generate_configs.pop('rep_penalty') if 'rep_penalty' in parameters else None
 
         print(f"Submission: {generate_configs}")
         generation = post(model_generate_addr, generate_configs, self.auth_key)

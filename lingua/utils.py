@@ -14,7 +14,7 @@ def check_response(resp):
             "request to {} not sucessful, error code: {} msg: {}".format(
                 resp.url,
                 resp.status_code,
-                resp.json()["detail"],
+                resp.json(),
             )
         )
     logger.debug("addr %s response code %s", resp.url, resp.status_code)
