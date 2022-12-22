@@ -21,8 +21,8 @@ class Galactica(AbstractModel):
 
     def load(self, device):
         self.device = device
-        self.tokenizer = AutoTokenizer.from_pretrained("/checkpoint/opt_test/galactica-6.7b")
-        self.model = OPTForCausalLM.from_pretrained("/checkpoint/opt_test/galactica-6.7b", device_map="auto")
+        self.tokenizer = AutoTokenizer.from_pretrained("/h/jsiva/scratch/galactica-125m")
+        self.model = OPTForCausalLM.from_pretrained("/h/jsiva/scratch/galactica-125m")
         self.model.to(device)
 
 
@@ -39,10 +39,15 @@ class Galactica(AbstractModel):
         prompt = request.json['prompt']
         length = int(request.json['length']) if 'length' in request.json else 128
         temperature = float(request.json['temperature']) if 'temperature' in request.json else 1.0
-        top_k = float(request.json['k']) if 'k' in request.json else 0
+        top_k = int(request.json['k']) if 'k' in request.json else 0
         top_p = float(request.json['p']) if 'p' in request.json else 0.9
         num_return_sequences = int(request.json['num_return_sequences']) if 'num_return_sequences' in request.json else 1
         repetition_penalty = float(request.json['repetition_penalty']) if 'repetition_penalty' in request.json else 1.0
+        stop_sequence= None
+        if "stop_token" in request.json:
+            stripped_sequence= str(request.json['stop_token']).strip()
+            if len(stripped_sequence) != 0:
+                stop_sequence= request.json['stop_token']
 
         encoded_prompt = self.tokenizer.encode(prompt, add_special_tokens=False, return_tensors="pt")
         encoded_prompt = encoded_prompt.to(self.device)
@@ -78,7 +83,7 @@ class Galactica(AbstractModel):
             text = self.tokenizer.decode(generated_sequence, clean_up_tokenization_spaces=True)
 
             # Remove all text after the stop token
-            text = text[: text.find(request['stop_token']) if 'stop_token' in request.json else None]
+            text = text[: text.find(stop_sequence) if stop_sequence else None]
 
             # Add the prompt at the beginning of the sequence. Remove the excess text that was used for pre-processing
             total_sequence = (
