@@ -18,6 +18,8 @@ COPY . .
 
 EXPOSE 5000
 
+WORKDIR /app/web
+
 ENTRYPOINT [ "python" ]
 CMD ["gateway_service.py" ]
 
