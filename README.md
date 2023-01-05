@@ -48,6 +48,14 @@ python3 -m pip install pycyclops
 ## Developing
 The development environment has been tested on ``python = 3.9.10``.
 
+### Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Retrieve personal auth token
+![Auth_demo_pic](https://user-images.githubusercontent.com/72175053/210878149-c142e36c-d61b-4b44-984f-3c0f8dec13de.png)
+
 ### SDK sample
 ```python
 import lingua
