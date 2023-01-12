@@ -1,13 +1,15 @@
+from db import db, BaseMixin
 import re
 import requests
+import subprocess
 import sys
 
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import HTTPException
 
-from db import db, BaseMixin
-from . import ALL_MODEL_NAMES
+from config import Config
+from . import ALL_MODEL_NAMES, ALL_JOB_SCHEDULERS
 
 # Model Instances represent models that are currently active and able to service requests
 class ModelInstance(BaseMixin, db.Model):
@@ -31,6 +33,16 @@ class ModelInstance(BaseMixin, db.Model):
             return False
 
 
+class JobRunner():
+
+    def __init__(self):
+        pass
+
+    def start(self, model_type):
+        scheduler_script = ALL_JOB_SCHEDULERS[Config.JOB_SCHEUDLER]
+        subprocess.check_output(scheduler_script + " " + model_type, shell=True).decode('utf-8')
+
+
 def verify_request(model_name):
     if model_name not in ALL_MODEL_NAMES:
         raise HTTPException(
@@ -38,6 +50,24 @@ def verify_request(model_name):
             detail=f"model_name <model_name> not found, "
             "only {ALL_MODEL_NAMES} supported",
         )
+
+
+# Check if we have an active instance of this model
+def is_model_active(model_name):
+    is_model_active = False
+    model_instance_query = db.select(ModelInstance)
+    model_instances = db.session.execute(model_instance_query).all()
+    for instance in model_instances:
+        if instance[0].type == model_name:
+            is_model_active = True
+    return is_model_active
+
+
+# If no active instance, start one and wait for it to come online
+def load_if_inactive(model_name):
+    if not is_model_active(model_name):
+        runner = JobRunner()
+        runner.start(model_name)
 
 
 models_bp = Blueprint("models", __name__)
@@ -63,15 +93,18 @@ async def model_instances():
 async def get_module_names(model_type: str):
     verify_request(model_type)
 
-    # Retrieve the host url for the requested model
-    model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
-    model_instance = db.session.execute(model_instance_query).first()
-    current_app.logger.info(f"Requesting module names for {model_type}")
-    model_host = model_instance[0].host
+    if is_model_active(model_type):
+        # Retrieve the host url for the requested model
+        model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
+        model_instance = db.session.execute(model_instance_query).first()
+        current_app.logger.info(f"Requesting module names for {model_type}")
+        model_host = model_instance[0].host
 
-    # Retrieve module names and return
-    response = requests.get("http://" + model_host + "/module_names")
-    return response.json(), 200
+        # Retrieve module names and return
+        response = requests.get("http://" + model_host + "/module_names")
+        return response.json(), 200
+    else:
+        return {}, 200
 
 
 @models_bp.route("/register", methods=["POST"])
@@ -121,6 +154,7 @@ async def remove_model(model_type: str):
 @jwt_required()
 async def generate_text(model_type: str):
     verify_request(model_type)
+    load_if_inactive(model_type)
 
     model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
     model_instance = db.session.execute(model_instance_query).first()
