@@ -6,7 +6,7 @@ class Config(object):
     GATEWAY_HOST = "0.0.0.0"
     GATEWAY_PORT = 3001
 
-    JOB_SCHEUDLER = 'slurm'
+    JOB_SCHEUDLER_HOST = "vremote"
 
     JWT_SECRET_KEY = 'abc123'
     #JWT_TOKEN_LOCATION = 'cookies'

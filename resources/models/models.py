@@ -33,16 +33,6 @@ class ModelInstance(BaseMixin, db.Model):
             return False
 
 
-class JobRunner():
-
-    def __init__(self):
-        pass
-
-    def start(self, model_type):
-        scheduler_script = ALL_JOB_SCHEDULERS[Config.JOB_SCHEUDLER]
-        subprocess.check_output(scheduler_script + " " + model_type, shell=True).decode('utf-8')
-
-
 def verify_request(model_name):
     if model_name not in ALL_MODEL_NAMES:
         raise HTTPException(
@@ -66,8 +56,11 @@ def is_model_active(model_name):
 # If no active instance, start one and wait for it to come online
 def load_if_inactive(model_name):
     if not is_model_active(model_name):
-        runner = JobRunner()
-        runner.start(model_name)
+        try:
+            ssh_output = subprocess.check_output(f"ssh {Config.JOB_SCHEUDLER_HOST} python3 ~/lingua/model_service/job_runner.py --model_type {model_type}", shell=True).decode('utf-8')
+            print(f"Result of SSH command to job runner: {ssh_output}")
+        except Exception as err:
+            print(f"Failed to issue SSH command to job runner: {err}")
 
 
 models_bp = Blueprint("models", __name__)
