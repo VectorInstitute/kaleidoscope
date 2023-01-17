@@ -3,13 +3,14 @@ import re
 import requests
 import subprocess
 import sys
+import time
 
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import HTTPException
 
 from config import Config
-from . import ALL_MODEL_NAMES, ALL_JOB_SCHEDULERS
+from . import ALL_MODEL_NAMES
 
 # Model Instances represent models that are currently active and able to service requests
 class ModelInstance(BaseMixin, db.Model):
@@ -53,14 +54,15 @@ def is_model_active(model_name):
     return is_model_active
 
 
-# If no active instance, start one and wait for it to come online
-def load_if_inactive(model_name):
-    if not is_model_active(model_name):
-        try:
-            ssh_output = subprocess.check_output(f"ssh {Config.JOB_SCHEUDLER_HOST} python3 ~/lingua/model_service/job_runner.py --model_type {model_type}", shell=True).decode('utf-8')
-            print(f"Result of SSH command to job runner: {ssh_output}")
-        except Exception as err:
-            print(f"Failed to issue SSH command to job runner: {err}")
+def run_model_job(model_name):
+    success = False
+    try:
+        ssh_output = subprocess.check_output(f"ssh {Config.JOB_SCHEUDLER_HOST} python3 ~/lingua/model_service/job_runner.py --model_type {model_name}", shell=True).decode('utf-8')
+        print(f"Sent SSH request to job runner: {ssh_output}")
+        success = True
+    except Exception as err:
+        print(f"Failed to issue SSH command to job runner: {err}")
+    return success
 
 
 models_bp = Blueprint("models", __name__)
@@ -124,6 +126,12 @@ async def register_model():
     return result, 200
 
 
+@models_bp.route("/<model_type>/launch", methods=["POST"])
+async def launch_model(model_type: str):
+    result = run_model_job(model_type)
+    return {}, 200
+
+
 @models_bp.route("/<model_type>/remove", methods=["DELETE"])
 async def remove_model(model_type: str):
 
@@ -147,7 +155,8 @@ async def remove_model(model_type: str):
 @jwt_required()
 async def generate_text(model_type: str):
     verify_request(model_type)
-    load_if_inactive(model_type)
+    if not is_model_active(model_type):
+        run_model_job(model_type)
 
     model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
     model_instance = db.session.execute(model_instance_query).first()
