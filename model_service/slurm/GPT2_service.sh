@@ -10,6 +10,7 @@
 #SBATCH --error=GPT2_service.%j.err
 
 cd ~/lingua/model_service
+source /opt/lmod/lmod/init/profile
 module load cuda-11.3
 module load python/3.8.0
 python3 model_service.py --model_type GPT2 --model_path /checkpoint/opt_test/gpt2
