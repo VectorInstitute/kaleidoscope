@@ -3,6 +3,7 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --ntasks=1
 #SBATCH --mem=1G
+#SBATCH --qos=llm
 #SBATCH --partition=rtx6000,a40
 #SBATCH --gres=gpu:1
 #SBATCH --output=GPT2_service.%j.out
@@ -11,4 +12,4 @@
 cd ~/lingua/model_service
 module load cuda-11.3
 module load python/3.8.0
-python3 model_service.py --model_type GPT2
+python3 model_service.py --model_type GPT2 --model_path /checkpoint/opt_test/gpt2
