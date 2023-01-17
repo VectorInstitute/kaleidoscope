@@ -1,7 +1,6 @@
 #!/bin/bash
 
 model_type=$1
-slurm_controller=$2
 
 if [[ "$model_type" == "GPT2" ]]; then
     sbatch ~/lingua/model_service/slurm/GPT2_service.sh

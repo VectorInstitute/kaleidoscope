@@ -2,7 +2,7 @@ import abc
 
 class AbstractModel(abc.ABC):
     @abc.abstractmethod
-    def load(self):
+    def load(self, device, model_path):
         pass
 
     @abc.abstractmethod

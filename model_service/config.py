@@ -8,3 +8,7 @@ GATEWAY_HOST = "llm.cluster.local:3001"
 hostname = socket.gethostname()
 ip_addr = socket.gethostbyname(hostname)
 MODEL_HOST = f"{ip_addr}:8888"
+
+# Scheduler script invoked by the job runner
+JOB_SCHEDULER_BIN = "~/lingua/model_service/job_schedulers/slurm.sh"
+
