@@ -21,6 +21,6 @@ def authenticate():
 
 @auth.route("/verify_token", methods=["POST"])
 @jwt_required()
-def authenticate():
+def verify_token():
     # If we get this far, the token is valid, so we can just return success
     return make_response({"msg": "Token is valid"}, 200)

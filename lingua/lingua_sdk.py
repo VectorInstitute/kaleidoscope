@@ -111,7 +111,6 @@ class Model():
         if self.client.get_models()[self.model_name] == "Inactive":
             raise Exception(f"The {self.model_name} model is not active. You need to launch an instance using the client.launch_model() function.")
         # Make sure the token is still valid
-        post(self.create_addr("verify_token"), {}, self.client.auth_key)
         try:
             post(self.create_addr("verify_token"), {}, self.client.auth_key)
         except:
