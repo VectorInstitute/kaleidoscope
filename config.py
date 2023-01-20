@@ -4,7 +4,7 @@ from pathlib import Path
 class Config(object):
     DEBUG = True
 
-    GATEWAY_HOST = "llm.cluster.local"
+    GATEWAY_HOST = "0.0.0.0"
     GATEWAY_PORT = 3001
 
     JOB_SCHEUDLER_HOST = "vremote"
