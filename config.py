@@ -1,14 +1,16 @@
 import os
+from pathlib import Path
 
 class Config(object):
     DEBUG = True
 
-    GATEWAY_HOST = "0.0.0.0"
+    GATEWAY_HOST = "llm.cluster.local"
     GATEWAY_PORT = 3001
 
     JOB_SCHEUDLER_HOST = "vremote"
 
     JWT_SECRET_KEY = 'abc123'
+    JWT_TOKEN_FILE = Path(Path.home() / '.lingua.jwt')
     #JWT_TOKEN_LOCATION = 'cookies'
     JWT_COOKIE_SECURE = False
     #JWT_ACCESS_COOKIE_PATH = '/api/'
