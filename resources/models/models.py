@@ -1,12 +1,15 @@
+from db import db, BaseMixin
 import re
 import requests
+import subprocess
 import sys
+import time
 
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required
 from werkzeug.exceptions import HTTPException
 
-from db import db, BaseMixin
+from config import Config
 from . import ALL_MODEL_NAMES
 
 # Model Instances represent models that are currently active and able to service requests
@@ -40,6 +43,28 @@ def verify_request(model_name):
         )
 
 
+# Check if we have an active instance of this model
+def is_model_active(model_name):
+    is_model_active = False
+    model_instance_query = db.select(ModelInstance)
+    model_instances = db.session.execute(model_instance_query).all()
+    for instance in model_instances:
+        if instance[0].type == model_name:
+            is_model_active = True
+    return is_model_active
+
+
+def run_model_job(model_name):
+    success = False
+    try:
+        ssh_output = subprocess.check_output(f"ssh {Config.JOB_SCHEUDLER_HOST} python3 ~/lingua/model_service/job_runner.py --model_type {model_name}", shell=True).decode('utf-8')
+        print(f"Sent SSH request to job runner: {ssh_output}")
+        success = True
+    except Exception as err:
+        print(f"Failed to issue SSH command to job runner: {err}")
+    return success
+
+
 models_bp = Blueprint("models", __name__)
 
 
@@ -63,15 +88,18 @@ async def model_instances():
 async def get_module_names(model_type: str):
     verify_request(model_type)
 
-    # Retrieve the host url for the requested model
-    model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
-    model_instance = db.session.execute(model_instance_query).first()
-    current_app.logger.info(f"Requesting module names for {model_type}")
-    model_host = model_instance[0].host
+    if is_model_active(model_type):
+        # Retrieve the host url for the requested model
+        model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
+        model_instance = db.session.execute(model_instance_query).first()
+        current_app.logger.info(f"Requesting module names for {model_type}")
+        model_host = model_instance[0].host
 
-    # Retrieve module names and return
-    response = requests.get("http://" + model_host + "/module_names")
-    return response.json(), 200
+        # Retrieve module names and return
+        response = requests.get("http://" + model_host + "/module_names")
+        return response.json(), 200
+    else:
+        return {}, 200
 
 
 @models_bp.route("/register", methods=["POST"])
@@ -98,6 +126,12 @@ async def register_model():
     return result, 200
 
 
+@models_bp.route("/<model_type>/launch", methods=["POST"])
+async def launch_model(model_type: str):
+    result = run_model_job(model_type)
+    return {}, 200
+
+
 @models_bp.route("/<model_type>/remove", methods=["DELETE"])
 async def remove_model(model_type: str):
 
@@ -121,6 +155,8 @@ async def remove_model(model_type: str):
 @jwt_required()
 async def generate_text(model_type: str):
     verify_request(model_type)
+    if not is_model_active(model_type):
+        run_model_job(model_type)
 
     model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
     model_instance = db.session.execute(model_instance_query).first()
