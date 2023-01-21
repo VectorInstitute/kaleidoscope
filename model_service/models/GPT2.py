@@ -20,14 +20,16 @@ class GPT2(AbstractModel):
 
     def __init__(self):
         self.model_class = GPT2LMHeadModel
+        self.model_path = None
         self.tokenizer_class = GPT2Tokenizer
         self.model = None
         self.device = None
 
 
-    def load(self, device):
+    def load(self, device, model_path):
         self.device = device
-        self.model = self.model_class.from_pretrained("/h/jsiva/scratch/gpt2")
+        self.model = self.model_class.from_pretrained(model_path)
+        self.model_path = model_path
         self.model.to(device)
 
 
@@ -44,12 +46,17 @@ class GPT2(AbstractModel):
         prompt = request.json['prompt']
         length = int(request.json['max-tokens']) if 'max-tokens' in request.json else 128
         temperature = float(request.json['temperature']) if 'temperature' in request.json else 1.0
-        top_k = float(request.json['top-k']) if 'top-k' in request.json else 0
+        top_k = int(request.json['top-k']) if 'top-k' in request.json else 0
         top_p = float(request.json['top-p']) if 'top-p' in request.json else 0.9
         num_return_sequences = int(request.json['num_return_sequences']) if 'num_return_sequences' in request.json else 1
         repetition_penalty = float(request.json['repetition_penalty']) if 'repetition_penalty' in request.json else 1.0
+        stop_sequence= None
+        if "stop_token" in request.json:
+            stripped_sequence= str(request.json['stop_token']).strip()
+            if len(stripped_sequence) != 0:
+                stop_sequence= request.json['stop_token']
 
-        tokenizer = self.tokenizer_class.from_pretrained("/h/jsiva/scratch/gpt2")
+        tokenizer = self.tokenizer_class.from_pretrained(self.model_path)
         encoded_prompt = tokenizer.encode(prompt, add_special_tokens=False, return_tensors="pt")
         encoded_prompt = encoded_prompt.to(self.device)
 
@@ -85,7 +92,7 @@ class GPT2(AbstractModel):
             text = tokenizer.decode(generated_sequence, clean_up_tokenization_spaces=True)
 
             # Remove all text after the stop token
-            text = text[: text.find(request['stop_token']) if 'stop_token' in request.json else None]
+            text = text[: text.find(stop_sequence) if stop_sequence else None]
 
             # Add the prompt at the beginning of the sequence. Remove the excess text that was used for pre-processing
             total_sequence = (text[len(tokenizer.decode(encoded_prompt[0], clean_up_tokenization_spaces=True)) :])

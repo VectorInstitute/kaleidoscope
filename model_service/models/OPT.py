@@ -49,7 +49,7 @@ class OPT(AbstractModel):
         self.device = None
 
 
-    def load(self, device):
+    def load(self, device, model_path):
         self.device = device
         thread = threading.Thread(target=self.load_async, daemon=True)
         thread.start()
