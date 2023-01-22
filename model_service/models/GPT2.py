@@ -20,14 +20,16 @@ class GPT2(AbstractModel):
 
     def __init__(self):
         self.model_class = GPT2LMHeadModel
+        self.model_path = None
         self.tokenizer_class = GPT2Tokenizer
         self.model = None
         self.device = None
 
 
-    def load(self, device):
+    def load(self, device, model_path):
         self.device = device
-        self.model = self.model_class.from_pretrained("/h/jsiva/scratch/gpt2")
+        self.model = self.model_class.from_pretrained(model_path)
+        self.model_path = model_path
         self.model.to(device)
 
 
@@ -54,7 +56,7 @@ class GPT2(AbstractModel):
             if len(stripped_sequence) != 0:
                 stop_sequence= request.json['stop_token']
 
-        tokenizer = self.tokenizer_class.from_pretrained("/h/jsiva/scratch/gpt2")
+        tokenizer = self.tokenizer_class.from_pretrained(self.model_path)
         encoded_prompt = tokenizer.encode(prompt, add_special_tokens=False, return_tensors="pt")
         encoded_prompt = encoded_prompt.to(self.device)
 

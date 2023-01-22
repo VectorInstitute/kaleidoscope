@@ -72,6 +72,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_type", required=True, type=str, help="Model type selected in the list: " + ", ".join(AVAILABLE_MODELS))
+    parser.add_argument("--model_path", required=True, type=str, help="Path to pre-trained model")
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -86,7 +87,7 @@ def main():
     model_type = args.model_type
 
     # Load the model into GPU memory
-    model.load(args.device)
+    model.load(args.device, args.model_path)
 
     # Inform the gateway service that we are serving a new model instance by calling the /models/register endpoint
     register_url = f"http://{config.GATEWAY_HOST}/models/register"

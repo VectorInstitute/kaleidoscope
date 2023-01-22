@@ -19,10 +19,10 @@ class Galactica(AbstractModel):
         self.tokenizer = None
 
 
-    def load(self, device):
+    def load(self, device, model_path):
         self.device = device
-        self.tokenizer = AutoTokenizer.from_pretrained("/h/jsiva/scratch/galactica-125m")
-        self.model = OPTForCausalLM.from_pretrained("/h/jsiva/scratch/galactica-125m")
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        self.model = OPTForCausalLM.from_pretrained(model_path)
         self.model.to(device)
 
 
