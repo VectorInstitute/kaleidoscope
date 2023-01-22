@@ -8,13 +8,12 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+
 def check_response(resp):
     if not resp.ok:
         raise ValueError(
             "request to {} not sucessful, error code: {} msg: {}".format(
-                resp.url,
-                resp.status_code,
-                resp.json(),
+                resp.url, resp.status_code, resp.json(),
             )
         )
     logger.debug("addr %s response code %s", resp.url, resp.status_code)
@@ -27,7 +26,8 @@ def get(addr):
 
 
 def post(addr, obj, auth_key):
-    resp = requests.post(addr, data=obj, headers={'Authorization': 'Bearer '+auth_key}) 
+    resp = requests.post(
+        addr, data=obj, headers={"Authorization": "Bearer " + auth_key}
+    )
     check_response(resp)
     return resp.json()
-

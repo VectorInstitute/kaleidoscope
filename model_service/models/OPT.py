@@ -43,11 +43,10 @@ is_model_loaded = False
 logger = build_logger()
 BATCH_QUEUE = PriorityQueueRingShard()
 
-class OPT(AbstractModel):
 
+class OPT(AbstractModel):
     def __init__(self):
         self.device = None
-
 
     def load(self, device, model_path):
         self.device = device
@@ -59,7 +58,6 @@ class OPT(AbstractModel):
         while is_model_loaded is False:
             time.sleep(1)
             pass
-
 
     def load_async(self):
 
@@ -80,14 +78,12 @@ class OPT(AbstractModel):
 
         distributed_utils.call_main(cfg, self.worker_main, namespace_args=args)
 
-
     def module_names(self):
         return {
             "module_names": tuple(
                 n for n, _ in generator.models[0].named_modules() if n != ""
             )
         }
-
 
     def generate_text(self, request):
         prompts = request.json["prompt"]
@@ -124,7 +120,9 @@ class OPT(AbstractModel):
                 stop = [encode_fn(generator, s)[0] for s in stop]
             generation_args["stop"] = stop
         if "temperature" in generation_args:
-            generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
+            generation_args["temperature"] = round(
+                float(generation_args["temperature"]), 1
+            )
         else:
             generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
         if "top-p" in generation_args:
@@ -169,13 +167,12 @@ class OPT(AbstractModel):
 
         # Ensure output format is consistent with other lingua models
         response = {}
-        response['text'] = results[0]['text']
-        response['tokens'] = results[0]['tokens']
-        response['logprobs'] = results[0]['token_scores']
-        response['activations'] = {}
+        response["text"] = results[0]["text"]
+        response["tokens"] = results[0]["tokens"]
+        response["logprobs"] = results[0]["token_scores"]
+        response["activations"] = {}
 
         return response
-
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
         # disable multithreading in tokenizers and torch, as different Flask threads
@@ -196,7 +193,7 @@ class OPT(AbstractModel):
         models = generator.load_model()  # noqa: F841
 
         if torch.distributed.get_rank() == 0:
-            print(models[0])    # Cleaner to print
+            print(models[0])  # Cleaner to print
             logger.info("Model training: {}".format(models[0].training))
 
         assert len(models) == 1
@@ -246,7 +243,6 @@ class OPT(AbstractModel):
                     # continue looping for the next generation so we don't lock up
                     print(f"Caught exception: {str(e)}")
                     pass
-
 
     def batching_loop(self, timeout=100, max_tokens=MAX_BATCH_TOKENS):
         """
@@ -348,9 +344,7 @@ class OPT(AbstractModel):
                             ):
                                 raise ValueError(
                                     "the remaining args are not the same, currently {}, but want {} with key {}".format(
-                                        unique_dict,
-                                        ro[key],
-                                        key,
+                                        unique_dict, ro[key], key,
                                     )
                                 )
 
@@ -393,7 +387,10 @@ class OPT(AbstractModel):
                         act_retrieval_aux = request_object.pop("_aux", None)
 
                         if desired_module_activations:
-                            hook_dict, activation_dict = get_activation_capture_hook_dict(
+                            (
+                                hook_dict,
+                                activation_dict,
+                            ) = get_activation_capture_hook_dict(
                                 generator.models[0],
                                 desired_module_activations,
                                 aux=act_retrieval_aux,
@@ -443,8 +440,7 @@ class OPT(AbstractModel):
                                     val = v[i, 1 : num_real_tokens + 1].clone()
 
                                 ret_dict[k] = codecs.encode(
-                                    pickle.dumps(val),
-                                    "base64",
+                                    pickle.dumps(val), "base64",
                                 ).decode("utf-8")
 
                             gen[0]["activations"] = ret_dict

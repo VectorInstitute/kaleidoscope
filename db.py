@@ -2,8 +2,8 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-class BaseMixin(object):
 
+class BaseMixin(object):
     @classmethod
     def create(cls, **kw):
         obj = cls(**kw)
@@ -13,4 +13,3 @@ class BaseMixin(object):
     def destroy(self):
         db.session.delete(self)
         db.session.commit()
-

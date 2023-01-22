@@ -11,16 +11,17 @@ from db import db
 from resources.home import home
 from resources.models import models
 
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    ldap_manager = LDAP3LoginManager(app)  
+    ldap_manager = LDAP3LoginManager(app)
     jwt = JWTManager(app)
 
     app.register_blueprint(auth)
     app.register_blueprint(home.home_bp)
-    app.register_blueprint(models.models_bp, url_prefix='/models')
+    app.register_blueprint(models.models_bp, url_prefix="/models")
 
     db.init_app(app)
     with app.app_context():
@@ -28,19 +29,20 @@ def create_app():
 
     return app
 
+
 def make_celery(app):
     celery = Celery(
         app.import_name,
-        backend=app.config['CELERY_BACKEND_URL'],
-        broker=app.config['CELERY_BROKER_URL'],
-        include=['tasks']
+        backend=app.config["CELERY_BACKEND_URL"],
+        broker=app.config["CELERY_BROKER_URL"],
+        include=["tasks"],
     )
     celery.conf.update(app.config)
 
     celery.conf.beat_schedule = {
         "verify_health": {
             "task": "tasks.verify_model_instance_health",
-            "schedule": 10.0
+            "schedule": 10.0,
         }
     }
 
@@ -52,6 +54,7 @@ def make_celery(app):
     celery.Task = ContextTask
     app.celery = celery
     return celery
+
 
 app = create_app()
 celery = make_celery(app)
