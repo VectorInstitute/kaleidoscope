@@ -57,7 +57,10 @@ def is_model_active(model_name):
 def run_model_job(model_name):
     success = False
     try:
-        ssh_output = subprocess.check_output(f"ssh {Config.JOB_SCHEUDLER_HOST} python3 ~/lingua/model_service/job_runner.py --model_type {model_name}", shell=True).decode('utf-8')
+        ssh_output = subprocess.check_output(
+            f"ssh {Config.JOB_SCHEUDLER_HOST} python3 ~/lingua/model_service/job_runner.py --model_type {model_name}",
+            shell=True,
+        ).decode("utf-8")
         print(f"Sent SSH request to job runner: {ssh_output}")
         success = True
     except Exception as err:
@@ -78,7 +81,7 @@ async def model_instances():
     model_instance_query = db.select(ModelInstance)
     model_instances = db.session.execute(model_instance_query).all()
 
-    instances = {model : "Inactive" for model in ALL_MODEL_NAMES}
+    instances = {model: "Inactive" for model in ALL_MODEL_NAMES}
     for model in model_instances:
         instances[model[0].type] = "Active"
     return instances, 200
@@ -105,8 +108,8 @@ async def get_module_names(model_type: str):
 @models_bp.route("/register", methods=["POST"])
 async def register_model():
 
-    model_type = request.json['model_type']
-    model_host = request.json['model_host']
+    model_type = request.json["model_type"]
+    model_host = request.json["model_host"]
 
     model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
     model_instance = db.session.execute(model_instance_query).first()
@@ -120,7 +123,9 @@ async def register_model():
     new_model_instance = ModelInstance(model_type, model_host)
     db.session.add(new_model_instance)
     db.session.commit()
-    current_app.logger.info(f"Registered new model instance {model_type} ({model_host})")
+    current_app.logger.info(
+        f"Registered new model instance {model_type} ({model_host})"
+    )
 
     result = {"result": f"Successfully registered model {request.json['model_type']}"}
     return result, 200
@@ -166,7 +171,8 @@ async def generate_text(model_type: str):
     del data["prompt"]
 
     result = requests.post(
-        "http://" + model_instance[0].host + "/generate_text", json={"prompt": prompt, **data}
+        "http://" + model_instance[0].host + "/generate_text",
+        json={"prompt": prompt, **data},
     ).json()
     current_app.logger.info(f"Generate text result: {result}")
     return result, 200

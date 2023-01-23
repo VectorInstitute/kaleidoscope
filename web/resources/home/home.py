@@ -6,31 +6,28 @@ import requests
 
 from ..models import ALL_MODEL_NAMES
 
-home_bp = Blueprint("home", __name__, template_folder='templates')
+home_bp = Blueprint("home", __name__, template_folder="templates")
 
-def verify_request(model_name):
-    if model_name not in ALL_MODELS.keys():
-        raise HTTPException(
-            status_code=422,
-            detail=f"model_name <model_name> not found, "
-            "only {ALL_MODEL_NAMES} supported",
-        )
 
 @home_bp.route("/health")
 async def heartbeat():
     return "Still Alive"
 
+
 @home_bp.route("/", methods=["GET"])
 async def home():
     return render_template("home.html")
+
 
 @home_bp.route("/login", methods=["GET"])
 async def login():
     return render_template("login.html")
 
+
 @home_bp.route("/reference", methods=["GET"])
 async def reference():
     return render_template("reference.html")
+
 
 @home_bp.route("/playground", methods=["GET"])
 async def playground():

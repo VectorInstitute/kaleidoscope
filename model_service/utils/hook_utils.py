@@ -16,9 +16,7 @@ from metaseq.model_parallel.modules.transformer_layer import (
 from metaseq.model_parallel.modules.multihead_attention import (
     ModelParallelMultiheadAttention,
 )
-from metaseq.model_parallel.models.transformer import (
-    ModelParallelTransformerDecoder,
-)
+from metaseq.model_parallel.models.transformer import ModelParallelTransformerDecoder
 from transformers.models.opt.modeling_opt import (
     OPTDecoderLayer,
     OPTAttention,
@@ -51,7 +49,9 @@ def apply_forward_hook(model, hook_dict):
         all_hooks.clear()
 
 
-def get_activation_capture_hook_dict(model, desired_module_activations, aux=None, model_type="opt"):
+def get_activation_capture_hook_dict(
+    model, desired_module_activations, aux=None, model_type="opt"
+):
     """
     Attach the specified hook forward-pass hook functions onto the given
     model. The model types are one of [opt, hf]
@@ -91,11 +91,15 @@ def opt_forward_hook_fn(registered_name, save_dict, aux, m, _, outputs):
             # and then permute it back
             if not aux:
                 logger.info(
-                    ("Rank {}: Required auxillary data for self-attention maps"
-                    "is not present").format(torch.distributed.get_rank()))
+                    (
+                        "Rank {}: Required auxillary data for self-attention maps"
+                        "is not present"
+                    ).format(torch.distributed.get_rank())
+                )
 
             outputs = gather_from_tensor_model_parallel_region(
-                rearrange(outputs, "(b k) s1 s2 -> s1 s2 b k", b=aux[0]))
+                rearrange(outputs, "(b k) s1 s2 -> s1 s2 b k", b=aux[0])
+            )
 
     elif type_m == torch.nn.Linear:
         outputs = gather_from_tensor_model_parallel_region(outputs)
@@ -185,13 +189,13 @@ def hf_forward_hook_fn(registered_name, save_dict, aux, m, _, outputs):
     (sub)module types. This function should not be used outside of testing.
     """
     type_m = type(m)
-    layer_type = registered_name.split(".")[-1] # In the case of duplicate types
+    layer_type = registered_name.split(".")[-1]  # In the case of duplicate types
 
     if type_m == torch.nn.Embedding or type_m == OPTLearnedPositionalEmbedding:
         output = outputs
 
     elif type_m == OPTAttention:
-        output = outputs[0] # (attn_out, attn_weights_reshaped, past_key_values)
+        output = outputs[0]  # (attn_out, attn_weights_reshaped, past_key_values)
 
     elif type_m == torch.nn.LayerNorm:
         # Having "layers" in the name means m is a per-module layer norm
