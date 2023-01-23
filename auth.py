@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, request, current_app, jsonify, make_response
 from flask_ldap3_login import AuthenticationResponseStatus
-from flask_jwt_extended import create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies
+from flask_jwt_extended import create_access_token, jwt_required
 
 auth = Blueprint('auth', __name__)
 
@@ -17,3 +17,10 @@ def authenticate():
         return response 
     else:
         return make_response({"msg": "Bad username or password"}, 401)
+
+
+@auth.route("/verify_token", methods=["POST"])
+@jwt_required()
+def verify_token():
+    # If we get this far, the token is valid, so we can just return success
+    return make_response({"msg": "Token is valid"}, 200)

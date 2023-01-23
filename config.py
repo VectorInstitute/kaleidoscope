@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 class Config(object):
     DEBUG = True
@@ -9,6 +10,7 @@ class Config(object):
     JOB_SCHEUDLER_HOST = "vremote"
 
     JWT_SECRET_KEY = 'abc123'
+    JWT_TOKEN_FILE = Path(Path.home() / '.lingua.jwt')
     #JWT_TOKEN_LOCATION = 'cookies'
     JWT_COOKIE_SECURE = False
     #JWT_ACCESS_COOKIE_PATH = '/api/'
