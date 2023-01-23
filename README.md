@@ -90,14 +90,18 @@ A sample text generation submission from the web may be required to sign-in and 
 ### Sample
 ```python
 import lingua
-remote_model= lingua.RModel('llm.cluster.local', 3001, 'OPT', 'YOUR AUTH KEY FROM WEB SERVICE')
-remote_model.model_name # get current initialized model name
-remote_model.module_names # get module names
-remote_model.auth_key # get current auth key
-remote_model.get_models() # get model instances
 
-# sample text generation w/ input parameters
-text_gen= remote_model.generate_text('What is the answer to life, the universe, and everything?', max_tokens=5, top_k=4, top_p=3, rep_penalty=1, temperature=0.5) 
+# Establish a client connection to the Lingua service
+client = lingua.Client(gateway_host="llm.cluster.local", gateway_port=3001)
+
+# Show all avaiable models, including active/inactive status
+client.get_models()
+
+# Get a handle to a model. If this model is not actively running, it will get launched in the background.
+model = client.load_model("ModelName")
+
+# Sample text generation w/ input parameters
+text_gen = model.generate_text("What is the answer to life, the universe, and everything?", max_tokens=5, top_k=4, top_p=3, rep_penalty=1, temperature=0.5)
 dir(text_gen) # display methods associated with generated text object
 text_gen.text # display only text
 text_gen.logprobs # display logprobs

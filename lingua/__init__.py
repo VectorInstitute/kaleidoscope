@@ -1,4 +1,5 @@
-from .rmodel import RModel
+from .lingua_sdk import Client
+from .lingua_sdk import Model
 
 # SDK metadata
 __version__ = "0.0.1"

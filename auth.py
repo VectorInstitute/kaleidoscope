@@ -5,10 +5,10 @@ from flask_jwt_extended import (
     create_refresh_token,
     set_access_cookies,
     set_refresh_cookies,
+    jwt_required
 )
 
 auth = Blueprint("auth", __name__)
-
 
 @auth.route("/authenticate", methods=["POST"])
 def authenticate():
@@ -25,3 +25,10 @@ def authenticate():
         return response
     else:
         return make_response({"msg": "Bad username or password"}, 401)
+
+
+@auth.route("/verify_token", methods=["POST"])
+@jwt_required()
+def verify_token():
+    # If we get this far, the token is valid, so we can just return success
+    return make_response({"msg": "Token is valid"}, 200)
