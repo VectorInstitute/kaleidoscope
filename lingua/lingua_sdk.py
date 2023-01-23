@@ -1,6 +1,5 @@
 from collections import namedtuple
 from dataclasses import dataclass, field
-from flask_jwt_extended import decode_token
 from functools import cached_property, partial
 from getpass import getpass
 import json
