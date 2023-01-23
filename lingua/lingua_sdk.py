@@ -16,21 +16,21 @@ from .hooks import TestForwardHook
 from .utils import get, post
 
 sys.path.append("..")
-from config import Config
 
+JWT_TOKEN_FILE = Path(Path.home() / '.lingua.jwt')
 
 class Client:
 
-    def __init__(self, gateway_host=None, gateway_port=None, auth_key=None):
-        self.gateway_host = gateway_host if gateway_host else Config.GATEWAY_HOST
-        self.gateway_port = gateway_port if gateway_port else Config.GATEWAY_PORT
+    def __init__(self, gateway_host, gateway_port, auth_key=None):
+        self.gateway_host = gateway_host
+        self.gateway_port = gateway_port
         self.base_addr = f"http://{self.gateway_host}:{self.gateway_port}/"
         self.create_addr = partial(urljoin, self.base_addr)
 
         if auth_key:
             self.auth_key = auth_key
-        elif Config.JWT_TOKEN_FILE.exists():
-            with open(Config.JWT_TOKEN_FILE, "r") as f:
+        elif JWT_TOKEN_FILE.exists():
+            with open(JWT_TOKEN_FILE, "r") as f:
                 self.auth_key = f.read()
         else:
             try:
