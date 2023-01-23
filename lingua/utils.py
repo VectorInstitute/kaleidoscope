@@ -8,6 +8,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+
 def check_response(resp):
     if not resp.ok:
         raise ValueError(
@@ -32,4 +33,3 @@ def post(addr, obj, auth_key=None):
         resp = requests.post(addr, data=obj)
     check_response(resp)
     return resp.json()
-

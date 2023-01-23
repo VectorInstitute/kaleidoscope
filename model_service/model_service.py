@@ -20,14 +20,17 @@ AVAILABLE_MODELS = ["GPT2", "OPT", "Galactica"]
 
 service = Flask(__name__)
 
+
 @service.route("/health", methods=["GET"])
 def health():
     return {"msg": "Still Alive"}, 200
+
 
 @service.route("/module_names", methods=["GET"])
 def module_names():
     result = model.module_names()
     return result
+
 
 @service.route("/generate_text", methods=["POST"])
 def generate_text():
@@ -38,19 +41,24 @@ def generate_text():
 # We only want to load the model library that's being requested, not all of them
 # TODO: Is there a way to make this happen automatically, without separate entries?
 
+
 def initialize_model(model_type):
     if model_type == "GPT2":
         from models import GPT2
+
         return GPT2.GPT2()
     if model_type == "OPT":
         from models import OPT
+
         return OPT.OPT()
     if model_type == "Galactica":
         from models import Galactica
+
         return Galactica.Galactica()
 
 
 # Signal handler to send a remove request to the gateway, if this service is killed by the system
+
 
 def signal_handler(sig, frame):
     global model_type
@@ -71,14 +79,23 @@ def send_remove_request(model_type):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_type", required=True, type=str, help="Model type selected in the list: " + ", ".join(AVAILABLE_MODELS))
-    parser.add_argument("--model_path", required=True, type=str, help="Path to pre-trained model")
+    parser.add_argument(
+        "--model_type",
+        required=True,
+        type=str,
+        help="Model type selected in the list: " + ", ".join(AVAILABLE_MODELS),
+    )
+    parser.add_argument(
+        "--model_path", required=True, type=str, help="Path to pre-trained model"
+    )
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Validate input arguments
     if args.model_type not in AVAILABLE_MODELS:
-        print(f"Error: model type {args.model_type} is not supported. Please use one of the following: {', '.join(AVAILABLE_MODELS)}")
+        print(
+            f"Error: model type {args.model_type} is not supported. Please use one of the following: {', '.join(AVAILABLE_MODELS)}"
+        )
         sys.exit(1)
 
     # Setup a global model instance
@@ -91,15 +108,12 @@ def main():
 
     # Inform the gateway service that we are serving a new model instance by calling the /models/register endpoint
     register_url = f"http://{config.GATEWAY_HOST}/models/register"
-    register_data = {
-        "model_host": config.MODEL_HOST,
-        "model_type": args.model_type
-    }
+    register_data = {"model_host": config.MODEL_HOST, "model_type": args.model_type}
     try:
         response = requests.post(register_url, json=register_data)
         # HTTP error codes between 450 and 500 are custom to the lingua gateway
         if int(response.status_code) >= 450 and int(response.status_code) < 500:
-            raise requests.HTTPError(response.content.decode('utf-8'))
+            raise requests.HTTPError(response.content.decode("utf-8"))
     # If we fail to contact the gateway service, print an error but continue running anyway
     # TODO: HTTPError probably isn't the best way to catch custom errors
     except requests.HTTPError as e:
@@ -115,7 +129,9 @@ def main():
 
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
     print("Starting model service, press Ctrl+C to exit")
-    service.run(host=config.MODEL_HOST.split(':')[0], port=config.MODEL_HOST.split(':')[1])
+    service.run(
+        host=config.MODEL_HOST.split(":")[0], port=config.MODEL_HOST.split(":")[1]
+    )
 
     # Inform the gateway service that we are shutting down and it should remove this model
     send_remove_request(args.model_type)
@@ -123,4 +139,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
