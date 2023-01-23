@@ -1,9 +1,16 @@
 from setuptools import setup
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(
-    name="lingua",
+    name="pylingua",
     version="0.0.1",
     description="A user toolkit for analyzing and interfacing with Large Language Models (LLMs)",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    keywords='python nlp machine-learning deep-learning distributed-computing neural-networks tensor llm',
+    requires_python = ">=3.7",
     url="https://github.com/VectorInstitute/lingua",
     author=["Vector AI Engineering"],
     author_email="ai_engineering@vectorinstitute.ai",
@@ -20,9 +27,14 @@ setup(
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",
-        "Intended Audience :: Science/Research/Engineering",
+        "Intended Audience :: Science/Research",
+        "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
-        "Operating System :: UBUNTU :: Linux",
-        "Programming Language :: Python :: 3.8" "Programming Language :: Python :: 3.9",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
 )
