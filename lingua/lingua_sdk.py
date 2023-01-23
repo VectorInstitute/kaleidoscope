@@ -56,7 +56,7 @@ class Client:
             if result.status_code == 200:
                 print("Login successful.")
                 self.auth_key = json.loads(result.text)['token']
-                with open(Config.JWT_TOKEN_FILE, "w") as f:
+                with open(JWT_TOKEN_FILE, "w") as f:
                     f.write(self.auth_key)
                 return
             else:
