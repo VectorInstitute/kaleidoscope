@@ -5,10 +5,11 @@ from flask_jwt_extended import (
     create_refresh_token,
     set_access_cookies,
     set_refresh_cookies,
-    jwt_required
+    jwt_required,
 )
 
 auth = Blueprint("auth", __name__)
+
 
 @auth.route("/authenticate", methods=["POST"])
 def authenticate():
