@@ -58,7 +58,7 @@ def run_model_job(model_name):
     success = False
     try:
         ssh_output = subprocess.check_output(
-            f"ssh {Config.JOB_SCHEUDLER_HOST} python3 ~/lingua/model_service/job_runner.py --model_type {model_name}",
+            f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 /h/llm/lingua/model_service/job_runner.py --model_type {model_name}",
             shell=True,
         ).decode("utf-8")
         print(f"Sent SSH request to job runner: {ssh_output}")
@@ -132,6 +132,7 @@ async def register_model():
 
 
 @models_bp.route("/<model_type>/launch", methods=["POST"])
+@jwt_required
 async def launch_model(model_type: str):
     result = run_model_job(model_type)
     return {}, 200

@@ -8,7 +8,8 @@ class Config(object):
     GATEWAY_HOST = "0.0.0.0"
     GATEWAY_PORT = 3001
 
-    JOB_SCHEUDLER_HOST = "vremote"
+    JOB_SCHEDULER_HOST = "vremote"
+    JOB_SCHEDULER_USER = "llm"
 
     JWT_SECRET_KEY = "abc123"
 
