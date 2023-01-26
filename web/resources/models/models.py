@@ -132,7 +132,7 @@ async def register_model():
 
 
 @models_bp.route("/<model_type>/launch", methods=["POST"])
-@jwt_required
+@jwt_required()
 async def launch_model(model_type: str):
     result = run_model_job(model_type)
     return {}, 200
