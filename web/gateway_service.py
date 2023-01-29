@@ -8,8 +8,8 @@ from celery import Celery
 from config import Config
 from auth import auth
 from db import db
-from resources.home import home
-from resources.models import models
+from home import home_bp
+from model_instances import model_instances_bp
 
 
 def create_app():
@@ -20,8 +20,8 @@ def create_app():
     jwt = JWTManager(app)
 
     app.register_blueprint(auth)
-    app.register_blueprint(home.home_bp)
-    app.register_blueprint(models.models_bp, url_prefix="/models")
+    app.register_blueprint(home_bp)
+    app.register_blueprint(model_instances_bp, url_prefix="/models")
 
     db.init_app(app)
     with app.app_context():

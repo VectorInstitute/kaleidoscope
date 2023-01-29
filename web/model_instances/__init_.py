@@ -1,2 +1,4 @@
 # ALL_MODEL_NAMES represents the set of models that are supported by this software
 ALL_MODEL_NAMES = {"OPT"}
+
+from routes import model_instances_bp   

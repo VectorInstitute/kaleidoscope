@@ -1,10 +1,7 @@
-from flask import Blueprint, redirect, request, current_app, jsonify, make_response
+from flask import Blueprint, request, current_app, make_response
 from flask_ldap3_login import AuthenticationResponseStatus
 from flask_jwt_extended import (
     create_access_token,
-    create_refresh_token,
-    set_access_cookies,
-    set_refresh_cookies,
     jwt_required,
 )
 
