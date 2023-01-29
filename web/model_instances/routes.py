@@ -2,9 +2,10 @@ import requests
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required
 
+import tasks
 from db import db
+from models import ModelInstance, ModelInstanceState
 from . import ALL_MODEL_NAMES
-from models import ModelInstance
 
 model_instances_bp = Blueprint("models", __name__)
 
@@ -15,47 +16,61 @@ async def get_models():
 
 @model_instances_bp.route("/instances", methods=["GET"])
 async def get_active_model_instances():
-    model_instances_query = db.select(ModelInstance).filter(ModelInstance.state._in(["ACTIVE", "PENDING"]))
-    model_instances = db.session.execute(model_instances_query).all() 
+    model_instances = ModelInstance.get_current_instances()
     return model_instances, 200
 
 @model_instances_bp.route("/instances", methods=["POST"])
 @jwt_required
-async def add_model_instance():
+async def create_model_instance():
 
     model_type = request.json["type"]
     model_host = request.json["host"]
 
-    model_instance = ModelInstance(model_type, model_host)
-    db.session.add(model_instance)
-    db.session.commit()
+    # ToDo move this into the DB
+    current_model_instances = ModelInstance.get_current_instances()
+    model_instance = next((mi for mi in current_model_instances if mi.type == model_type), None)
+
+    if model_instance is None:
+        model_instance = ModelInstance.create(model_type, model_host)
+        tasks.launch_model_instance.delay(model_instance.id)
 
     return model_instance, 201
 
 @model_instances_bp.route("instances/<model_instance_id>", methods=["GET"])
 @jwt_required
 async def get_model_instance(model_instance_id: int):
-    model_instance_query = db.select(ModelInstance).filter_by(id=model_instance_id)
-    model_instance = db.session.execute(model_instance_query).first()
+    model_instance = ModelInstance.get_by_id(model_instance_id)
     return model_instance, 200
 
 @model_instances_bp.route("/instances/<model_instance_id>", methods=["DELETE"])
 @jwt_required
 async def remove_model_instance(model_instance_id: int):
-    model_instance_query = db.select(ModelInstance).filter_by(id=model_instance_id)
-    model_instance = db.session.execute(model_instance_query).first()
-    db.session.delete(model_instance)
-    db.session.commit()
+    model_instance = ModelInstance.get_by_id(model_instance_id)
+    model_instance.shutdown()
+    return model_instance, 200
+
+@model_instances_bp.route("/instances/<model_instance_id>/status", methods=["PATCH"])
+@jwt_required
+async def update_model_instance_state(model_instance_id: int):
+    model_instance = ModelInstance.get_by_id(model_instance_id)
+    tasks.shutdown_model_instance.delay(model_instance.id)
     return model_instance, 200
 
 @model_instances_bp.route("instances/<model_instance_id>/generate", methods=["POST"])
 @jwt_required
 async def model_instance_generate(model_instance_id: int):
 
-    model_instance_query = db.select(ModelInstance).filter_by(id=model_instance_id)
+    model_instance = ModelInstance.get_by_id(model_instance_id)
 
-    model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
-    model_instance = db.session.execute(model_instance_query).first()
+    if model_instance.state != ModelInstanceState.ACTIVE:
+        return {"msg": "Model instance is not active"}, 400
+
+    # ToDo restructure generation kwargs and validate
+    data = request.form.copy()
+    prompt = data["prompt"]
+    del data["prompt"]
+
+    model_instance.generate(prompt, data)
 
     data = request.form.copy()
     prompt = data["prompt"]
@@ -67,9 +82,6 @@ async def model_instance_generate(model_instance_id: int):
     ).json()
     current_app.logger.info(f"Generate text result: {result}")
     return result, 200
-
-
-
 
 
 # @models_bp.route("/", methods=["GET"])
