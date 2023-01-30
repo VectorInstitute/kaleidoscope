@@ -3,6 +3,23 @@ from enum import Enum
 from db import db, BaseMixin
 from services import ModelService
 
+MODELS = {
+    "OPT-175B": {
+        "name": "OPT-175B",
+        "description": "175B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
+        "url": "https://huggingface.co/meta/opt-175B",
+    },
+    # "OPT-66B": {
+    #     "name": "OPT-66B",
+    #     "description": "66B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
+    #     "url": "https://huggingface.co/meta/opt-66B",  
+    # },
+    # "Galactica-120B": {
+    #     "name": "Galactica-120B",
+    #     "description": "120B parameter version of the Galactica model trained by Meta",
+    #     "url": "https://huggingface.co/meta/galactica-120B",
+    # }
+}
 
 class ModelInstanceState(Enum):
     LAUNCHING = 0
@@ -14,15 +31,15 @@ class ModelInstanceState(Enum):
 
 class ModelInstance(BaseMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.String)
+    name = db.Column(db.String)
     host = db.Column(db.String)
     state = db.Column(db.Enum(ModelInstanceState), default=ModelInstanceState.LAUNCHING)
     generations = db.relationship('ModelInstanceGeneration', backref='ModelInstance', lazy=True)
 
-    def __init__(self, type, host):
-        self.type = type
+    def __init__(self, name, host):
+        self.name = name
         self.host = host
-        self.model_service = ModelService(self.id, self.type)
+        self.model_service = ModelService(self.id, self.name)
 
     def get_current_instances():
         return db.select(ModelInstance).filter(ModelInstance.state._in([ModelInstanceState.LAUNCHING, ModelInstanceState.LOADING, ModelInstanceState.ACTIVE]))

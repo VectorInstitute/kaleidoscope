@@ -4,15 +4,13 @@ from flask_jwt_extended import jwt_required
 
 import tasks
 from db import db
-from models import ModelInstance, ModelInstanceState
-from . import ALL_MODEL_NAMES
+from models import MODELS, ModelInstance, ModelInstanceState
 
 model_instances_bp = Blueprint("models", __name__)
 
-
 @model_instances_bp.route("/", methods=["GET"])
 async def get_models():
-    return list(ALL_MODEL_NAMES), 200
+    return list(MODELS.keys()), 200
 
 @model_instances_bp.route("/instances", methods=["GET"])
 async def get_active_model_instances():
