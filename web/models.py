@@ -1,5 +1,4 @@
 from enum import Enum
-from flask import current_app
 
 from db import db, BaseMixin
 from services import ModelService

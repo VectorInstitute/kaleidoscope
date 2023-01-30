@@ -24,14 +24,13 @@ async def get_active_model_instances():
 async def create_model_instance():
 
     model_type = request.json["type"]
-    model_host = request.json["host"]
 
     # ToDo move this into the DB
     current_model_instances = ModelInstance.get_current_instances()
     model_instance = next((mi for mi in current_model_instances if mi.type == model_type), None)
 
     if model_instance is None:
-        model_instance = ModelInstance.create(model_type, model_host)
+        model_instance = ModelInstance.create(model_type)
         tasks.launch_model_instance.delay(model_instance.id)
 
     return model_instance, 201
@@ -46,7 +45,7 @@ async def get_model_instance(model_instance_id: int):
 @jwt_required
 async def remove_model_instance(model_instance_id: int):
     model_instance = ModelInstance.get_by_id(model_instance_id)
-    model_instance.shutdown()
+    tasks.shutdown_model_instance(model_instance.id)
     return model_instance, 200
 
 @model_instances_bp.route("/instances/<model_instance_id>/status", methods=["PATCH"])
