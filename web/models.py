@@ -28,44 +28,60 @@ class ModelInstanceState(Enum):
     FAILED = 3
     COMPLETED = 4
 
-
 class ModelInstance(BaseMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
-    host = db.Column(db.String)
     state = db.Column(db.Enum(ModelInstanceState), default=ModelInstanceState.LAUNCHING)
+    host = db.Column(db.String)
     generations = db.relationship('ModelInstanceGeneration', backref='ModelInstance', lazy=True)
 
-    def __init__(self, name, host):
-        self.name = name
-        self.host = host
-        self.model_service = ModelService(self.id, self.name)
-
     def get_current_instances():
-        return db.select(ModelInstance).filter(ModelInstance.state._in([ModelInstanceState.LAUNCHING, ModelInstanceState.LOADING, ModelInstanceState.ACTIVE]))
+        return db.select(ModelInstance).filter(
+            ModelInstance.state._in(
+                [   ModelInstanceState.LAUNCHING,
+                    ModelInstanceState.LOADING, 
+                    ModelInstanceState.ACTIVE
+                ]
+            )
+        )
 
     def launch(self):
-        self.model_service.launch()
+        model_service = ModelService(self.id, self.name)
+        model_service.launch()
 
     def shutdown(self):
-        self.model_service.shutdown()
+        model_service = ModelService(self.id, self.name, model_host=self.host)
+        model_service.shutdown()
 
-    def generate(self, prompt, username, **kwargs):
+    def update_state(self, new_state: ModelInstanceState, new_state_params: dict = {}):
+        """Update the state of the model instance and commit to the database
+
+            There is a possibility of a race condition here and we may want 
+            to include logic that igore setting previous states.
+        """
+
+        if new_state == ModelInstanceState.LOADING:
+            self.host = new_state_params["host"]
+
+        self.state = new_state
+        
+        db.session.add(self)
+        db.session.commit()
+
+    def generate(self, prompt: str, username: str, kwargs: dict = {}):
 
         generation = ModelInstanceGeneration.create(self.id, username, prompt)
 
-        generation_response = self.model_service.generate(generation.id, prompt, **kwargs)
+        model_service = ModelService(self.id, self.name, model_host=self.host)
+
+        generation_response = model_service.generate(generation.id, prompt, **kwargs)
         generation.response = generation_response
 
         return generation
 
     def is_healthy(self):
-        try:
-            health_response = self.model_service.verify_model_health()
-            response = requests.get(self.base_addr + "/health")
-            return response.status_code == 200
-        except:
-            return False
+        model_service = ModelService(self.id, self.name, model_host=self.host)
+        model_service.verify_model_instance_health(self.model_state)
 
 
 class ModelInstanceGeneration(BaseMixin, db.Model):
@@ -73,13 +89,3 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
     model_instance_id = db.Column(db.Integer, db.ForeignKey("model_instance.id"))
     username = db.Column(db.String)
     prompt = db.Column(db.String)
-
-    def __init__(
-        self,
-        model_instance_id,
-        username,
-        prompt
-    ):
-        self.model_instance_id = model_instance_id
-        self.username = username
-        self.prompt = prompt
