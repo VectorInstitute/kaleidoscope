@@ -8,7 +8,7 @@ services:
     image: gateway:staging-latest
     command: gateway_service.py
     env_file:
-      - .env_staging
+      - .env
     ports:
       - 8888:3001
     volumes:
@@ -20,7 +20,7 @@ services:
     image: gateway:staging-latest
     entrypoint: celery
     env_file:
-      - .env_staging
+      - .env
     command: -A gateway_service.celery worker -B
   db:
     image: postgres
@@ -28,7 +28,7 @@ services:
       - postgres_data_staging:/var/lib/postgresql/data/
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=vector
+      - POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
       - POSTGRES_DB=lingua-staging
     ports:
       - 5432:5432
