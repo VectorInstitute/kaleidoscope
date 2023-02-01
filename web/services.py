@@ -25,13 +25,6 @@ class ModelService():
             pass
 
         def verify_model_health(self, model_state):
+            pass
 
-            if model_state == ModelInstanceState.LAUNCHING:
-                return False
-            else if model_state == ModelInstanceState.LOADING:
-                return True
-            else if model_state == ModelInstanceState.ACTIVE:
-                return True
-            else:
-                return False
         
