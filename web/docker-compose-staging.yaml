@@ -5,7 +5,6 @@ services:
     depends_on:
       - "db"
     build: .
-    image: gateway:staging-latest
     command: gateway_service.py
     env_file:
       - .env
@@ -17,7 +16,6 @@ services:
     depends_on:
       - "db"
     build: .
-    image: gateway:staging-latest
     entrypoint: celery
     env_file:
       - .env

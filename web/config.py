@@ -11,7 +11,7 @@ class Config(object):
     JOB_SCHEDULER_USER = os.environ["JOB_SCHEDULER_USER"]
 
     JWT_SECRET_KEY = os.environ["JWT_SECRET_KEY"]
-    JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(days=os.environ["JWT_ACCESS_TOKEN_EXPIRES_DAYS"])
+    JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(days=int(os.environ["JWT_ACCESS_TOKEN_EXPIRES_DAYS"]))
     JWT_COOKIE_SECURE = (os.getenv('JWT_COOKIE_SECURE', 'False') == 'True')
     JWT_REFRESH_COOKIE_PATH = os.environ["JWT_REFRESH_COOKIE_PATH"]
 
