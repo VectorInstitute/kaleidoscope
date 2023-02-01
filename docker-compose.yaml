@@ -9,6 +9,8 @@ services:
     command: gateway_service.py
     ports:
       - 3001:3001
+    volumes:
+      - /h/llm/.ssh:/root/.ssh
   web-worker:
     depends_on:
       - "db"

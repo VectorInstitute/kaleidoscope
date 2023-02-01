@@ -38,75 +38,11 @@ git clone https://github.com/VectorInstitute/lingua.git
 sudo docker compose -f lingua/docker-compose.yaml up
 ```
 
-<!-- 
-### Installing lingua using pip
-
-```bash
-python3 -m pip install lingua
-```
--->
-
-## SDK Developing
-The development environment has been tested on ``python = 3.9``
-
-### If your environment is ``python < 3.8``
->Download Conda: https://conda.io/projects/conda/en/stable/user-guide/install/download.html
->### Create a conda environment with ``python >= 3.8``
->```bash
->conda create -n venv python=3.9
->```
->
->### Activate conda environment
->```bash
->conda activate venv
->```
-
-### If your environment is ``python >= 3.8``
->### Create virtual environment named ``env``
->```bash
->python3 -m venv env
->```
->
->### Activate virtual environment 
->```bash
->source env/bin/activate
->```
->
->### Update PIP
->```bash
->pip install --upgrade pip
->```
-
-
-### Install Lingua
-```bash
-pip install git+https://github.com/VectorInstitute/lingua.git
-```
-
-### Retrieve personal auth key from http://llm.cluster.local:3001
-A sample text generation submission from the web may be required to sign-in and generate an updated authentication key.
-![Auth_demo_pic](https://user-images.githubusercontent.com/72175053/210878149-c142e36c-d61b-4b44-984f-3c0f8dec13de.png)
-
-### Sample
-```python
-import lingua
-
-# Establish a client connection to the Lingua service
-client = lingua.Client(gateway_host="llm.cluster.local", gateway_port=3001)
-
-# Show all avaiable models, including active/inactive status
-client.get_models()
-
-# Get a handle to a model. If this model is not actively running, it will get launched in the background.
-model = client.load_model("ModelName")
-
-# Sample text generation w/ input parameters
-text_gen = model.generate_text("What is the answer to life, the universe, and everything?", max_tokens=5, top_k=4, top_p=3, rep_penalty=1, temperature=0.5)
-dir(text_gen) # display methods associated with generated text object
-text_gen.text # display only text
-text_gen.logprobs # display logprobs
-text_gen.tokens # display tokens
-```
+### Install Lingua SDK Toolkit
+The Lingua SDK toolkit is a Python module that provides a programmatic
+interface for interfacing with the services found here. You can download and
+install the SDK from its own repository: 
+https://github.com/VectorInstitute/lingua-sdk
 
 ## [Documentation](https://vectorinstitute.github.io/lingua/)
 More information can be found on the Lingua documentation site.

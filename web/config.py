@@ -1,3 +1,4 @@
+import datetime
 import os
 from pathlib import Path
 
@@ -8,10 +9,11 @@ class Config(object):
     GATEWAY_HOST = "0.0.0.0"
     GATEWAY_PORT = 3001
 
-    JOB_SCHEUDLER_HOST = "vremote"
+    JOB_SCHEDULER_HOST = "vremote"
+    JOB_SCHEDULER_USER = "llm"
 
     JWT_SECRET_KEY = "abc123"
-
+    JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(days=30)
     JWT_COOKIE_SECURE = False
     # JWT_ACCESS_COOKIE_PATH = '/api/'
     JWT_REFRESH_COOKIE_PATH = "/token/refresh"
