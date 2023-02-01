@@ -1,4 +1,5 @@
 from enum import Enum
+from abc import ABC
 
 from db import db, BaseMixin
 from services import ModelService
@@ -20,6 +21,7 @@ MODELS = {
     #     "url": "https://huggingface.co/meta/galactica-120B",
     # }
 }
+
 
 class ModelInstanceState(Enum):
     LAUNCHING = 0

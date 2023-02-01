@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  web:
+    depends_on:
+      - "db"
+    build: .
+    image: gateway:staging-latest
+    command: gateway_service.py
+    env_file:
+      - .env_staging
+    ports:
+      - 8888:3001
+    volumes:
+      - /h/llm/.ssh:/root/.ssh
+  web-worker:
+    depends_on:
+      - "db"
+    build: .
+    image: gateway:staging-latest
+    entrypoint: celery
+    env_file:
+      - .env_staging
+    command: -A gateway_service.celery worker -B
+  db:
+    image: postgres
+    volumes:
+      - postgres_data_staging:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=vector
+      - POSTGRES_DB=lingua-staging
+    ports:
+      - 5432:5432
+    
+volumes:
+  postgres_data_staging:
