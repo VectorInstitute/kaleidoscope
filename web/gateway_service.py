@@ -8,8 +8,8 @@ from celery import Celery
 from config import Config
 from auth import auth
 from db import db
-from home import home_bp
-from model_instances import model_instances_bp
+from home.routes import home_bp
+from model_instances.routes import model_instances_bp
 
 
 def create_app():

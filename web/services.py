@@ -1,6 +1,5 @@
 import subprocess
 from config import Config
-from models import ModelInstanceState
 
 class ModelService():
     

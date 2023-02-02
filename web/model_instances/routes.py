@@ -13,12 +13,12 @@ async def get_models():
     return list(MODELS.keys()), 200
 
 @model_instances_bp.route("/instances", methods=["GET"])
-async def get_active_model_instances():
+async def get_current_model_instances():
     model_instances = ModelInstance.get_current_instances()
     return model_instances, 200
 
 @model_instances_bp.route("/instances", methods=["POST"])
-@jwt_required
+@jwt_required()
 async def create_model_instance():
 
     model_name = request.json["name"]
@@ -34,20 +34,20 @@ async def create_model_instance():
     return model_instance, 201
 
 @model_instances_bp.route("instances/<model_instance_id>", methods=["GET"])
-@jwt_required
+@jwt_required()
 async def get_model_instance(model_instance_id: int):
     model_instance = ModelInstance.get_by_id(model_instance_id)
     return model_instance, 200
 
 @model_instances_bp.route("/instances/<model_instance_id>", methods=["DELETE"])
-@jwt_required
+@jwt_required()
 async def remove_model_instance(model_instance_id: int):
     model_instance = ModelInstance.get_by_id(model_instance_id)
     tasks.shutdown_model_instance(model_instance.id)
     return model_instance, 200
 
 @model_instances_bp.route("/instances/<model_instance_id>/state", methods=["PATCH"])
-@jwt_required
+@jwt_required()
 async def update_model_instance_state(model_instance_id: int):
 
     updated_state = request.json["state"]
@@ -55,11 +55,11 @@ async def update_model_instance_state(model_instance_id: int):
 
     model_instance = ModelInstance.get_by_id(model_instance_id)
     model_instance.update_state(updated_state)
-    
+
     return model_instance, 200
 
 @model_instances_bp.route("instances/<model_instance_id>/generate", methods=["POST"])
-@jwt_required
+@jwt_required()
 async def model_instance_generate(model_instance_id: int):
 
     model_instance = ModelInstance.get_by_id(model_instance_id)

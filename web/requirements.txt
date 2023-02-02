@@ -53,3 +53,4 @@ flask-sqlalchemy
 Flask-Migrate
 psycopg2-binary
 celery
+sqlalchemy==1.4.45

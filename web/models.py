@@ -35,7 +35,7 @@ class ModelInstance(BaseMixin, db.Model):
     name = db.Column(db.String)
     state = db.Column(db.Enum(ModelInstanceState), default=ModelInstanceState.LAUNCHING)
     host = db.Column(db.String)
-    generations = db.relationship('ModelInstanceGeneration', backref='ModelInstance', lazy=True)
+    generations = db.relationship('ModelInstanceGeneration', backref='model_instance', lazy=True)
 
     def get_current_instances():
         return db.select(ModelInstance).filter(
