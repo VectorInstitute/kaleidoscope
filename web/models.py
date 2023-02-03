@@ -1,6 +1,6 @@
 from __future__ import annotations
 from enum import Enum, auto
-from typing import List, Optional
+from typing import List, Optional, Dict
 from abc import ABC, abstractmethod
 
 from db import db, BaseMixin
@@ -24,100 +24,87 @@ MODEL_CONFIG = {
     # }
 }
 
-class Model():
-
-    def __init__(self, name: str, config: dict):
-        self.name = name
-        self.config = config
-
-    def launch(self, model_instance: ModelInstance) -> bool:
-        
-        success = model_service.launch(model_instance)
-        return success
-
-
 class ModelInstanceState(ABC):
 
-    def launch():
-        pass
-    
-    def shutdown():
-        pass
+    def __init__(self, model_instance: ModelInstance):
+        self._model_instance = model_instance
 
-    def is_healthy():
-        pass
+    def launch(self):
+        raise NotImplementedError(f'Cannot launch model instance in state {self.__class__.__name__}')
 
-    def change_state(new_state):
-        pass
+    def register(self, host: str):
+        raise NotImplementedError(f'Cannot register model instance in state {self.__class__.__name__}')
+
+    def activate(self):
+        raise NotImplementedError(f'Cannot activate model instance in state {self.__class__.__name__}')
+
+    def shutdown(self):
+        raise NotImplementedError(f'Cannot shutdown model instance in state {self.__class__.__name__}')
+
+    def is_healthy(self):
+        raise NotImplementedError(f'Cannot check health of model instance in state {self.__class__.__name__}')
 
 
 class PendingState(ModelInstanceState):
 
-    def launch():
-        pass
-
-    def is_healthy():
-        pass
-
-    def change_state(new_state):
-        pass
-
+    def launch(self):
+        model_service.dispatch_launch(self._model_instance)
+        self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
+    
 
 class LaunchingState(ModelInstanceState):
 
-    def launch():
-        pass
+    # def shutdown(self):
+    #     model_service.dispatch_shutdown(self._model_instance)
+    #     self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
-    def shutdown():
-        pass
-
-    def is_healthy():
-        pass
-
-    def change_state(new_state):
-        pass
+    # def is_healthy(self):
+    #     pass
+    #     #model_service.verify_health(self._model_instance)
+        
+    def register(self, host: str):
+        self._model_instance.host = host
+        self._model_instance.transition_to_state(ModelInstanceStates.LOADING)
 
 
 class LoadingState(ModelInstanceState):
 
-    def shutdown():
-        pass
+    # def shutdown(self):
+    #     model_service.dispatch_job_shutdown(self._model_instance)
+    #     self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
-    def is_healthy():
-        pass
+    def activate(self):
+        self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
-    def change_state(new_state):
-        pass
-
+    # def is_healthy(self):
+    #     self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
 
 class ActiveState(ModelInstanceState):
 
-    def shutdown():
-        pass
+    # def shutdown(self):
+       
+    #     model_service.dispatch_model_shutdown(self._model_instance)
+    #     self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
-    def is_healthy():
-        pass
+    # def is_healthy(self):
+    #     pass
 
-    def change_state(new_state):
-        pass
+    def generate(self, model_instance_generation: ModelInstanceGeneration):
+        generation_response = model_service.generate(self._model_instance.host, model_instance_generation)
+        model_instance_generation.reponse = generation_response
 
 
 class FailedState(ModelInstanceState):
-
-    def is_healthy():
-        pass
-
-    def change_state(new_state):
+    
+    def change_state(self, new_state):
         pass
 
 
 class CompletedState(ModelInstanceState):
-
-    def is_healthy():
+    
+    def change_state(self, new_state):
         pass
-
-    def change_state(new_state):
-        pass
+    
 
 class ModelInstanceStates(Enum):
     PENDING = PendingState
@@ -166,37 +153,33 @@ class ModelInstance(BaseMixin, db.Model):
 
         return model_instance
 
-    def launch(self) -> None:
-        self._state.launch()
-        #model_service.launch(self)
-
-    def shutdown(self) -> None:
-        self._state.shutdown()
-        #model_service.shutdown(self)
-
-    def update_state(self, new_state: ModelInstanceState):
+    def transition_to_state(self, new_state: ModelInstanceState):
         """Update the state of the model instance and commit to the database
 
             There is a possibility of a race condition here and we may want 
             to include logic that igore setting previous states.
         """
         self.state = new_state
-        self._state = ModelInstanceStates[self.state]()
-        self._state.context = self
+        self._state = ModelInstanceStates[self.state](self)
         self.save()
 
-    def generate(self, prompt: str, username: str, kwargs: dict = {}):
-        return self._state.generate(prompt, username, kwargs)
+    def launch(self) -> None:
+        self._state.launch()
 
-        # generation = ModelInstanceGeneration.create(self.id, username, prompt)
+    def register(self, host: str) -> None:
+        self._state.register(host)
+    
+    def activate(self) -> None:
+        self._state.activate()
 
-        # generation_response = model_service.generate(self, generation.id, prompt, **kwargs)
-        # generation.response = generation_response
+    def shutdown(self) -> None:
+        self._state.shutdown()
+
+    def generate(self, username: str, prompt: str, kwargs: Dict = {}):
+        return self._state.generate(username, prompt, kwargs)
 
     def is_healthy(self):
         return self._state.is_healthy()
-        # model_service = ModelService(self.id, self.name, model_host=self.host)
-        # model_service.verify_model_instance_health(self.model_state)
 
 
 class ModelInstanceGeneration(BaseMixin, db.Model):

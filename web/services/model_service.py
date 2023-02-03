@@ -1,12 +1,13 @@
 import subprocess
+from typing import Dict
 
+import requests
 from celery import shared_task
 
 from config import Config
 from models import ModelInstance, ModelInstanceGeneration
 
 
-@shared_task
 def launch(model_instance: ModelInstance) -> None:
     try:
         ssh_output = subprocess.check_output(
@@ -14,15 +15,27 @@ def launch(model_instance: ModelInstance) -> None:
             shell=True,
         ).decode("utf-8")
         print(f"Sent SSH request to job runner: {ssh_output}")
-        success = True
     except Exception as err:
         print(f"Failed to issue SSH command to job runner: {err}")
-    return success
 
-@shared_task
-def shutdown(model_instance: ModelInstance) -> None:
-    pass
-    
 
-def generate(model_instance: ModelInstance, generate_request: ModelInstanceGeneration):
+def generate(host, generation_id: int, prompt: str, generation_args: Dict) -> Dict:
+
+    body = {
+        "id": generation_id,
+        'prompt': prompt,
+        'generation_args': generation_args
+    }
+
+    response = requests.post(
+        f"http://{host}:5000/generate",
+        body=body
+    )
+
+    response_body = response.json()
     
+    response_body = {
+        'generation': 'hello world'
+    }
+
+    return response_body
