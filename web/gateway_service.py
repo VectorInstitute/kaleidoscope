@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import logging
+
 from flask import Flask
 from flask_ldap3_login import LDAP3LoginManager
 from flask_jwt_extended import JWTManager
@@ -15,6 +17,7 @@ from model_instances.routes import model_instances_bp
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.logger.setLevel(logging.INFO) # ToDo: move this to config
 
     ldap_manager = LDAP3LoginManager(app)
     jwt = JWTManager(app)

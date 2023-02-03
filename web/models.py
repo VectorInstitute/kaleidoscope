@@ -1,10 +1,12 @@
-from enum import Enum
-from abc import ABC
+from __future__ import annotations
+from enum import Enum, auto
+from typing import List, Optional
+from abc import ABC, abstractmethod
 
 from db import db, BaseMixin
-from services import ModelService
+from services import model_service
 
-MODELS = {
+MODEL_CONFIG = {
     "OPT-175B": {
         "name": "OPT-175B",
         "description": "175B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
@@ -22,68 +24,179 @@ MODELS = {
     # }
 }
 
+class Model():
 
-class ModelInstanceState(Enum):
-    LAUNCHING = 0
-    LOADING = 1
-    ACTIVE = 2
-    FAILED = 3
-    COMPLETED = 4
+    def __init__(self, name: str, config: dict):
+        self.name = name
+        self.config = config
+
+    def launch(self, model_instance: ModelInstance) -> bool:
+        
+        success = model_service.launch(model_instance)
+        return success
+
+
+class ModelInstanceState(ABC):
+
+    def launch():
+        pass
+    
+    def shutdown():
+        pass
+
+    def is_healthy():
+        pass
+
+    def change_state(new_state):
+        pass
+
+
+class PendingState(ModelInstanceState):
+
+    def launch():
+        pass
+
+    def is_healthy():
+        pass
+
+    def change_state(new_state):
+        pass
+
+
+class LaunchingState(ModelInstanceState):
+
+    def launch():
+        pass
+
+    def shutdown():
+        pass
+
+    def is_healthy():
+        pass
+
+    def change_state(new_state):
+        pass
+
+
+class LoadingState(ModelInstanceState):
+
+    def shutdown():
+        pass
+
+    def is_healthy():
+        pass
+
+    def change_state(new_state):
+        pass
+
+
+class ActiveState(ModelInstanceState):
+
+    def shutdown():
+        pass
+
+    def is_healthy():
+        pass
+
+    def change_state(new_state):
+        pass
+
+
+class FailedState(ModelInstanceState):
+
+    def is_healthy():
+        pass
+
+    def change_state(new_state):
+        pass
+
+
+class CompletedState(ModelInstanceState):
+
+    def is_healthy():
+        pass
+
+    def change_state(new_state):
+        pass
+
+class ModelInstanceStates(Enum):
+    PENDING = PendingState
+    LAUNCHING = LaunchingState
+    LOADING = LoadingState
+    ACTIVE = ActiveState
+    FAILED = FailedState
+    COMPLETED = CompletedState
 
 class ModelInstance(BaseMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
-    state = db.Column(db.Enum(ModelInstanceState), default=ModelInstanceState.LAUNCHING)
+    state = db.Column(db.Enum(ModelInstanceStates), default=ModelInstanceStates.PENDING)
     host = db.Column(db.String)
     generations = db.relationship('ModelInstanceGeneration', backref='model_instance', lazy=True)
 
-    def get_current_instances():
-        return db.select(ModelInstance).filter(
-            ModelInstance.state._in(
-                [   ModelInstanceState.LAUNCHING,
-                    ModelInstanceState.LOADING, 
-                    ModelInstanceState.ACTIVE
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._state = ModelInstanceStates[self.state]()
+
+    @classmethod
+    def find_current_instances(cls) -> List[ModelInstance]:
+        current_instance_query = db.select(cls.state.in_(
+                    [   ModelInstanceStates.LAUNCHING,
+                        ModelInstanceStates.LOADING, 
+                        ModelInstanceStates.ACTIVE
+                    ]
+                ))
+
+        current_instances = db.session.execute(current_instance_query).all()
+
+        return current_instances
+
+    @classmethod
+    def find_current_instance_by_name(cls, name: str) -> Optional[ModelInstance]:
+        current_instance_query = db.select(
+            cls.state.in_(
+                [   ModelInstanceStates.LAUNCHING,
+                    ModelInstanceStates.LOADING, 
+                    ModelInstanceStates.ACTIVE
                 ]
             )
-        )
+        ).filter_by(name=name)
 
-    def launch(self):
-        model_service = ModelService(self.id, self.name)
-        model_service.launch()
+        model_instance = db.session.execute(current_instance_query).first()
 
-    def shutdown(self):
-        model_service = ModelService(self.id, self.name, model_host=self.host)
-        model_service.shutdown()
+        return model_instance
 
-    def update_state(self, new_state: ModelInstanceState, new_state_params: dict = {}):
+    def launch(self) -> None:
+        self._state.launch()
+        #model_service.launch(self)
+
+    def shutdown(self) -> None:
+        self._state.shutdown()
+        #model_service.shutdown(self)
+
+    def update_state(self, new_state: ModelInstanceState):
         """Update the state of the model instance and commit to the database
 
             There is a possibility of a race condition here and we may want 
             to include logic that igore setting previous states.
         """
-
-        if new_state == ModelInstanceState.LOADING:
-            self.host = new_state_params["host"]
-
         self.state = new_state
-        
-        db.session.add(self)
-        db.session.commit()
+        self._state = ModelInstanceStates[self.state]()
+        self._state.context = self
+        self.save()
 
     def generate(self, prompt: str, username: str, kwargs: dict = {}):
+        return self._state.generate(prompt, username, kwargs)
 
-        generation = ModelInstanceGeneration.create(self.id, username, prompt)
+        # generation = ModelInstanceGeneration.create(self.id, username, prompt)
 
-        model_service = ModelService(self.id, self.name, model_host=self.host)
-
-        generation_response = model_service.generate(generation.id, prompt, **kwargs)
-        generation.response = generation_response
-
-        return generation
+        # generation_response = model_service.generate(self, generation.id, prompt, **kwargs)
+        # generation.response = generation_response
 
     def is_healthy(self):
-        model_service = ModelService(self.id, self.name, model_host=self.host)
-        model_service.verify_model_instance_health(self.model_state)
+        return self._state.is_healthy()
+        # model_service = ModelService(self.id, self.name, model_host=self.host)
+        # model_service.verify_model_instance_health(self.model_state)
 
 
 class ModelInstanceGeneration(BaseMixin, db.Model):

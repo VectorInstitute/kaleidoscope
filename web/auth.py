@@ -18,7 +18,6 @@ def authenticate():
     if ldapAuthResponse.status == AuthenticationResponseStatus.success:
         access_token = create_access_token(identity=auth_params["username"])
         response = make_response({"token": access_token}, 200)
-        # set_access_cookies(response, access_token)
         return response
     else:
         return make_response({"msg": "Bad username or password"}, 401)
