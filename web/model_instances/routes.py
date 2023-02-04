@@ -15,8 +15,8 @@ async def get_models():
 @model_instances_bp.route("/instances", methods=["GET"])
 async def get_current_model_instances():
     model_instances = ModelInstance.find_current_instances()
-
-    return jsonify(model_instances), 200
+    response = jsonify([{ "id": model_instance.id, "name": model_instance.name, "state": model_instance.state.name } for model_instance in model_instances])
+    return response, 200
 
 @model_instances_bp.route("/instances", methods=["POST"])
 @jwt_required()
@@ -25,12 +25,19 @@ async def create_model_instance():
     model_name = request.json["name"]
 
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
-
+    current_app.logger.info(f"Found model instance: {model_instance}")
     if model_instance is None:
-        model_instance = ModelInstance.create(model_name)
+        model_instance = ModelInstance.create(name=model_name)
+        current_app.logger.info(f"Created new model instance: {model_instance}")
         tasks.launch_model_instance.delay(model_instance.id)
 
-    return model_instance, 201
+    response = jsonify({
+        "id": model_instance.id,
+        "name": model_instance.name,
+        "state": model_instance.state.name,
+    })
+
+    return response, 201
 
 @model_instances_bp.route("instances/<model_instance_id>", methods=["GET"])
 @jwt_required()
@@ -59,7 +66,7 @@ async def register_model_instance(model_instance_id: int):
 
 @model_instances_bp.route("/instances/<model_instance_id>/activate", methods=["POST"])
 @jwt_required()
-async def register_model_instance(model_instance_id: int):
+async def activate_model_instance(model_instance_id: int):
 
     model_instance = ModelInstance.find_by_id(model_instance_id)
     model_instance.activate()

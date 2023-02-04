@@ -3,6 +3,8 @@ from enum import Enum, auto
 from typing import List, Optional, Dict
 from abc import ABC, abstractmethod
 
+from flask import current_app
+
 from db import db, BaseMixin
 from services import model_service
 
@@ -12,11 +14,6 @@ MODEL_CONFIG = {
         "description": "175B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
         "url": "https://huggingface.co/meta/opt-175B",
     },
-    # "OPT-66B": {
-    #     "name": "OPT-66B",
-    #     "description": "66B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
-    #     "url": "https://huggingface.co/meta/opt-66B",  
-    # },
     # "Galactica-120B": {
     #     "name": "Galactica-120B",
     #     "description": "120B parameter version of the Galactica model trained by Meta",
@@ -48,19 +45,11 @@ class ModelInstanceState(ABC):
 class PendingState(ModelInstanceState):
 
     def launch(self):
-        model_service.dispatch_launch(self._model_instance)
+        model_service.launch(self._model_instance.id, self._model_instance.name)
         self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
     
 
 class LaunchingState(ModelInstanceState):
-
-    # def shutdown(self):
-    #     model_service.dispatch_shutdown(self._model_instance)
-    #     self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
-
-    # def is_healthy(self):
-    #     pass
-    #     #model_service.verify_health(self._model_instance)
         
     def register(self, host: str):
         self._model_instance.host = host
@@ -69,25 +58,12 @@ class LaunchingState(ModelInstanceState):
 
 class LoadingState(ModelInstanceState):
 
-    # def shutdown(self):
-    #     model_service.dispatch_job_shutdown(self._model_instance)
-    #     self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
     def activate(self):
         self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
-    # def is_healthy(self):
-    #     self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
 
 class ActiveState(ModelInstanceState):
-
-    # def shutdown(self):
-       
-    #     model_service.dispatch_model_shutdown(self._model_instance)
-    #     self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
-
-    # def is_healthy(self):
-    #     pass
 
     def generate(self, model_instance_generation: ModelInstanceGeneration):
         generation_response = model_service.generate(self._model_instance.host, model_instance_generation)
@@ -95,15 +71,14 @@ class ActiveState(ModelInstanceState):
 
 
 class FailedState(ModelInstanceState):
-    
-    def change_state(self, new_state):
-        pass
 
-
+    def is_healthy(self):
+        return False
+        
 class CompletedState(ModelInstanceState):
-    
-    def change_state(self, new_state):
-        pass
+
+    def is_healthy(self):
+        return True
     
 
 class ModelInstanceStates(Enum):
@@ -116,51 +91,57 @@ class ModelInstanceStates(Enum):
 
 class ModelInstance(BaseMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    state = db.Column(db.Enum(ModelInstanceStates), default=ModelInstanceStates.PENDING)
+    name = db.Column(db.String, nullable=False)
+    state = db.Column(db.Enum(ModelInstanceStates), nullable=False, default=(ModelInstanceStates.PENDING))
     host = db.Column(db.String)
     generations = db.relationship('ModelInstanceGeneration', backref='model_instance', lazy=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._state = ModelInstanceStates[self.state]()
+        if self.state is None:
+            self.state = ModelInstanceStates.PENDING
+        self._state = self.state.value(self)
+
+    @db.orm.reconstructor
+    def init_on_load(self):
+        self._state = self.state.value(self)
 
     @classmethod
     def find_current_instances(cls) -> List[ModelInstance]:
-        current_instance_query = db.select(cls.state.in_(
-                    [   ModelInstanceStates.LAUNCHING,
+        """Find the current instances of all models"""
+        current_instance_query = db.select(cls).filter(cls.state.in_(
+                    (   
+                        ModelInstanceStates.PENDING,
+                        ModelInstanceStates.LAUNCHING,
                         ModelInstanceStates.LOADING, 
                         ModelInstanceStates.ACTIVE
-                    ]
-                ))
+                    )
+                )
+            )
 
-        current_instances = db.session.execute(current_instance_query).all()
-
-        return current_instances
+        return db.session.execute(current_instance_query).scalars().all()
 
     @classmethod
     def find_current_instance_by_name(cls, name: str) -> Optional[ModelInstance]:
-        current_instance_query = db.select(
-            cls.state.in_(
-                [   ModelInstanceStates.LAUNCHING,
-                    ModelInstanceStates.LOADING, 
-                    ModelInstanceStates.ACTIVE
-                ]
-            )
-        ).filter_by(name=name)
+        """Find the current instance of a model by name"""
+        current_instance_query = db.select(cls).filter(cls.state.in_(
+                    (   
+                        ModelInstanceStates.PENDING,
+                        ModelInstanceStates.LAUNCHING,
+                        ModelInstanceStates.LOADING, 
+                        ModelInstanceStates.ACTIVE
+                    )
+                )
+            ).filter_by(name=name) 
 
-        model_instance = db.session.execute(current_instance_query).first()
+        model_instance = db.session.execute(current_instance_query).scalars().first()
 
         return model_instance
 
     def transition_to_state(self, new_state: ModelInstanceState):
-        """Update the state of the model instance and commit to the database
-
-            There is a possibility of a race condition here and we may want 
-            to include logic that igore setting previous states.
-        """
+        """Transition the model instance to a new state"""
         self.state = new_state
-        self._state = ModelInstanceStates[self.state](self)
+        self._state = self.state.value(self)
         self.save()
 
     def launch(self) -> None:

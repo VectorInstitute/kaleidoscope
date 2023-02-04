@@ -1,14 +1,14 @@
+from __future__ import annotations
 import subprocess
 from typing import Dict
 
 import requests
-from celery import shared_task
 
+import models
 from config import Config
-from models import ModelInstance, ModelInstanceGeneration
 
 
-def launch(model_instance: ModelInstance) -> None:
+def launch(model_instance: models.ModelInstance) -> None:
     try:
         ssh_output = subprocess.check_output(
             f"ssh {Config.JOB_SCHEUDLER_HOST} python3 ~/lingua/model_service/job_runner.py --model_type {model_instance.model_name}",

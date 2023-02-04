@@ -42,12 +42,12 @@ def make_celery(app):
     )
     celery.conf.update(app.config)
 
-    celery.conf.beat_schedule = {
-        "verify_health": {
-            "task": "tasks.verify_model_instance_health",
-            "schedule": 10.0,
-        }
-    }
+    # celery.conf.beat_schedule = {
+    #     "verify_health": {
+    #         "task": "tasks.verify_model_instance_health",
+    #         "schedule": 10.0,
+    #     }
+    # }
 
     class ContextTask(celery.Task):
         def __call__(self, *args, **kwargs):

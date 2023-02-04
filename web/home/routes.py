@@ -3,7 +3,7 @@ from flask import Blueprint, render_template
 import json
 import requests
 
-from models import MODELS
+import models
 
 home_bp = Blueprint("home", __name__, template_folder="templates")
 
@@ -31,4 +31,4 @@ async def reference():
 @home_bp.route("/playground", methods=["GET"])
 async def playground():
     #  return f"sample inference server for models: {set(ALL_MODELS.keys())}"
-    return render_template("playground.html", all_models=MODELS.keys())
+    return render_template("playground.html", all_models=models.MODEL_CONFIG.keys())
