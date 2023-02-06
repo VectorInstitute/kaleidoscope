@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 
 from flask import current_app
 
+from errors import InvalidStateError
 from db import db, BaseMixin
 from services import model_service
 
@@ -26,28 +27,32 @@ class ModelInstanceState(ABC):
     def __init__(self, model_instance: ModelInstance):
         self._model_instance = model_instance
 
-    def launch(self):
-        raise NotImplementedError(f'Cannot launch model instance in state {self.__class__.__name__}')
+    def launch(self): 
+        raise InvalidStateError(self)
 
     def register(self, host: str):
-        raise NotImplementedError(f'Cannot register model instance in state {self.__class__.__name__}')
+        raise InvalidStateError(self)
 
     def activate(self):
-        raise NotImplementedError(f'Cannot activate model instance in state {self.__class__.__name__}')
+        raise InvalidStateError(self)
 
     def shutdown(self):
-        raise NotImplementedError(f'Cannot shutdown model instance in state {self.__class__.__name__}')
+        raise InvalidStateError(self)
 
     def is_healthy(self):
-        raise NotImplementedError(f'Cannot check health of model instance in state {self.__class__.__name__}')
+        raise InvalidStateError(self)
 
 
 class PendingState(ModelInstanceState):
 
     def launch(self):
-        model_service.launch(self._model_instance.id, self._model_instance.name)
-        self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
-    
+        try: 
+            # ToDo: set job id params here.
+            model_service.launch(self._model_instance.id, self._model_instance.name)
+            self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
+        except:
+            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
+        
 
 class LaunchingState(ModelInstanceState):
         
@@ -58,16 +63,22 @@ class LaunchingState(ModelInstanceState):
 
 class LoadingState(ModelInstanceState):
 
-
     def activate(self):
         self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
 
 class ActiveState(ModelInstanceState):
 
-    def generate(self, model_instance_generation: ModelInstanceGeneration):
-        generation_response = model_service.generate(self._model_instance.host, model_instance_generation)
-        model_instance_generation.reponse = generation_response
+    def generate(self, username, prompt, generation_args):
+
+        model_instance_generation = ModelInstanceGeneration.create(
+            model_instance_id=self._model_instance.id,
+            username=username,
+            prompt=prompt
+        )
+
+        # ToDo - add and save response to generation object in db
+        return model_service.generate(self._model_instance.host, model_instance_generation.id, model_instance_generation.prompt, generation_args)
 
 
 class FailedState(ModelInstanceState):
@@ -88,6 +99,7 @@ class ModelInstanceStates(Enum):
     ACTIVE = ActiveState
     FAILED = FailedState
     COMPLETED = CompletedState
+
 
 class ModelInstance(BaseMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -156,10 +168,10 @@ class ModelInstance(BaseMixin, db.Model):
     def shutdown(self) -> None:
         self._state.shutdown()
 
-    def generate(self, username: str, prompt: str, kwargs: Dict = {}):
+    def generate(self, username: str, prompt: str, kwargs: Dict = {}) -> Dict:
         return self._state.generate(username, prompt, kwargs)
 
-    def is_healthy(self):
+    def is_healthy(self) -> bool:
         return self._state.is_healthy()
 
 

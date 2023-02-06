@@ -1,6 +1,6 @@
 import requests
 from flask import Blueprint, request, current_app, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from db import db
 import tasks
@@ -58,11 +58,12 @@ async def remove_model_instance(model_instance_id: int):
 async def register_model_instance(model_instance_id: int):
 
     model_instance_host = request.json["host"]
-
+    current_app.logger.info(f"Registering model instance {model_instance_id} with host {model_instance_host}")
     model_instance = ModelInstance.find_by_id(model_instance_id)
+    current_app.logger.info(f"Found model instance: {model_instance}")
     model_instance.register(host=model_instance_host)
 
-    return model_instance, 200
+    return jsonify({"id": model_instance.id, "name": model_instance.name, "state": model_instance.state.name }), 200
 
 @model_instances_bp.route("/instances/<model_instance_id>/activate", methods=["POST"])
 @jwt_required()
@@ -71,18 +72,21 @@ async def activate_model_instance(model_instance_id: int):
     model_instance = ModelInstance.find_by_id(model_instance_id)
     model_instance.activate()
 
-    return model_instance, 200
+    return jsonify({ "id": model_instance.id, "name": model_instance.name, "state": model_instance.state.name }), 200
 
 
 @model_instances_bp.route("instances/<model_instance_id>/generate", methods=["POST"])
 @jwt_required()
 async def model_instance_generate(model_instance_id: int):
 
-    username = request.authorization["username"]
+    current_app.logger.info(request)
+    current_app.logger.info(request.authorization)
+    username = get_jwt_identity()
+    current_app.logger.info(username)
+
     prompt = request.json["prompt"]
-    generation_kwargs = request.json["generation_kwargs"]
     
     model_instance = ModelInstance.find_by_id(model_instance_id)
-    generation = model_instance.generate(username, prompt, generation_kwargs)
+    generation = model_instance.generate(username, prompt)
 
-    return generation, 200
+    return jsonify(generation), 200
