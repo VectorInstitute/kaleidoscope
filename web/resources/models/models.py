@@ -158,6 +158,7 @@ async def remove_model(model_type: str):
 
 
 @models_bp.route("/<model_type>/generate_text", methods=["POST"])
+@jwt_required()
 async def generate_text(model_type: str):
     verify_request(model_type)
     if not is_model_active(model_type):
@@ -176,6 +177,7 @@ async def generate_text(model_type: str):
 
 
 @models_bp.route("/<model_type>/get_activations", methods=["POST"])
+@jwt_required()
 async def get_activations(model_type: str):
     verify_request(model_type)
     if not is_model_active(model_type):
