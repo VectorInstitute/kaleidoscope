@@ -117,19 +117,19 @@ class ModelInstanceStates(Enum):
 class ModelInstance(BaseMixin, db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid)
     name = db.Column(db.String, nullable=False)
-    state = db.Column(db.Enum(ModelInstanceStates), nullable=False, default=(ModelInstanceStates.PENDING))
+    state_name = db.Column(db.Enum(ModelInstanceStates), nullable=False, default=(ModelInstanceStates.PENDING))
     host = db.Column(db.String)
     generations = db.relationship('ModelInstanceGeneration', backref='model_instance', lazy=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if self.state is None:
-            self.state = ModelInstanceStates.PENDING
-        self._state = self.state.value(self)
+        if self.state_name is None:
+            self.state_name = ModelInstanceStates.PENDING
+        self._state = self.state_name.value(self)
 
     @db.orm.reconstructor
     def init_on_load(self):
-        self._state = self.state.value(self)
+        self._state = self.state_name.value(self)
 
     @classmethod
     def find_current_instances(cls) -> List[ModelInstance]:
@@ -163,10 +163,10 @@ class ModelInstance(BaseMixin, db.Model):
 
         return model_instance
 
-    def transition_to_state(self, new_state: ModelInstanceState):
+    def transition_to_state(self, new_state: ModelInstanceStates):
         """Transition the model instance to a new state"""
-        self.state = new_state
-        self._state = self.state.value(self)
+        self.state_name = new_state
+        self._state = self.state_name.value(self)
         self.save()
 
     def launch(self) -> None:
