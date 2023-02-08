@@ -1,9 +1,11 @@
 from __future__ import annotations
-from enum import Enum, auto
+from enum import Enum
 from typing import List, Optional, Dict
-from abc import ABC, abstractmethod
+from abc import ABC
+import uuid
 
 from flask import current_app
+from sqlalchemy.dialects.postgresql import UUID
 
 from errors import InvalidStateError
 from db import db, BaseMixin
@@ -78,7 +80,18 @@ class ActiveState(ModelInstanceState):
         )
 
         # ToDo - add and save response to generation object in db
-        return model_service.generate(self._model_instance.host, model_instance_generation.id, model_instance_generation.prompt, generation_args)
+        return model_service.generate(
+            self._model_instance.host, 
+            model_instance_generation.id, 
+            model_instance_generation.prompt, 
+            generation_args
+        )
+
+    def is_healthy(self):
+        is_healthy = model_service.verify_model_health(self._model_instance.host)
+        if not is_healthy:
+            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
+        return is_healthy
 
 
 class FailedState(ModelInstanceState):
@@ -102,7 +115,7 @@ class ModelInstanceStates(Enum):
 
 
 class ModelInstance(BaseMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid)
     name = db.Column(db.String, nullable=False)
     state = db.Column(db.Enum(ModelInstanceStates), nullable=False, default=(ModelInstanceStates.PENDING))
     host = db.Column(db.String)
