@@ -15,13 +15,16 @@ async def get_models():
 @model_instances_bp.route("/instances", methods=["GET"])
 async def get_current_model_instances():
     model_instances = ModelInstance.find_current_instances()
-    response = jsonify([{ "id": model_instance.id, "name": model_instance.name, "state": model_instance.state.name } for model_instance in model_instances])
+    response = jsonify([model_instance.serialize() for model_instance in model_instances])
     return response, 200
 
 @model_instances_bp.route("/instances", methods=["POST"])
 @jwt_required()
 async def create_model_instance():
 
+    current_app.logger.info(f"Request {request}")
+    current_app.logger.info(f"Request Json {request.json}")
+    current_app.logger.info(f"Request get Json {request.get_json()}")
     model_name = request.json["name"]
 
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
@@ -30,11 +33,7 @@ async def create_model_instance():
         model_instance = ModelInstance.create(name=model_name)
         model_instance.launch()
 
-    response = jsonify({
-        "id": model_instance.id,
-        "name": model_instance.name,
-        "state": model_instance.state.name,
-    })
+    response = jsonify(model_instance.serialize())
 
     return response, 201
 
@@ -57,11 +56,11 @@ async def remove_model_instance(model_instance_id: int):
 async def register_model_instance(model_instance_id: int):
 
     model_instance_host = request.json["host"]
-    
+
     model_instance = ModelInstance.find_by_id(model_instance_id)
     model_instance.register(host=model_instance_host)
 
-    return jsonify({"id": model_instance.id, "name": model_instance.name, "state": model_instance.state.name }), 200
+    return jsonify(model_instance.serialize()), 200
 
 @model_instances_bp.route("/instances/<model_instance_id>/activate", methods=["POST"])
 @jwt_required()
@@ -70,7 +69,7 @@ async def activate_model_instance(model_instance_id: int):
     model_instance = ModelInstance.find_by_id(model_instance_id)
     model_instance.activate()
 
-    return jsonify({ "id": model_instance.id, "name": model_instance.name, "state": model_instance.state.name }), 200
+    return jsonify(model_instance.serialize()), 200
 
 
 @model_instances_bp.route("instances/<model_instance_id>/generate", methods=["POST"])

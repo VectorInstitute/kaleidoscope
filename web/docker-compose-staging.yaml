@@ -29,7 +29,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=lingua-staging
     ports:
-      - 5432:5432
+      - 8000:5432
     
 volumes:
   postgres_data:

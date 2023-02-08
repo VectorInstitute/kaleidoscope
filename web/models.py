@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from errors import InvalidStateError
 from db import db, BaseMixin
-from services import model_service
+from services import model_service_client
 
 MODEL_CONFIG = {
     "OPT-175B": {
@@ -50,7 +50,7 @@ class PendingState(ModelInstanceState):
     def launch(self):
         try: 
             # ToDo: set job id params here.
-            model_service.launch(self._model_instance.id, self._model_instance.name)
+            model_service_client.launch(self._model_instance.id, self._model_instance.name)
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except:
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
@@ -80,7 +80,7 @@ class ActiveState(ModelInstanceState):
         )
 
         # ToDo - add and save response to generation object in db
-        return model_service.generate(
+        return model_service_client.generate(
             self._model_instance.host, 
             model_instance_generation.id, 
             model_instance_generation.prompt, 
@@ -88,7 +88,7 @@ class ActiveState(ModelInstanceState):
         )
 
     def is_healthy(self):
-        is_healthy = model_service.verify_model_health(self._model_instance.host)
+        is_healthy = model_service_client.verify_model_health(self._model_instance.host)
         if not is_healthy:
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
@@ -115,7 +115,7 @@ class ModelInstanceStates(Enum):
 
 
 class ModelInstance(BaseMixin, db.Model):
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid)
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String, nullable=False)
     state_name = db.Column(db.Enum(ModelInstanceStates), nullable=False, default=(ModelInstanceStates.PENDING))
     host = db.Column(db.String)
@@ -134,7 +134,7 @@ class ModelInstance(BaseMixin, db.Model):
     @classmethod
     def find_current_instances(cls) -> List[ModelInstance]:
         """Find the current instances of all models"""
-        current_instance_query = db.select(cls).filter(cls.state.in_(
+        current_instance_query = db.select(cls).filter(cls.state_name.in_(
                     (   
                         ModelInstanceStates.PENDING,
                         ModelInstanceStates.LAUNCHING,
@@ -149,7 +149,7 @@ class ModelInstance(BaseMixin, db.Model):
     @classmethod
     def find_current_instance_by_name(cls, name: str) -> Optional[ModelInstance]:
         """Find the current instance of a model by name"""
-        current_instance_query = db.select(cls).filter(cls.state.in_(
+        current_instance_query = db.select(cls).filter(cls.state_name.in_(
                     (   
                         ModelInstanceStates.PENDING,
                         ModelInstanceStates.LAUNCHING,
@@ -187,9 +187,16 @@ class ModelInstance(BaseMixin, db.Model):
     def is_healthy(self) -> bool:
         return self._state.is_healthy()
 
+    def serialize(self):
+        return {
+            "id": str(self.id),
+            "name": self.name,
+            "state": self.state_name.name,
+        }
+
 
 class ModelInstanceGeneration(BaseMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    model_instance_id = db.Column(db.Integer, db.ForeignKey("model_instance.id"))
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    model_instance_id = db.Column(UUID(as_uuid=True), db.ForeignKey("model_instance.id"))
     username = db.Column(db.String)
     prompt = db.Column(db.String)

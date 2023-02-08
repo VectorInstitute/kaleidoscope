@@ -42,3 +42,13 @@ def generate(host: str, generation_id: int, prompt: str, generation_args: Dict) 
     }
 
     return response_body
+
+def verify_model_health(host: str) -> bool:
+    response = requests.get(
+        f"http://{host}/health"
+    )
+    return response.status_code == 200
+
+def verify_job_health(job_id: str) -> bool:
+    # Mocked result for now
+    return True
