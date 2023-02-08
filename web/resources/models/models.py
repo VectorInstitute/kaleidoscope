@@ -166,13 +166,10 @@ async def generate_text(model_type: str):
     model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
     model_instance = db.session.execute(model_instance_query).first()
 
-    data = request.form.copy()
-    prompt = data["prompt"]
-    del data["prompt"]
-
+    data = request.json
     result = requests.post(
         "http://" + model_instance[0].host + "/generate_text",
-        json={"prompt": prompt, **data},
+        json=data
     ).json()
     current_app.logger.info(f"Generate text result: {result}")
     return result, 200
@@ -187,13 +184,10 @@ async def get_activations(model_type: str):
     model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
     model_instance = db.session.execute(model_instance_query).first()
     
-    data = request.form.copy()
-    prompt = data["prompt"]
-    del data["prompt"]
-    
+    data = request.json
     result = requests.post(
         "http://" + model_instance[0].host + "/get_activations",
-        json={"prompt": prompt, **data},
+        json=data
     ).json()
-    current_app.logger.info(f"Get activations result: {result}")
+
     return result, 200
