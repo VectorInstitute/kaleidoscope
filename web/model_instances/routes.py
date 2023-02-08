@@ -25,11 +25,10 @@ async def create_model_instance():
     model_name = request.json["name"]
 
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
-    current_app.logger.info(f"Found model instance: {model_instance}")
+
     if model_instance is None:
         model_instance = ModelInstance.create(name=model_name)
-        current_app.logger.info(f"Created new model instance: {model_instance}")
-        tasks.launch_model_instance.delay(model_instance.id)
+        model_instance.launch()
 
     response = jsonify({
         "id": model_instance.id,
@@ -58,9 +57,8 @@ async def remove_model_instance(model_instance_id: int):
 async def register_model_instance(model_instance_id: int):
 
     model_instance_host = request.json["host"]
-    current_app.logger.info(f"Registering model instance {model_instance_id} with host {model_instance_host}")
+    
     model_instance = ModelInstance.find_by_id(model_instance_id)
-    current_app.logger.info(f"Found model instance: {model_instance}")
     model_instance.register(host=model_instance_host)
 
     return jsonify({"id": model_instance.id, "name": model_instance.name, "state": model_instance.state.name }), 200
@@ -78,7 +76,7 @@ async def activate_model_instance(model_instance_id: int):
 @model_instances_bp.route("instances/<model_instance_id>/generate", methods=["POST"])
 @jwt_required()
 async def model_instance_generate(model_instance_id: int):
-    
+
     username = get_jwt_identity()
     prompt = request.json["prompt"]
     
