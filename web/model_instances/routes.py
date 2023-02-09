@@ -22,9 +22,6 @@ async def get_current_model_instances():
 @jwt_required()
 async def create_model_instance():
 
-    current_app.logger.info(f"Request {request}")
-    current_app.logger.info(f"Request Json {request.json}")
-    current_app.logger.info(f"Request get Json {request.get_json()}")
     model_name = request.json["name"]
 
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
@@ -33,15 +30,13 @@ async def create_model_instance():
         model_instance = ModelInstance.create(name=model_name)
         model_instance.launch()
 
-    response = jsonify(model_instance.serialize())
-
-    return response, 201
+    return jsonify(model_instance.serialize()), 201
 
 @model_instances_bp.route("instances/<model_instance_id>", methods=["GET"])
 @jwt_required()
 async def get_model_instance(model_instance_id: int):
     model_instance = ModelInstance.find_by_id(model_instance_id)
-    return model_instance, 200
+    return jsonify(model_instance.serialize()), 200
 
 @model_instances_bp.route("/instances/<model_instance_id>", methods=["DELETE"])
 @jwt_required()
@@ -49,7 +44,7 @@ async def remove_model_instance(model_instance_id: int):
     model_instance = ModelInstance.find_by_id(model_instance_id)
     model_instance.shutdown()
 
-    return model_instance, 200
+    return jsonify(model_instance.serialize()), 200
 
 @model_instances_bp.route("/instances/<model_instance_id>/register", methods=["POST"])
 @jwt_required()
