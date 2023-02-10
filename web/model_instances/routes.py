@@ -34,13 +34,13 @@ async def create_model_instance():
 
 @model_instances_bp.route("instances/<model_instance_id>", methods=["GET"])
 @jwt_required()
-async def get_model_instance(model_instance_id: int):
+async def get_model_instance(model_instance_id: str):
     model_instance = ModelInstance.find_by_id(model_instance_id)
     return jsonify(model_instance.serialize()), 200
 
 @model_instances_bp.route("/instances/<model_instance_id>", methods=["DELETE"])
 @jwt_required()
-async def remove_model_instance(model_instance_id: int):
+async def remove_model_instance(model_instance_id: str):
     model_instance = ModelInstance.find_by_id(model_instance_id)
     model_instance.shutdown()
 
@@ -48,7 +48,7 @@ async def remove_model_instance(model_instance_id: int):
 
 @model_instances_bp.route("/instances/<model_instance_id>/register", methods=["POST"])
 @jwt_required()
-async def register_model_instance(model_instance_id: int):
+async def register_model_instance(model_instance_id: str):
 
     model_instance_host = request.json["host"]
 
@@ -59,7 +59,7 @@ async def register_model_instance(model_instance_id: int):
 
 @model_instances_bp.route("/instances/<model_instance_id>/activate", methods=["POST"])
 @jwt_required()
-async def activate_model_instance(model_instance_id: int):
+async def activate_model_instance(model_instance_id: str):
 
     model_instance = ModelInstance.find_by_id(model_instance_id)
     model_instance.activate()
@@ -69,7 +69,7 @@ async def activate_model_instance(model_instance_id: int):
 
 @model_instances_bp.route("instances/<model_instance_id>/generate", methods=["POST"])
 @jwt_required()
-async def model_instance_generate(model_instance_id: int):
+async def model_instance_generate(model_instance_id: str):
 
     username = get_jwt_identity()
     prompt = request.json["prompt"]
@@ -77,4 +77,28 @@ async def model_instance_generate(model_instance_id: int):
     model_instance = ModelInstance.find_by_id(model_instance_id)
     generation = model_instance.generate(username, prompt)
 
-    return jsonify(generation), 200
+    return jsonify(generation.serialize()), 200
+
+
+@model_instances_bp.route("/instances/<model_instance_id>/generate_activations", methods=["POST"])
+@jwt_required()
+async def get_activations(model_instance_id: str):
+
+    generate_activation_args = request.json
+
+    model_instance = ModelInstance.find_by_id(model_instance_id)
+    activations = model_instance.generate_activations(generate_activation_args)
+
+    return jsonify(activations.serialize()), 200
+
+
+    # model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
+    # model_instance = db.session.execute(model_instance_query).first()
+    
+    # data = request.json
+    # result = requests.post(
+    #     "http://" + model_instance[0].host + "/get_activations",
+    #     json=data
+    # ).json()
+
+    # return result, 200
