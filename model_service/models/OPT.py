@@ -170,8 +170,12 @@ class OPT(AbstractModel):
         response["text"] = results[0]["text"]
         response["tokens"] = results[0]["tokens"]
         response["logprobs"] = results[0]["token_scores"]
-        response["activations"] = {}
+        response["activations"] = results[0]["activations"]
 
+        return response
+
+    def get_activations(self, request):
+        response = self.generate_text(request)
         return response
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):

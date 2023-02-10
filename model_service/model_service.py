@@ -38,6 +38,12 @@ def generate_text():
     return result
 
 
+@service.route("/get_activations", methods=["POST"])
+def get_activations():
+    result = model.get_activations(request)
+    return result
+
+
 # We only want to load the model library that's being requested, not all of them
 # TODO: Is there a way to make this happen automatically, without separate entries?
 
