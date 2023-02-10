@@ -43,11 +43,35 @@ def generate(host: str, generation_id: int, prompt: str, generation_args: Dict) 
 
     return response_body
 
+def generate_activations(host: str, generation_id: int, prompt: str, activations_args: Dict) -> Dict:
+    # Mocked result for now
+
+    # body = {
+    #     "id": generation_id,
+    #     'prompt': prompt,
+    #     'activations_args': activations_args
+    # }
+
+    # response = requests.post(
+    #     f"http://{host}:5000/generate_activations",
+    #     body=body
+    # )
+
+    response_body = {
+        'activations': 'hello world'
+    }
+
+    return response_body
+
+
+
+
 def verify_model_health(host: str) -> bool:
     response = requests.get(
         f"http://{host}/health"
     )
     return response.status_code == 200
+
 
 def verify_job_health(job_id: str) -> bool:
     # Mocked result for now
