@@ -9,7 +9,7 @@ services:
     env_file:
       - .env
     ports:
-      - 8888:3001
+      - 8888:4001
     volumes:
       - ~/.ssh:/root/.ssh
   web-worker:
@@ -20,6 +20,8 @@ services:
     env_file:
       - .env
     command: -A gateway_service.celery worker -B
+    volumes:
+      - ~/.ssh:/root/.ssh
   db:
     image: postgres
     volumes:

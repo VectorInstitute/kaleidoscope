@@ -49,11 +49,21 @@ class PendingState(ModelInstanceState):
 
     def launch(self):
         try: 
-            # ToDo: set job id params here.
-            model_service_client.launch(self._model_instance.id, self._model_instance.name)
+            # ToDo: set job id params here
+            model_service_client.launch(self._model_instance.id, self._model_instance.name, "/model_path")
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
-        except:
+        except Exception as err:
+            current_app.logger.error(f"Job launch failed: {err}")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
+
+    def is_healthy(self):
+        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
+        if not is_healthy:
+            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
+        return is_healthy
+
+    def shutdown(self):
+        pass
         
 
 class LaunchingState(ModelInstanceState):
@@ -62,47 +72,73 @@ class LaunchingState(ModelInstanceState):
         self._model_instance.host = host
         self._model_instance.transition_to_state(ModelInstanceStates.LOADING)
 
+    def is_healthy(self):
+        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
+        if not is_healthy:
+            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
+        return is_healthy
+
+    def shutdown(self):
+        pass
+
 
 class LoadingState(ModelInstanceState):
 
     def activate(self):
         self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
+    def is_healthy(self):
+        if not is_healthy:
+            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
+        return is_healthy
+
+    def shutdown(self):
+        pass
+
 
 class ActiveState(ModelInstanceState):
 
-    def generate(self, username, prompt, generation_args):
+    def generate(self, username, generation_args):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
-            prompt=prompt
+            prompt=generation_args["prompt"]
         )
 
         # ToDo - add and save response to generation object in db
         return model_service_client.generate(
             self._model_instance.host, 
             model_instance_generation.id, 
-            model_instance_generation.prompt, 
             generation_args
         )
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_model_health(self._model_instance.host)
+        is_healthy = model_service_client.verify_model_health(self._model_instance.id)
         if not is_healthy:
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
+
+    def shutdown(self):
+        pass
 
 
 class FailedState(ModelInstanceState):
 
     def is_healthy(self):
         return False
+
+    def shutdown(self):
+        pass
+
         
 class CompletedState(ModelInstanceState):
 
     def is_healthy(self):
         return True
+
+    def shutdown(self):
+        pass
     
 
 class ModelInstanceStates(Enum):
@@ -173,6 +209,7 @@ class ModelInstance(BaseMixin, db.Model):
         self._state.launch()
 
     def register(self, host: str) -> None:
+        current_app.logger.info(f"[register] called, host={host}")
         self._state.register(host)
     
     def activate(self) -> None:
