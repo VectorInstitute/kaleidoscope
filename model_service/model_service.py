@@ -13,7 +13,7 @@ import config
 
 # Globals
 
-AVAILABLE_MODELS = ["OPT"]
+AVAILABLE_MODELS = ["OPT-175B"]
 
 
 # Start the Flask service that will hand off requests to the model libraries
@@ -32,7 +32,7 @@ def module_names():
     return result
 
 
-@service.route("/generate_text", methods=["POST"])
+@service.route("/generate", methods=["POST"])
 def generate_text():
     result = model.generate_text(request)
     return result
@@ -49,10 +49,10 @@ def get_activations():
 
 
 def initialize_model(model_type):
-    if model_type == "OPT":
-        from models import OPT
+    if model_type == "OPT-175B":
+        from models import OPT_175B
 
-        return OPT.OPT()
+        return OPT_175B.OPT_175B()
 
 
 # Signal handler to send a remove request to the gateway, if this service is killed by the system
@@ -86,6 +86,9 @@ def main():
     parser.add_argument(
         "--model_path", required=True, type=str, help="Path to pre-trained model"
     )
+    parser.add_argument(
+        "--model_instance_id", required=True, type=str
+    )
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -99,14 +102,18 @@ def main():
     # Setup a global model instance
     global model, model_type
     model = initialize_model(args.model_type)
+    model_instance_id = args.model_instance_id
     model_type = args.model_type
 
     # Load the model into GPU memory
+    print(f"Loading model into device {args.device}")
     model.load(args.device, args.model_path)
 
     # Inform the gateway service that we are serving a new model instance by calling the /models/register endpoint
-    register_url = f"http://{config.GATEWAY_HOST}/models/register"
-    register_data = {"model_host": config.MODEL_HOST, "model_type": args.model_type}
+    print(f"Preparing model registration request")
+    register_url = f"http://{config.GATEWAY_HOST}/models/{model_instance_id}/register"
+    register_data = {"host": config.MODEL_HOST}
+    print(f"Registering model with url={register_url}, data={register_data}")
     try:
         response = requests.post(register_url, json=register_data)
         # HTTP error codes between 450 and 500 are custom to the lingua gateway
