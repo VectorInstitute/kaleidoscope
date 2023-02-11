@@ -21,7 +21,7 @@ MODEL_CONFIG = {
     #     "name": "Galactica-120B",
     #     "description": "120B parameter version of the Galactica model trained by Meta",
     #     "url": "https://huggingface.co/meta/galactica-120B",
-    # }
+    # }q
 }
 
 class ModelInstanceState(ABC):
@@ -36,6 +36,12 @@ class ModelInstanceState(ABC):
         raise InvalidStateError(self)
 
     def activate(self):
+        raise InvalidStateError(self)
+
+    def generate(self, username, prompt, generation_args):
+        raise InvalidStateError(self)
+
+    def generate_activations(self, username, prompt, generation_args):
         raise InvalidStateError(self)
 
     def shutdown(self):
@@ -110,6 +116,22 @@ class ActiveState(ModelInstanceState):
         return model_service_client.generate(
             self._model_instance.host, 
             model_instance_generation.id, 
+            generation_args
+        )
+
+    def generate_activations(self, username, prompt, generation_args):
+
+        model_instance_generation = ModelInstanceGeneration.create(
+            model_instance_id=self._model_instance.id,
+            username=username,
+            prompt=prompt
+        )
+
+        # ToDo - add and save response to generation object in db
+        return model_service_client.generate_activations(
+            self._model_instance.host, 
+            model_instance_generation.id, 
+            model_instance_generation.prompt, 
             generation_args
         )
 
@@ -221,6 +243,9 @@ class ModelInstance(BaseMixin, db.Model):
     def generate(self, username: str, prompt: str, kwargs: Dict = {}) -> Dict:
         return self._state.generate(username, prompt, kwargs)
 
+    def generate_activations(self, username: str, prompt: str, kwargs: Dict = {}) -> Dict:
+        return self._state.generate_activations(username, prompt, kwargs)
+
     def is_healthy(self) -> bool:
         return self._state.is_healthy()
 
@@ -237,3 +262,21 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
     model_instance_id = db.Column(UUID(as_uuid=True), db.ForeignKey("model_instance.id"))
     username = db.Column(db.String)
     prompt = db.Column(db.String)
+
+    def serialize(self):
+        return {
+            "id": str(self.id),
+            "model_instance_id": str(self.model_instance_id),
+            "prompt": self.prompt,
+            "generation": self.model_generation
+        }
+
+# ToDo: Should generalize generation and activation? This needs a design decision.
+# class Activation():
+
+#     def serialize(self):
+#         return {
+#             "model_instance_id": str(self.model_instance_generation_id),
+#             "prompt": self.prompt,
+#             "generation": self.model_generation
+#         }
