@@ -4,12 +4,10 @@ from models import ModelInstance
 
 @shared_task
 def verify_model_instance_health():
-    pass
-    # current_model_instances = ModelInstance.get_current_instances()
-
-    # for model_instance in current_model_instances:
-    #     if not model_instance.is_healthy():
-    #         model_instance.shutdown()
+    current_model_instances = ModelInstance.find_current_instances()
+    for model_instance in current_model_instances:
+        if not model_instance.is_healthy():
+            model_instance.shutdown()
 
 @shared_task
 def launch_model_instance(model_instance_id):
