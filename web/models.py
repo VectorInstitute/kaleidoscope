@@ -94,6 +94,7 @@ class LoadingState(ModelInstanceState):
         self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
     def is_healthy(self):
+        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
