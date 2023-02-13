@@ -180,7 +180,7 @@ class OPT_175B(AbstractModel):
         request.json['desired_module_activations'] = request.json['module_names']
         request.json['echo'] = True
         request.json['max_tokens'] = 0
-        response = self.generate_text(request)
+        response = self.generate(request)
         return response
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
