@@ -5,6 +5,7 @@ import signal
 import socket
 import sys
 import torch
+import os
 
 from flask import Flask, request, jsonify
 
@@ -34,7 +35,7 @@ def module_names():
 
 @service.route("/generate", methods=["POST"])
 def generate_text():
-    result = model.generate_text(request)
+    result = model.generate(request)
     return result
 
 
@@ -74,6 +75,34 @@ def send_remove_request(model_type):
         print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
 
 
+def register_model_instance(model_instance_id):
+
+    master_addr = os.environ['MASTER_ADDR']
+    MODEL_HOST = f'{master_addr}:8888'
+    print(f"Preparing model registration request")
+    register_url = f"http://{config.GATEWAY_HOST}/models/instances/{model_instance_id}/register"
+    register_data = {"host": MODEL_HOST}
+    print(f"Registering model with url={register_url}, data={register_data}")
+    try:
+        response = requests.post(register_url, json=register_data)
+        # HTTP error codes between 450 and 500 are custom to the lingua gateway
+        if int(response.status_code) >= 450 and int(response.status_code) < 500:
+            raise requests.HTTPError(response.content.decode("utf-8"))
+    # If we fail to contact the gateway service, print an error but continue running anyway
+    # TODO: HTTPError probably isn't the best way to catch custom errors
+    except requests.HTTPError as e:
+        print(e)
+    except requests.ConnectionError as e:
+        print(f"Connection error: {e}")
+    except:
+        print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
+
+def activate_model_instance(model_instance_id):
+    activation_url = f"http://{config.GATEWAY_HOST}/models/instances/{model_instance_id}/activate"
+    response = requests.post(activation_url)
+    if not response.ok:
+        print(e)
+
 def main():
 
     parser = argparse.ArgumentParser()
@@ -101,37 +130,41 @@ def main():
 
     # Setup a global model instance
     global model, model_type
+
     model = initialize_model(args.model_type)
     model_instance_id = args.model_instance_id
     model_type = args.model_type
+
+    register_model_instance(model_instance_id)
 
     # Load the model into GPU memory
     print(f"Loading model into device {args.device}")
     model.load(args.device, args.model_path)
 
     # Inform the gateway service that we are serving a new model instance by calling the /models/register endpoint
-    print(f"Preparing model registration request")
-    register_url = f"http://{config.GATEWAY_HOST}/models/{model_instance_id}/register"
-    register_data = {"host": config.MODEL_HOST}
-    print(f"Registering model with url={register_url}, data={register_data}")
-    try:
-        response = requests.post(register_url, json=register_data)
-        # HTTP error codes between 450 and 500 are custom to the lingua gateway
-        if int(response.status_code) >= 450 and int(response.status_code) < 500:
-            raise requests.HTTPError(response.content.decode("utf-8"))
-    # If we fail to contact the gateway service, print an error but continue running anyway
-    # TODO: HTTPError probably isn't the best way to catch custom errors
-    except requests.HTTPError as e:
-        print(e)
-    except requests.ConnectionError as e:
-        print(f"Connection error: {e}")
-    except:
-        print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
+  #  print(f"Preparing model registration request")
+  #  register_url = f"http://{config.GATEWAY_HOST}/models/{model_instance_id}/register"
+  #  register_data = {"host": config.MODEL_HOST}
+  #  print(f"Registering model with url={register_url}, data={register_data}")
+  #  try:
+  #      response = requests.post(register_url, json=register_data)
+  #      # HTTP error codes between 450 and 500 are custom to the lingua gateway
+  #      if int(response.status_code) >= 450 and int(response.status_code) < 500:
+  #          raise requests.HTTPError(response.content.decode("utf-8"))
+  #  # If we fail to contact the gateway service, print an error but continue running anyway
+  #  # TODO: HTTPError probably isn't the best way to catch custom errors
+  #  except requests.HTTPError as e:
+  #      print(e)
+  #  except requests.ConnectionError as e:
+  #      print(f"Connection error: {e}")
+  #  except:
+  #      print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
 
     # Register signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
+    activate_model_instance(model_instance_id)
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
     print("Starting model service, press Ctrl+C to exit")
     service.run(
