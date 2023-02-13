@@ -105,8 +105,6 @@ class OPT_175B(AbstractModel):
         # final case: multi pre-tokenized
         assert len(prompts[0]) > 0
 
-
-
         if "min_tokens" in generation_args:
             generation_args["min_tokens"] = int(generation_args["min_tokens"])
         if "max-tokens" in generation_args:
@@ -178,6 +176,10 @@ class OPT_175B(AbstractModel):
         return response
 
     def get_activations(self, request):
+    
+        request.json['desired_module_activations'] = request.json['module_names']
+        request.json['echo'] = True
+        request.json['max_tokens'] = 0
         response = self.generate_text(request)
         return response
 

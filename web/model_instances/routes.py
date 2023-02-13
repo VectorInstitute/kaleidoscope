@@ -98,12 +98,15 @@ async def get_module_names(model_instance_id: str):
 @jwt_required()
 async def get_activations(model_instance_id: str):
 
-    generate_activation_args = request.json
+    username = get_jwt_identity()
+    prompt = request.json["prompt"]
+    module_names = request.json["module_names"]
+    generation_config = request.json["generation_config"]
 
     model_instance = ModelInstance.find_by_id(model_instance_id)
-    activations = model_instance.generate_activations(generate_activation_args)
+    activations = model_instance.generate(username, prompt, module_names, generation_config)
 
-    return jsonify(activations.serialize()), 200
+    return jsonify(activations), 200
 
 
     # model_instance_query = db.select(ModelInstance).filter_by(type=model_type)

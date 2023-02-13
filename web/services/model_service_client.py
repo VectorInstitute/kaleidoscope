@@ -1,7 +1,7 @@
 from __future__ import annotations
 from flask import current_app
 import subprocess
-from typing import Dict
+from typing import Dict, List
 
 import requests
 
@@ -33,6 +33,29 @@ def generate(host: str, generation_id: int, prompt: str,  generation_config: Dic
 
     response = requests.post(
         f"http://{host}/generate",
+        json=body
+    )
+
+    current_app.logger.info(response)
+
+    response_body = response.json()
+    current_app.logger.info(response_body)
+    return response_body
+
+def generate_activations(host: str, generation_id: int, prompt: str, module_names: List[str], generation_config: Dict) -> Dict:
+    
+    current_app.logger.info("activations")
+
+    body = {
+        "prompt": [prompt],
+        "module_names": module_names,
+        **generation_config
+    }
+
+    current_app.logger.info(f"body {body}")
+
+    response = requests.post(
+        f"http://{host}/generate_activations",
         json=body
     )
 

@@ -41,7 +41,7 @@ class ModelInstanceState(ABC):
     def generate(self, username, prompt, generation_args):
         raise InvalidStateError(self)
 
-    def generate_activations(self, username, prompt, generation_args):
+    def generate_activations(self, username, prompt, module_names, generation_args):
         raise InvalidStateError(self)
 
     def get_module_names(self):
@@ -131,21 +131,24 @@ class ActiveState(ModelInstanceState):
     def get_module_names(self):
         return model_service_client.get_module_names(self._model_instance.host)
 
-    def generate_activations(self, username, prompt, generation_args):
+    def generate_activations(self, username, prompt, module_names, generation_config):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
-            prompt=prompt
         )
 
-        # ToDo - add and save response to generation object in db
-        return model_service_client.generate_activations(
+        activations_response = model_service_client.generate_activations(
             self._model_instance.host, 
             model_instance_generation.id, 
-            model_instance_generation.prompt, 
-            generation_args
+            prompt,
+            module_names,
+            generation_config
         )
+        model_instance_generation.activations = activations_response
+        return model_instance_generation
+        
+
 
     def is_healthy(self):
         is_healthy = model_service_client.verify_model_health(self._model_instance.host)
@@ -258,8 +261,8 @@ class ModelInstance(BaseMixin, db.Model):
     def get_module_names(self):
         return self._state.get_module_names()
 
-    def generate_activations(self, username: str, prompt: str, kwargs: Dict = {}) -> Dict:
-        return self._state.generate_activations(username, prompt, kwargs)
+    def generate_activations(self, username: str, prompt: str, module_names: List[str], generation_config: Dict = {}) -> Dict:
+        return self._state.generate_activations(username, prompt, module_names, generation_config)
 
     def is_healthy(self) -> bool:
         return self._state.is_healthy()
@@ -282,7 +285,8 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
             "id": str(self.id),
             "model_instance_id": str(self.model_instance_id),
             "prompt": self.prompt,
-            "generation": self.generation
+            "generation": self.generation,
+            "activations": self.activations
         }
 
 # ToDo: Should generalize generation and activation? This needs a design decision.
