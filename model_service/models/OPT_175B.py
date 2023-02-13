@@ -171,7 +171,6 @@ class OPT_175B(AbstractModel):
             results += generations
 
         # Ensure output format is consistent with other lingua models
-        print(results)
         response = {}
         response["text"] = results[0]["text"]
         response["tokens"] = results[0]["tokens"]
@@ -182,11 +181,9 @@ class OPT_175B(AbstractModel):
 
     def get_activations(self, request):
     
-        print(request.json)
         request.json['desired_module_activations'] = request.json['module_names']
         request.json['echo'] = True
         request.json['max_tokens'] = 0
-        print(request.json)
         response = self.generate(request)
         return response
 
@@ -241,7 +238,6 @@ class OPT_175B(AbstractModel):
                     desired_module_activations = request_object.pop(
                         "desired_module_activations", None
                     )
-                    print(f"desired_module_activations: {desired_module_activations}")
                     act_retrieval_aux = request_object.pop("_aux", None)
 
                     if desired_module_activations:
