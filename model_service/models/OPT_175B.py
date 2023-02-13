@@ -104,12 +104,15 @@ class OPT_175B(AbstractModel):
         assert isinstance(prompts[0], list)
         # final case: multi pre-tokenized
         assert len(prompts[0]) > 0
-        print(prompts)
+
+
 
         if "min_tokens" in generation_args:
             generation_args["min_tokens"] = int(generation_args["min_tokens"])
         if "max-tokens" in generation_args:
             generation_args["max_tokens"] = int(generation_args["max-tokens"])
+        else:
+            generation_args["max_tokens"] = 32
         if "stop" in generation_args:
             stop = generation_args["stop"]
             if stop is None:
