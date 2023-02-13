@@ -86,7 +86,7 @@ async def model_instance_generate(model_instance_id: str):
 
 @model_instances_bp.route("instances/<model_instance_id>/module_names", methods=["GET"])
 @jwt_required()
-async def model_instance_generate(model_instance_id: str):
+async def get_module_names(model_instance_id: str):
     
     model_instance = ModelInstance.find_by_id(model_instance_id)
     module_names = model_instance.get_module_names()
