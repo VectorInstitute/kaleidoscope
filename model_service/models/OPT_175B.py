@@ -107,10 +107,11 @@ class OPT_175B(AbstractModel):
 
         if "min_tokens" in generation_args:
             generation_args["min_tokens"] = int(generation_args["min_tokens"])
-        if "max-tokens" in generation_args:
-            generation_args["max_tokens"] = int(generation_args["max-tokens"])
+        if "max_tokens" in generation_args:
+            generation_args["max_tokens"] = int(generation_args["maxt_okens"])
         else:
             generation_args["max_tokens"] = 32
+
         if "stop" in generation_args:
             stop = generation_args["stop"]
             if stop is None:
@@ -120,16 +121,19 @@ class OPT_175B(AbstractModel):
             else:
                 stop = [encode_fn(generator, s)[0] for s in stop]
             generation_args["stop"] = stop
+
         if "temperature" in generation_args:
             generation_args["temperature"] = round(
                 float(generation_args["temperature"]), 1
             )
         else:
             generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
+
         if "top-p" in generation_args:
             generation_args["top_p"] = round(float(generation_args["top-p"]), 1)
         else:
             generation_args["top_p"] = UNBATCHED_ARG_DICT["top_p"]
+
         # beam search top n
         if "n" in generation_args:
             generation_args["n"] = min(MAX_BEAM, max(1, int(generation_args["n"])))
@@ -167,6 +171,7 @@ class OPT_175B(AbstractModel):
             results += generations
 
         # Ensure output format is consistent with other lingua models
+        print(results)
         response = {}
         response["text"] = results[0]["text"]
         response["tokens"] = results[0]["tokens"]
@@ -177,9 +182,11 @@ class OPT_175B(AbstractModel):
 
     def get_activations(self, request):
     
+        print(request.json)
         request.json['desired_module_activations'] = request.json['module_names']
         request.json['echo'] = True
         request.json['max_tokens'] = 0
+        print(request.json)
         response = self.generate(request)
         return response
 
@@ -234,6 +241,7 @@ class OPT_175B(AbstractModel):
                     desired_module_activations = request_object.pop(
                         "desired_module_activations", None
                     )
+                    print(f"desired_module_activations: {desired_module_activations}")
                     act_retrieval_aux = request_object.pop("_aux", None)
 
                     if desired_module_activations:
