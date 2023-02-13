@@ -41,6 +41,8 @@ def generate_text():
 
 @service.route("/get_activations", methods=["POST"])
 def get_activations():
+    print(request)
+    print(request.json)
     result = model.get_activations(request)
     return result
 
