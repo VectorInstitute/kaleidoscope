@@ -255,7 +255,7 @@ class ModelInstance(BaseMixin, db.Model):
     def generate(self, username: str, prompt: str, generation_config: Dict = {}) -> Dict:
         return self._state.generate(username, prompt, generation_config)
 
-    def get_module_names():
+    def get_module_names(self):
         return self._state.get_module_names()
 
     def generate_activations(self, username: str, prompt: str, kwargs: Dict = {}) -> Dict:
