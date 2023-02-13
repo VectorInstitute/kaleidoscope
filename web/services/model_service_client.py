@@ -55,7 +55,7 @@ def generate_activations(host: str, generation_id: int, prompt: str, module_name
     current_app.logger.info(f"body {body}")
 
     response = requests.post(
-        f"http://{host}/generate_activations",
+        f"http://{host}/get_activations",
         json=body
     )
 
