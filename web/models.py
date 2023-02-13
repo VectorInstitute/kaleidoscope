@@ -286,7 +286,6 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
             "model_instance_id": str(self.model_instance_id),
             "prompt": self.prompt,
             "generation": self.generation,
-            "activations": self.activations
         }
 
 # ToDo: Should generalize generation and activation? This needs a design decision.
