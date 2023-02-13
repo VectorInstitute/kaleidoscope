@@ -145,8 +145,8 @@ class ActiveState(ModelInstanceState):
             module_names,
             generation_config
         )
-        model_instance_generation.activations = activations_response
-        return model_instance_generation
+
+        return activations_response
         
 
 
