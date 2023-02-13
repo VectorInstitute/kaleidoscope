@@ -108,7 +108,7 @@ class OPT_175B(AbstractModel):
         if "min_tokens" in generation_args:
             generation_args["min_tokens"] = int(generation_args["min_tokens"])
         if "max_tokens" in generation_args:
-            generation_args["max_tokens"] = int(generation_args["maxt_okens"])
+            generation_args["max_tokens"] = int(generation_args["max_tokens"])
         else:
             generation_args["max_tokens"] = 32
 
