@@ -44,6 +44,9 @@ class ModelInstanceState(ABC):
     def generate_activations(self, username, prompt, generation_args):
         raise InvalidStateError(self)
 
+    def get_module_names(self):
+        raise InvalidStateError(self)
+
     def shutdown(self):
         raise InvalidStateError(self)
 
@@ -124,6 +127,9 @@ class ActiveState(ModelInstanceState):
         )
         model_instance_generation.generation = generation_response
         return model_instance_generation
+
+    def get_module_names(self):
+        return model_service_client.get_module_names(self._model_instance.host)
 
     def generate_activations(self, username, prompt, generation_args):
 
@@ -248,6 +254,9 @@ class ModelInstance(BaseMixin, db.Model):
 
     def generate(self, username: str, prompt: str, generation_config: Dict = {}) -> Dict:
         return self._state.generate(username, prompt, generation_config)
+
+    def get_module_names():
+        return self._state.get_module_names()
 
     def generate_activations(self, username: str, prompt: str, kwargs: Dict = {}) -> Dict:
         return self._state.generate_activations(username, prompt, kwargs)

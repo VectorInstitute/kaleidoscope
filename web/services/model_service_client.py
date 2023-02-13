@@ -42,6 +42,18 @@ def generate(host: str, generation_id: int, prompt: str,  generation_config: Dic
     current_app.logger.info(response_body)
     return response_body
 
+def get_module_names(host: str) -> Dict:
+
+    response = requests.get(
+        f"http://{host}/module_names",
+    )
+
+    current_app.logger.info(response)
+
+    response_body = response.json()
+    current_app.logger.info(response_body)
+    return response_body
+
 
 def verify_model_health(host: str) -> bool:
     try:
