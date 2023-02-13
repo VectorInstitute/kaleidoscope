@@ -105,20 +105,25 @@ class LoadingState(ModelInstanceState):
 
 class ActiveState(ModelInstanceState):
 
-    def generate(self, username, generation_args):
+    def generate(self, username, prompt, generation_config):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
-            prompt=generation_args["prompt"]
         )
+        model_instance_generation.prompt = prompt
+        
+        current_app.logger.info(model_instance_generation)
 
         # ToDo - add and save response to generation object in db
-        return model_service_client.generate(
+        generation_response = model_service_client.generate(
             self._model_instance.host, 
             model_instance_generation.id, 
-            generation_args
+            prompt,
+            generation_config
         )
+        model_instance_generation.generation = generation_response
+        return model_instance_generation
 
     def generate_activations(self, username, prompt, generation_args):
 
@@ -137,7 +142,7 @@ class ActiveState(ModelInstanceState):
         )
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_model_health(self._model_instance.id)
+        is_healthy = model_service_client.verify_model_health(self._model_instance.host)
         if not is_healthy:
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
@@ -241,8 +246,8 @@ class ModelInstance(BaseMixin, db.Model):
     def shutdown(self) -> None:
         self._state.shutdown()
 
-    def generate(self, username: str, prompt: str, kwargs: Dict = {}) -> Dict:
-        return self._state.generate(username, prompt, kwargs)
+    def generate(self, username: str, prompt: str, generation_config: Dict = {}) -> Dict:
+        return self._state.generate(username, prompt, generation_config)
 
     def generate_activations(self, username: str, prompt: str, kwargs: Dict = {}) -> Dict:
         return self._state.generate_activations(username, prompt, kwargs)
@@ -262,14 +267,13 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     model_instance_id = db.Column(UUID(as_uuid=True), db.ForeignKey("model_instance.id"))
     username = db.Column(db.String)
-    prompt = db.Column(db.String)
 
     def serialize(self):
         return {
             "id": str(self.id),
             "model_instance_id": str(self.model_instance_id),
             "prompt": self.prompt,
-            "generation": self.model_generation
+            "generation": self.generation
         }
 
 # ToDo: Should generalize generation and activation? This needs a design decision.
