@@ -36,7 +36,7 @@ class GPT2(AbstractModel):
             )
         }
 
-    def generate_text(self, request):
+    def generate(self, request):
 
         prompt = request.json["prompt"]
         length = (

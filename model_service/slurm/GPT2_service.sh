@@ -9,6 +9,8 @@
 #SBATCH --output=GPT2_service.%j.out
 #SBATCH --error=GPT2_service.%j.err
 
+$model_path=$1
+
 cd ~/lingua/model_service
 source /opt/lmod/lmod/init/profile
 module load cuda-11.3

@@ -1,33 +1,37 @@
 version: '3.8'
-
+name: lingua-staging
 services:
   web:
     depends_on:
       - "db"
     build: .
-    image: gateway:latest
     command: gateway_service.py
+    env_file:
+      - .env
     ports:
-      - 3001:3001
+      - 4001:4001
     volumes:
-      - /h/llm/.ssh:/root/.ssh
+      - ~/.ssh:/root/.ssh
   web-worker:
     depends_on:
       - "db"
     build: .
-    image: gateway:latest
     entrypoint: celery
+    env_file:
+      - .env
     command: -A gateway_service.celery worker -B
+    volumes:
+      - ~/.ssh:/root/.ssh
   db:
     image: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=vector
-      - POSTGRES_DB=test
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=lingua-staging
     ports:
-      - 5432:5432
+      - 8000:5432
     
 volumes:
   postgres_data:
