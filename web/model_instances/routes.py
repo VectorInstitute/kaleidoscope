@@ -47,7 +47,6 @@ async def remove_model_instance(model_instance_id: str):
     return jsonify(model_instance.serialize()), 200
 
 @model_instances_bp.route("/instances/<model_instance_id>/register", methods=["POST"])
-@jwt_required()
 async def register_model_instance(model_instance_id: str):
 
     current_app.logger.info(f"Received model registration for ID {model_instance_id}, request: {request}")
@@ -59,7 +58,6 @@ async def register_model_instance(model_instance_id: str):
     return jsonify(model_instance.serialize()), 200
 
 @model_instances_bp.route("/instances/<model_instance_id>/activate", methods=["POST"])
-@jwt_required()
 async def activate_model_instance(model_instance_id: str):
 
     model_instance = ModelInstance.find_by_id(model_instance_id)
@@ -73,11 +71,16 @@ async def activate_model_instance(model_instance_id: str):
 async def model_instance_generate(model_instance_id: str):
 
     username = get_jwt_identity()
+    current_app.logger.info(f"generating request for {username}")
+
     prompt = request.json["prompt"]
-    generation_args = request.json
+    generation_config = request.json["generation_config"]
+    current_app.logger.info(f"prompt {prompt}")
+
+    current_app.logger.info(f"generation config: {generation_config}")
     
     model_instance = ModelInstance.find_by_id(model_instance_id)
-    generation = model_instance.generate(username, prompt, generation_args)
+    generation = model_instance.generate(username, prompt, generation_config)
 
     return jsonify(generation.serialize()), 200
 

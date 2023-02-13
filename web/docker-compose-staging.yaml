@@ -9,7 +9,7 @@ services:
     env_file:
       - .env
     ports:
-      - 8888:4001
+      - 4001:4001
     volumes:
       - ~/.ssh:/root/.ssh
   web-worker:

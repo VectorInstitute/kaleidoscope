@@ -20,26 +20,38 @@ def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
     return
 
 
-def generate(host: str, generation_id: int, prompt: str, generation_args: Dict) -> Dict:
+def generate(host: str, generation_id: int, prompt: str,  generation_config: Dict) -> Dict:
+    
+    current_app.logger.info("generating")
+
     body = {
-        "id": generation_id,
-        **generation_args
+        "prompt": [prompt],
+        **generation_config
     }
 
+    current_app.logger.info(f"body {body}")
+
     response = requests.post(
-        f"http://{host}:5000/generate",
+        f"http://{host}/generate",
         json=body
     )
 
+    current_app.logger.info(response)
+
     response_body = response.json()
+    current_app.logger.info(response_body)
     return response_body
 
 
 def verify_model_health(host: str) -> bool:
-    response = requests.get(
-        f"http://{host}:5000/health"
-    )
-    return response.status_code == 200
+    try:
+        response = requests.get(
+            f"http://{host}/health"
+        )
+        return response.status_code == 200
+    except Exception as err:
+        print(f"Model health verification error:: {err}")
+        return False
 
 
 def verify_job_health(model_instance_id: str) -> bool:
