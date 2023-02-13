@@ -7,6 +7,8 @@ services:
     build: .
     image: gateway:latest
     command: gateway_service.py
+    env_file:
+      - .env
     ports:
       - 3001:3001
     volumes:
@@ -18,6 +20,8 @@ services:
     image: gateway:latest
     entrypoint: celery
     command: -A gateway_service.celery worker -B
+    volumes:
+      - ~/.ssh:/root/.ssh
   db:
     image: postgres
     volumes:
