@@ -96,6 +96,11 @@ class LoadingState(ModelInstanceState):
     def activate(self):
         self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
+    # If we receive multiple registration requests for the same model, just ignore them
+    # This will happen whenever a model is loaded onto multiple nodes
+    def register(self, host: str):
+        pass
+
     def is_healthy(self):
         is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
