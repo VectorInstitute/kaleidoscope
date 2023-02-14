@@ -103,7 +103,7 @@ def activate_model_instance(model_instance_id):
     activation_url = f"http://{config.GATEWAY_HOST}/models/instances/{model_instance_id}/activate"
     response = requests.post(activation_url)
     if not response.ok:
-        print(e)
+        print(f"Model instance activation failed with status code {response.status_code}: {response.text}")
 
 def main():
 
