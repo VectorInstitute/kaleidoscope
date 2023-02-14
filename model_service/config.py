@@ -2,7 +2,7 @@ import socket
 import os
 
 # Address of the Lingua gateway service, in the format "host:port"
-GATEWAY_HOST = "llm.cluster.local:4001"
+GATEWAY_HOST = "llm.cluster.local:3001"
 
 # Address of this model service, in the format "host:port".
 # By default this will be the external-facing IP address and port 8888, but we want the option to customize this.
