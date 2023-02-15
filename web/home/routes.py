@@ -1,10 +1,9 @@
-from flask import Blueprint, current_app, redirect, render_template, request
-from flask_jwt_extended import jwt_required
+from flask import Blueprint, render_template
 
 import json
 import requests
 
-from ..models import ALL_MODEL_NAMES
+import models
 
 home_bp = Blueprint("home", __name__, template_folder="templates")
 
@@ -32,4 +31,4 @@ async def reference():
 @home_bp.route("/playground", methods=["GET"])
 async def playground():
     #  return f"sample inference server for models: {set(ALL_MODELS.keys())}"
-    return render_template("playground.html", all_models=ALL_MODEL_NAMES)
+    return render_template("playground.html", all_models=models.MODEL_CONFIG.keys())

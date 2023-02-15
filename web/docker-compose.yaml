@@ -1,0 +1,39 @@
+version: '3.8'
+name: 'lingua'
+services:
+  web:
+    depends_on:
+      - "db"
+    build: .
+    image: gateway:latest
+    command: gateway_service.py
+    env_file:
+      - .env
+    ports:
+      - 3001:3001
+    volumes:
+      - /h/llm/.ssh:/root/.ssh
+  web-worker:
+    depends_on:
+      - "db"
+    build: .
+    env_file:
+      - .env
+    image: gateway:latest
+    entrypoint: celery
+    command: -A gateway_service.celery worker -B
+    volumes:
+      - ~/.ssh:/root/.ssh
+  db:
+    image: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=vector
+      - POSTGRES_DB=test
+    ports:
+      - 5432:5432
+    
+volumes:
+  postgres_data:

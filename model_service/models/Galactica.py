@@ -32,7 +32,7 @@ class Galactica(AbstractModel):
             )
         }
 
-    def generate_text(self, request):
+    def generate(self, request):
 
         prompt = request.json["prompt"]
         length = int(request.json["length"]) if "length" in request.json else 128

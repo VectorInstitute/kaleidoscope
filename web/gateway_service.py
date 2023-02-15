@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import logging
+
 from flask import Flask
 from flask_ldap3_login import LDAP3LoginManager
 from flask_jwt_extended import JWTManager
@@ -8,20 +10,21 @@ from celery import Celery
 from config import Config
 from auth import auth
 from db import db
-from resources.home import home
-from resources.models import models
+from home.routes import home_bp
+from model_instances.routes import model_instances_bp
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.logger.setLevel(logging.INFO) # ToDo: move this to config
 
     ldap_manager = LDAP3LoginManager(app)
     jwt = JWTManager(app)
 
     app.register_blueprint(auth)
-    app.register_blueprint(home.home_bp)
-    app.register_blueprint(models.models_bp, url_prefix="/models")
+    app.register_blueprint(home_bp)
+    app.register_blueprint(model_instances_bp, url_prefix="/models")
 
     db.init_app(app)
     with app.app_context():
@@ -42,7 +45,7 @@ def make_celery(app):
     celery.conf.beat_schedule = {
         "verify_health": {
             "task": "tasks.verify_model_instance_health",
-            "schedule": 10.0,
+            "schedule": 30.0,
         }
     }
 

@@ -11,5 +11,9 @@ class AbstractModel(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def generate_text(self, request):
+    def generate(self, request):
+        pass
+
+    @abc.abstractmethod
+    def get_activations(self, request):
         pass
