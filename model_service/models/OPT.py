@@ -44,7 +44,7 @@ logger = build_logger()
 BATCH_QUEUE = PriorityQueueRingShard()
 
 
-class OPT_175B(AbstractModel):
+class OPT(AbstractModel):
     def __init__(self):
         self.device = None
 

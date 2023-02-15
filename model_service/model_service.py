@@ -14,7 +14,7 @@ import config
 
 # Globals
 
-AVAILABLE_MODELS = ["OPT-175B"]
+AVAILABLE_MODELS = ["OPT-175B", "OPT-6.7B"]
 
 
 # Start the Flask service that will hand off requests to the model libraries
@@ -52,10 +52,9 @@ def get_activations():
 
 
 def initialize_model(model_type):
-    if model_type == "OPT-175B":
-        from models import OPT_175B
-
-        return OPT_175B.OPT_175B()
+    if model_type == "OPT-175B" or model_type == "OPT-6.7B":
+        from models import OPT
+        return OPT.OPT()
 
 
 # Signal handler to send a remove request to the gateway, if this service is killed by the system

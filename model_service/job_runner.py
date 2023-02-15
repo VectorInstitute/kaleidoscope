@@ -24,7 +24,10 @@ def main():
 
         try:
             if args.model_type == "OPT-175B":
-                scheduler_output = subprocess.check_output(f"sbatch --job-name={args.model_instance_id} ~/lingua/model_service/slurm/OPT_service.sh", shell=True).decode('utf-8')
+                scheduler_output = subprocess.check_output(f"sbatch --job-name={args.model_instance_id} ~/lingua/model_service/slurm/OPT-175B_service.sh", shell=True).decode('utf-8')
+                print(f"{scheduler_output}")
+            elif args.model_type == "OPT-6.7B":
+                scheduler_output = subprocess.check_output(f"sbatch --job-name={args.model_instance_id} ~/lingua/model_service/slurm/OPT-6.7B_service.sh", shell=True).decode('utf-8')
                 print(f"{scheduler_output}")
             else:
                 print(f"Job scheduler does not support model type {args.model_type}")

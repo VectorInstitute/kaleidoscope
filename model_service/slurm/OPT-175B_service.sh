@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --job-name=OPT_service
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mem=150G
 #SBATCH --qos=llm
@@ -7,8 +6,8 @@
 #SBATCH --nodes=8
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=40
-#SBATCH --output=OPT_service.%j.out
-#SBATCH --error=OPT_service.%j.err
+#SBATCH --output=OPT-175B_service.%j.out
+#SBATCH --error=OPT-175B_service.%j.err
 
 # TODO: Implement passing in the model_path
 #model_path=$1
