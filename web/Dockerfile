@@ -13,9 +13,6 @@ RUN pip install --upgrade pip
 # Install dependancies
 RUN pip install -r requirements.txt
 
-# Bundle app source
-COPY . .
-
 EXPOSE 5000
 
 ENTRYPOINT [ "python" ]
