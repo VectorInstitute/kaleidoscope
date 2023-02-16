@@ -76,14 +76,12 @@ def send_remove_request(model_type):
         print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
 
 
-def register_model_instance(model_instance_id):
+def register_model_instance(model_instance_id, model_host):
 
-    master_addr = os.environ['MASTER_ADDR']
-    MODEL_HOST = f'{master_addr}:8888'
     print(f"Preparing model registration request")
     register_url = f"http://{config.GATEWAY_HOST}/models/instances/{model_instance_id}/register"
-    register_data = {"host": MODEL_HOST}
-    print(f"Registering model with url={register_url}, data={register_data}")
+    register_data = {"host": model_host}
+    print(f"Sending model registration request to {register_url} with data: {register_data}")
     try:
         response = requests.post(register_url, json=register_data)
         # HTTP error codes between 450 and 500 are custom to the lingua gateway
@@ -100,6 +98,7 @@ def register_model_instance(model_instance_id):
 
 def activate_model_instance(model_instance_id):
     activation_url = f"http://{config.GATEWAY_HOST}/models/instances/{model_instance_id}/activate"
+    print(f"Sending model activation request to {activation_url}")
     response = requests.post(activation_url)
     if not response.ok:
         print(f"Model instance activation failed with status code {response.status_code}: {response.text}")
@@ -136,7 +135,16 @@ def main():
     model_instance_id = args.model_instance_id
     model_type = args.model_type
 
-    register_model_instance(model_instance_id)
+    # Determine the IP address for the head node of this model
+    master_addr = os.environ['MASTER_ADDR']
+    model_host = f'{master_addr}:8888'
+    # Models that only run on a single node should advertise their IP address instead of "localhost"
+    if master_addr == "localhost":
+        hostname = socket.gethostname()
+        ip_addr = socket.gethostbyname(hostname)
+        model_host = f"{ip_addr}:8888"
+
+    register_model_instance(model_instance_id, model_host)
 
     # Load the model into GPU memory
     print(f"Loading model into device {args.device}")
@@ -169,7 +177,7 @@ def main():
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
     print("Starting model service, press Ctrl+C to exit")
     service.run(
-        host=config.MODEL_HOST.split(":")[0], port=config.MODEL_HOST.split(":")[1]
+        host=model_host.split(":")[0], port=model_host.split(":")[1]
     )
 
     # Inform the gateway service that we are shutting down and it should remove this model
