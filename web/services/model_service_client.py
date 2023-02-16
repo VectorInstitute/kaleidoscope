@@ -11,8 +11,8 @@ from config import Config
 
 def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 /h/llm/lingua/model_service/job_runner.py --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id}"
-        #current_app.logger.info(f"Launch SSH command: {ssh_command}")
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id}"
+        current_app.logger.info(f"Launch SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
         current_app.logger.info(f"SSH launch job output: [{ssh_output}]")
     except Exception as err:
