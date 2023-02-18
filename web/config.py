@@ -9,6 +9,7 @@ class Config(object):
 
     JOB_SCHEDULER_HOST = os.environ["JOB_SCHEDULER_HOST"]
     JOB_SCHEDULER_USER = os.environ["JOB_SCHEDULER_USER"]
+    JOB_SCHEDULER_REMOTE_BIN = os.environ["JOB_SCHEDULER_REMOTE_BIN"]
 
     JWT_SECRET_KEY = os.environ["JWT_SECRET_KEY"]
     JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(days=int(os.environ["JWT_ACCESS_TOKEN_EXPIRES_DAYS"]))
