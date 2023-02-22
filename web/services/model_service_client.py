@@ -91,7 +91,7 @@ def verify_model_health(host: str) -> bool:
 
 def verify_job_health(model_instance_id: str) -> bool:
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 /h/llm/lingua/model_service/job_runner.py --action get_status --model_instance_id {model_instance_id}"
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action get_status --model_instance_id {model_instance_id}"
         #print(f"Get status SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
         #print(f"SSH get status output: [{ssh_output}]")
