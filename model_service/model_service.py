@@ -14,7 +14,7 @@ import config
 
 # Globals
 
-AVAILABLE_MODELS = ["OPT-175B", "OPT-6.7B"]
+AVAILABLE_MODELS = ["OPT-175B", "OPT-6.7B", "GPT2"]
 
 
 # Start the Flask service that will hand off requests to the model libraries
@@ -55,6 +55,9 @@ def initialize_model(model_type):
     if model_type == "OPT-175B" or model_type == "OPT-6.7B":
         from models import OPT
         return OPT.OPT()
+    elif model_type == "GPT2":
+        from models import GPT2
+        return GPT2.GPT2()
 
 
 # Signal handler to send a remove request to the gateway, if this service is killed by the system
@@ -96,12 +99,16 @@ def register_model_instance(model_instance_id, model_host):
     except:
         print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
 
+
 def activate_model_instance(model_instance_id):
     activation_url = f"http://{config.GATEWAY_HOST}/models/instances/{model_instance_id}/activate"
     print(f"Sending model activation request to {activation_url}")
-    response = requests.post(activation_url)
-    if not response.ok:
+    try:
+        response = requests.post(activation_url)
+    except:
         print(f"Model instance activation failed with status code {response.status_code}: {response.text}")
+        print(f"Continuing to load model anyway, but it will not be accessible to any gateway services")
+
 
 def main():
 
@@ -136,13 +143,18 @@ def main():
     model_type = args.model_type
 
     # Determine the IP address for the head node of this model
-    master_addr = os.environ['MASTER_ADDR']
-    model_host = f'{master_addr}:8888'
+    try:
+        master_addr = os.environ['MASTER_ADDR']
+    except:
+        master_addr = "localhost"
+        print("MASTER_ADDR not set, defaulting to localhost")
+    model_host = f'{master_addr}:{config.MODEL_PORT}'
+
     # Models that only run on a single node should advertise their IP address instead of "localhost"
     if master_addr == "localhost":
         hostname = socket.gethostname()
         ip_addr = socket.gethostbyname(hostname)
-        model_host = f"{ip_addr}:8888"
+        model_host = f"{ip_addr}:{config.MODEL_PORT}"
 
     register_model_instance(model_instance_id, model_host)
 

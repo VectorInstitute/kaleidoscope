@@ -22,6 +22,11 @@ MODEL_CONFIG = {
         "description": "6.7B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
         "url": "https://huggingface.co/facebook/opt-6.7b",
     },
+    "GPT2": {
+        "name": "GPT2",
+        "description": "GPT2 model trained by OpenAI, available only for testing and development",
+        "url": "https://huggingface.co/gpt2",
+    },
     # "Galactica-120B": {
     #     "name": "Galactica-120B",
     #     "description": "120B parameter version of the Galactica model trained by Meta",
