@@ -7,13 +7,20 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - name: Get environment info
+        run: |
+          echo "Current working directory:"
+          pwd
+          echo "Host:"
+          hostname --long
+          echo "Local directory listing:"
+          ls -alp
+          echo "Root directory listing:"
+          ls -alp /
       - name: Prepare Docker
         run: |
           sudo service docker restart
-      - name: Get local directory listing
-        run: |
-          ls -alp
       - name: Deploy gateway
         run: |
-          cd web \
+          cd web
           docker compose up
