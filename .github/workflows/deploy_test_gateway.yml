@@ -11,12 +11,18 @@ jobs:
         run: |
           echo "Current working directory:"
           pwd
-          echo "Host:"
-          hostname --long
           echo "Local directory listing:"
           ls -alp
+          echo "Parent directory listing:"
+          ls -alp ..
           echo "Root directory listing:"
           ls -alp /
+          echo "Host:"
+          hostname --long
+          echo "Memory:"
+          free
+          echo "CPUs:
+          cat /proc/cpuinfo
       - name: Prepare Docker
         run: |
           sudo service docker restart
