@@ -10,9 +10,6 @@ jobs:
       - name: Prepare Docker
         run: |
           sudo service docker restart
-      - name: Setup gateway environment
-        run: |
-          cp web/.env.example web/.env
       - name: Get local directory listing
         run: |
           ls -alp
