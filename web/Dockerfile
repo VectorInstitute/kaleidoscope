@@ -7,8 +7,12 @@ WORKDIR /app
 # Upgrade pip
 RUN pip install --upgrade pip
 
+# Debug
+RUN ls -alp
+RUN pwd
+
 # Install dependancies
-RUN pip install -r requirements.txt
+RUN pip install -r web/requirements.txt
 
 EXPOSE 5000
 
