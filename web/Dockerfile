@@ -5,7 +5,7 @@ FROM --platform=linux/amd64 python:3.8
 WORKDIR /app
 
 # Copy gateway/web dependencies
-COPY web/requirements.txt ./
+COPY requirements.txt ./
 
 # Upgrade pip
 RUN pip install --upgrade pip
