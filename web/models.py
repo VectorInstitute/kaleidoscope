@@ -43,10 +43,10 @@ class ModelInstanceState(ABC):
     def activate(self):
         raise InvalidStateError(self)
 
-    def generate(self, username, prompt, generation_args):
+    def generate(self, username, prompts, generation_args):
         raise InvalidStateError(self)
 
-    def generate_activations(self, username, prompt, module_names, generation_args):
+    def generate_activations(self, username, prompts, module_names, generation_args):
         raise InvalidStateError(self)
 
     def get_module_names(self):
@@ -118,13 +118,13 @@ class LoadingState(ModelInstanceState):
 
 class ActiveState(ModelInstanceState):
 
-    def generate(self, username, prompt, generation_config):
+    def generate(self, username, prompts, generation_config):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
         )
-        model_instance_generation.prompt = prompt
+        model_instance_generation.prompts = prompts
         
         current_app.logger.info(model_instance_generation)
 
@@ -132,7 +132,7 @@ class ActiveState(ModelInstanceState):
         generation_response = model_service_client.generate(
             self._model_instance.host, 
             model_instance_generation.id, 
-            prompt,
+            prompts,
             generation_config
         )
         model_instance_generation.generation = generation_response
@@ -141,7 +141,7 @@ class ActiveState(ModelInstanceState):
     def get_module_names(self):
         return model_service_client.get_module_names(self._model_instance.host)
 
-    def generate_activations(self, username, prompt, module_names, generation_config):
+    def generate_activations(self, username, prompts, module_names, generation_config):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
@@ -153,7 +153,7 @@ class ActiveState(ModelInstanceState):
         activations_response = model_service_client.generate_activations(
             self._model_instance.host, 
             model_instance_generation.id, 
-            prompt,
+            prompts,
             module_names,
             generation_config
         )
@@ -267,14 +267,14 @@ class ModelInstance(BaseMixin, db.Model):
     def shutdown(self) -> None:
         self._state.shutdown()
 
-    def generate(self, username: str, prompt: str, generation_config: Dict = {}) -> Dict:
-        return self._state.generate(username, prompt, generation_config)
+    def generate(self, username: str, prompts: List[str], generation_config: Dict = {}) -> Dict:
+        return self._state.generate(username, prompts, generation_config)
 
     def get_module_names(self):
         return self._state.get_module_names()
 
-    def generate_activations(self, username: str, prompt: str, module_names: List[str], generation_config: Dict = {}) -> Dict:
-        return self._state.generate_activations(username, prompt, module_names, generation_config)
+    def generate_activations(self, username: str, prompts: List[str], module_names: List[str], generation_config: Dict = {}) -> Dict:
+        return self._state.generate_activations(username, prompts, module_names, generation_config)
 
     def is_healthy(self) -> bool:
         return self._state.is_healthy()
@@ -296,7 +296,7 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
         return {
             "id": str(self.id),
             "model_instance_id": str(self.model_instance_id),
-            "prompt": self.prompt,
+            "prompts": self.prompts,
             "generation": self.generation,
         }
 

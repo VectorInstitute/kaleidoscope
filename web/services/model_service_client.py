@@ -20,12 +20,12 @@ def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
     return
 
 
-def generate(host: str, generation_id: int, prompt: str,  generation_config: Dict) -> Dict:
+def generate(host: str, generation_id: int, prompts: List[str],  generation_config: Dict) -> Dict:
     
     current_app.logger.info("generating")
 
     body = {
-        "prompt": [prompt],
+        "prompt": prompts,
         **generation_config
     }
 
@@ -42,12 +42,12 @@ def generate(host: str, generation_id: int, prompt: str,  generation_config: Dic
     current_app.logger.info(response_body)
     return response_body
 
-def generate_activations(host: str, generation_id: int, prompt: str, module_names: List[str], generation_config: Dict) -> Dict:
+def generate_activations(host: str, generation_id: int, prompts: List[str], module_names: List[str], generation_config: Dict) -> Dict:
     
     current_app.logger.info("activations")
 
     body = {
-        "prompt": [prompt],
+        "prompt": prompts,
         "module_names": module_names,
         **generation_config
     }
