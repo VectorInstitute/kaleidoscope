@@ -4,9 +4,6 @@ FROM --platform=linux/amd64 python:3.8
 # Create app directory
 WORKDIR /app
 
-# Install app dependencies
-COPY requirements.txt ./
-
 # Upgrade pip
 RUN pip install --upgrade pip
 
