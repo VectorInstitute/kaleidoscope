@@ -65,24 +65,31 @@
     $.ajax({
       url : "/models/instances",
       type : "GET",
+      dataType: "json",
       success : function (data){
         console.log(data);
-        for (const model in data) {
-          var currentModel= $('#'+model)
-          if (data[model] == "Active"){
+        for (let model in data) {
+          console.log(data[model]);
+          var currentModel= $("[id='"+data[model].name+"']")
+          if (data[model].state == "ACTIVE"){
             currentModel.attr("title", "Active service!");
             currentModel.prop('disabled', false);
-            currentModel.text(model);
-            currentModel.val(model);
+            currentModel.text(data[model].name);
+            currentModel.val(data[model].id);
+          }
+          else if (data[model].state){
+            currentModel.attr("title", "Inactive model: currently servicing");
+            currentModel.prop('disabled', true);
+            currentModel.text(data[model].name + " ("+data[model].state+")");
           }
           else{
             var selectedModel= $("#model-select option:selected");
-            if (selectedModel.val() == model){
+            if (selectedModel.val() == data[model].name){
               $("#model-select").val('');
             }
             currentModel.attr("title", "Inactive model: please start its model service!");
             currentModel.prop('disabled', true);
-            currentModel.text(model + " (Inactive)");
+            currentModel.text(model + " (INACTIVE)");
           }
         }
       }
@@ -104,7 +111,7 @@
       var formData= getFormData();
       console.log(JSON.stringify(formData))
       $.ajax({
-        url: "/models/" + selectedModel + "/generate_text",
+        url: "models/instances/" + selectedModel + "/generate", //changed
         type: "POST",
         headers: {
           "Authorization": "Bearer " + localStorage.getItem("accessToken")
@@ -211,10 +218,10 @@
     document.getElementById(id).value = val;
   };
 
-  function updateModuleNames(model) {
+  function updateModuleNames(model_id) {
     $("#module-name-select").empty()
-    $.get("/models/" + model + "/module_names", 
-    function( data ) {
+    $.get("models/instances/" + model_id + "/module_names", 
+    function(data) {
       for(let i=0; i<data['module_names'].length; i++){
         moduleNameOption= $("<option value="+data['module_names'][i]+"></option>").text(data['module_names'][i])
         $("#module-name-select").append(moduleNameOption);
@@ -227,7 +234,6 @@
     console.log("API Key: " + authKey);
     $("#auth-key").attr("data-content", authKey);
   };
-
 
   window.onload = function () {
     if (localStorage.getItem("accessToken") == null) {
@@ -344,7 +350,7 @@
             <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" required>
               <option selected id="null-model" disabled value="">Select A Model</option>  
               {% for types in all_models %}
-                  <option disabled id="{{ types }}" value="{{ types }}" title="Inactive model: please start its model service!">{{ types }} (Inactive)</option>
+                  <option disabled id="{{ types }}" value="{{ types }}" title="Inactive model: please start its model service!">{{ types }} (INACTIVE)</option>
               {% endfor %}
             </select>
           </div>
