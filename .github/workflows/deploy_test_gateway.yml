@@ -51,5 +51,6 @@ jobs:
           pwd
           docker compose up --detach
       - name: Test gateway
+        run: |
           curl http://localhost:3001/models
 
