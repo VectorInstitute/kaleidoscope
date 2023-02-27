@@ -49,5 +49,7 @@ jobs:
         run: |
           cd ${{ github.workspace }}/web
           pwd
-          docker compose up
+          docker compose up --detach
+      - name: Test gateway
+          curl http://localhost:3001/models
 
