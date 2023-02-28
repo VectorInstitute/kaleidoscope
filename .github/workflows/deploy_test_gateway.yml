@@ -52,8 +52,5 @@ jobs:
           docker compose up --detach
       - name: Test gateway
         run: |
-          sleep 20
-          ip addr
-          hostname --fqdn
           curl http://$(hostname --fqdn):3001/models
 
