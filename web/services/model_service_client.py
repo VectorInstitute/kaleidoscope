@@ -10,13 +10,26 @@ from config import Config
 
 
 def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
-    try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id}"
-        current_app.logger.info(f"Launch SSH command: {ssh_command}")
-        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        current_app.logger.info(f"SSH launch job output: [{ssh_output}]")
-    except Exception as err:
-        current_app.logger.error(f"Failed to issue SSH command to job runner: {err}")
+
+    # TODO: For now we are assuming that local jobs are launched via python, non-local jobs are launched via ssh. We should check the JOB_SCHEDULER_BIN. 
+    # If the job is being scheduled locally, just run the command directly
+    if Config.JOB_SCHEDULER_HOST == "localhost":
+        try:
+            local_command = f"python3 {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id}"
+            current_app.logger.info(f"Local launch job command: {local_command}")
+            local_output = subprocess.check_output(local_command, shell=True).decode("utf-8")
+            current_app.logger.info(f"Local launch job output: [{local_output}]")
+        except Exception as err:
+            current_app.logger.error(f"Failed to issue local command to job runner: {err}")
+    # Otherwise, send the launch command via ssh to the job scheduler host
+    else:
+        try:
+            ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id}"
+            current_app.logger.info(f"Launch SSH command: {ssh_command}")
+            ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
+            current_app.logger.info(f"SSH launch job output: [{ssh_output}]")
+        except Exception as err:
+            current_app.logger.error(f"Failed to issue SSH command to job runner: {err}")
     return
 
 
@@ -90,18 +103,37 @@ def verify_model_health(host: str) -> bool:
 
 
 def verify_job_health(model_instance_id: str) -> bool:
-    try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action get_status --model_instance_id {model_instance_id}"
-        #print(f"Get status SSH command: {ssh_command}")
-        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        #print(f"SSH get status output: [{ssh_output}]")
+    if Config.JOB_SCHEDULER_HOST == "localhost":
+        try:
+            # How do we check health status of a local model?
+            local_command = f"curl localhost:9001/health"
+            print(f"Get status local command: {local_command}")
+            local_output = subprocess.check_output(local_command, shell=True).decode("utf-8")
+            print(f"Get status local output: [{local_output}]")
 
-        # If we didn't get any output from SSH, the job doesn't exist
-        if not ssh_output.strip(' \n'):
+            # If we didn't get any output from SSH, the job doesn't exist
+            if not ssh_output.strip(' \n'):
+                return False
+
+            # For now, assume that any output means the job is healthy
+            return True
+        except Exception as err:
+            print(f"Failed to issue SSH command to job runner: {err}")
+            return False
+    else:
+        try:
+            ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
+            #print(f"Get status SSH command: {ssh_command}")
+            ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
+            #print(f"SSH get status output: [{ssh_output}]")
+
+            # If we didn't get any output from SSH, the job doesn't exist
+            if not ssh_output.strip(' \n'):
+                return False
+
+            # For now, assume that any output means the job is healthy
+            return True
+        except Exception as err:
+            print(f"Failed to issue SSH command to job runner: {err}")
             return False
 
-        # For now, assume that any output means the job is healthy
-        return True
-    except Exception as err:
-        print(f"Failed to issue SSH command to job runner: {err}")
-        return False
