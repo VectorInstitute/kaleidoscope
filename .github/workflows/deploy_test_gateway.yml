@@ -45,11 +45,11 @@ jobs:
       - name: Prepare Docker
         run: |
           sudo service docker restart
-      - name: Deploy gateway
+      - name: Deploy gateway and wait for it to start
         run: |
           cd ${{ github.workspace }}/web
           pwd
-          docker compose up --detach
+          docker compose up --detach --wait
       - name: Test gateway
         run: |
           curl http://$(hostname --fqdn):3001/models
