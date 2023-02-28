@@ -45,12 +45,12 @@ jobs:
       - name: Prepare Docker
         run: |
           sudo service docker restart
-      - name: Deploy gateway and wait for it to start
+      - name: Deploy gateway
         run: |
           cd ${{ github.workspace }}/web
           pwd
           docker compose up --detach --wait
-      - name: Test gateway
+      - name: Wait maximum 120 seconds for gateway to start
         run: |
-          curl http://$(hostname --fqdn):3001/models
+          wget --timeout=120 -c http://localhost:3001/models > /dev/null
 
