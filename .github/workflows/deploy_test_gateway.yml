@@ -50,9 +50,8 @@ jobs:
           cd ${{ github.workspace }}/web
           pwd
           docker compose up --detach --wait
-      - name: Wait maximum 120 seconds for gateway to start
+      - name: Wait maximum 60 seconds for gateway to start
         run: |
-          sleep 20
-          wget --version
-          wget --timeout=120 -c http://$(hostname --fqdn):3001/models > /dev/null
+          sleep 60
+          curl http://localhost:3001/models
 
