@@ -52,5 +52,6 @@ jobs:
           docker compose up --detach --wait
       - name: Wait maximum 120 seconds for gateway to start
         run: |
-          wget --timeout=120 -c http://localhost:3001/models > /dev/null
+          wget --version
+          wget --timeout=120 -c http://$(hostname --fqdn):3001/models > /dev/null
 
