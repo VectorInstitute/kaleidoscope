@@ -171,11 +171,15 @@ class OPT(AbstractModel):
             results += generations
 
         # Ensure output format is consistent with other lingua models
-        response = {}
-        response["text"] = results[0]["text"]
-        response["tokens"] = results[0]["tokens"]
-        response["logprobs"] = results[0]["token_scores"]
-        response["activations"] = results[0]["activations"]
+        # UPDATE 01-03-23: Return all results instead of just the first one - 
+        # DOUBT: Risk of combining separate requests? 
+        response = {k: [] for k in \
+                    ["text", "tokens", "logprobs", "activations"]}
+        for result in results:
+            response["text"].append(result["text"])
+            response["tokens"].append(result["tokens"])
+            response["logprobs"].append(result["token_scores"])
+            response["activations"].append(result["activations"])
 
         return response
 
