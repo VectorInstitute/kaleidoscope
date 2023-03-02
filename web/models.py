@@ -135,7 +135,7 @@ class ActiveState(ModelInstanceState):
             prompts,
             generation_config
         )
-        model_instance_generation.generations = generation_response
+        model_instance_generation.generation = generation_response
         return model_instance_generation
 
     def get_module_names(self):
@@ -297,7 +297,7 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
             "id": str(self.id),
             "model_instance_id": str(self.model_instance_id),
             "prompts": self.prompts,
-            "generations": self.generations,
+            "generation": self.generation,
         }
 
 # ToDo: Should generalize generation and activation? This needs a design decision.
