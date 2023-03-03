@@ -19,4 +19,4 @@ source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
 export MASTER_ADDR=$(hostname -I | awk '{print $1}')
 export NCCL_IB_DISABLE=1
-srun -q llm -p rtx6000 -N 8 --gres=gpu:4 --mem=150G -c 40 singularity exec --nv --bind /checkpoint,/scratch,/ssd005 /ssd005/projects/llm/opt-175b-latest.sif /usr/bin/python3 -s $model_service_dir/model_service.py --model_type OPT-175B --model_path $model_path --model_instance_id $SLURM_JOB_NAME
+srun -q llm -p rtx6000 -N 8 --gres=gpu:4 --mem=150G -c 40 singularity exec --nv --bind /checkpoint,/scratch,/ssd005 /ssd005/projects/llm/opt-175b-rtx6000.sif /usr/bin/python3 -s $model_service_dir/model_service.py --model_type OPT-175B --model_path $model_path --model_instance_id $SLURM_JOB_NAME
