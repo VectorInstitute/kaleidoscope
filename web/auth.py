@@ -7,6 +7,7 @@ from flask_jwt_extended import (
 
 auth = Blueprint("auth", __name__)
 
+
 @auth.route("/authenticate", methods=["POST"])
 def authenticate():
 

@@ -17,7 +17,7 @@ from model_instances.routes import model_instances_bp
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    app.logger.setLevel(logging.INFO) # ToDo: move this to config
+    app.logger.setLevel(logging.INFO)  # ToDo: move this to config
 
     ldap_manager = LDAP3LoginManager(app)
     jwt = JWTManager(app)
