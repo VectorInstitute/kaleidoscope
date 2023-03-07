@@ -185,7 +185,7 @@ class OPT(AbstractModel):
 
     def get_activations(self, request):
     
-        request.json['desired_module_activations'] = request.json['module_names']
+        request.json['encoded_activation_payload'] = request.json['module_names']
         request.json['echo'] = True
         request.json['max_tokens'] = 0
         response = self.generate(request)
@@ -239,15 +239,15 @@ class OPT(AbstractModel):
                         None, src_rank=0, group=distributed_utils.get_global_group()
                     )
 
-                    desired_module_activations = request_object.pop(
-                        "desired_module_activations", None
+                    encoded_activation_payload = request_object.pop(
+                        "encoded_activation_payload", None
                     )
                     act_retrieval_aux = request_object.pop("_aux", None)
 
-                    if desired_module_activations:
+                    if encoded_activation_payload:
                         hook_dict, _ = get_activation_capture_hook_dict(
                             generator.models[0],
-                            desired_module_activations,
+                            encoded_activation_payload,
                             aux=act_retrieval_aux,
                         )
 
@@ -397,19 +397,19 @@ class OPT(AbstractModel):
                     activation_dict = {}
 
                     try:
-                        desired_module_activations = request_object.pop(
-                            "desired_module_activations", None
+                        encoded_activation_payload = request_object.pop(
+                            "encoded_activation_payload", None
                         )
 
                         act_retrieval_aux = request_object.pop("_aux", None)
 
-                        if desired_module_activations:
+                        if encoded_activation_payload:
                             (
                                 hook_dict,
                                 activation_dict,
                             ) = get_activation_capture_hook_dict(
                                 generator.models[0],
-                                desired_module_activations,
+                                encoded_activation_payload,
                                 aux=act_retrieval_aux,
                             )
 
