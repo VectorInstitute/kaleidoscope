@@ -180,10 +180,10 @@ class OPT(AbstractModel):
         return response
 
     def get_activations(self, request):
-    
-        request.json['encoded_activation_payload'] = request.json['module_names']
-        request.json['echo'] = True
-        request.json['max_tokens'] = 0
+
+        request.json["encoded_activation_payload"] = request.json["module_names"]
+        request.json["echo"] = True
+        request.json["max_tokens"] = 0
         response = self.generate(request)
         return response
 
@@ -357,7 +357,9 @@ class OPT(AbstractModel):
                             ):
                                 raise ValueError(
                                     "the remaining args are not the same, currently {}, but want {} with key {}".format(
-                                        unique_dict, ro[key], key,
+                                        unique_dict,
+                                        ro[key],
+                                        key,
                                     )
                                 )
 
@@ -453,7 +455,8 @@ class OPT(AbstractModel):
                                     val = v[i, 1 : num_real_tokens + 1].clone()
 
                                 ret_dict[k] = codecs.encode(
-                                    pickle.dumps(val), "base64",
+                                    pickle.dumps(val),
+                                    "base64",
                                 ).decode("utf-8")
 
                             gen[0]["activations"] = ret_dict

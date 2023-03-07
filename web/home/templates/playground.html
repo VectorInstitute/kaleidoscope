@@ -301,7 +301,7 @@
   .generated-text-font {
     font-weight: bold;
   }
-  .generated-text:hover { 
+  .generated-text:hover {
     background-color: yellow;
   }
 {% endblock %}
@@ -365,7 +365,7 @@
             data-placement="auto"
             data-content="The large language model which will generate text. Some models are suitable for specified tasks."></i>
             <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" required>
-              <option selected id="null-model" disabled value="">Select A Model</option>  
+              <option selected id="null-model" disabled value="">Select A Model</option>
               {% for types in all_models %}
                   <option disabled id="" value="{{ types }}" name="{{ types }}" title="Inactive model: please start its model service!">{{ types }} (INACTIVE)</option>
               {% endfor %}
@@ -461,7 +461,7 @@
       </div>
       <div class="col-auto">
         <button type="button" class="btn btn-light" onclick='clearText();' tabindex="0" data-toggle="popover" data-trigger="hover"
-        data-placement="auto" data-content="Needs improvement &#128528;"><i class="bi bi-hand-thumbs-down-fill"></i></button> 
+        data-placement="auto" data-content="Needs improvement &#128528;"><i class="bi bi-hand-thumbs-down-fill"></i></button>
       </div> -->
     </div>
     <footer class="navbar-custom text-center">

@@ -34,6 +34,6 @@ services:
       - POSTGRES_DB=lingua-staging
     ports:
       - 8000:5432
-    
+
 volumes:
   postgres_data:

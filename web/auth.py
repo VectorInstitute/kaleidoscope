@@ -10,6 +10,7 @@ from config import Config
 
 auth = Blueprint("auth", __name__)
 
+
 @auth.route("/authenticate", methods=["POST"])
 def authenticate():
 
