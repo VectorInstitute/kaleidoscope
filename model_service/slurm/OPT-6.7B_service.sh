@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mem=32G
-#SBATCH --partition=rtx6000
+#SBATCH --partition=t4v2
+#SBATCH --qos=high
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-node=2

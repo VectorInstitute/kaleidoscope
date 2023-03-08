@@ -84,14 +84,14 @@ async def model_instance_generate(model_instance_id: str):
     username = get_jwt_identity()
     current_app.logger.info(f"generating request for {username}")
 
-    prompt = request.json["prompt"]
+    prompts = request.json["prompts"]
     generation_config = request.json["generation_config"]
-    current_app.logger.info(f"prompt {prompt}")
+    current_app.logger.info(f"prompts {prompts}")
 
     current_app.logger.info(f"generation config: {generation_config}")
 
     model_instance = ModelInstance.find_by_id(model_instance_id)
-    generation = model_instance.generate(username, prompt, generation_config)
+    generation = model_instance.generate(username, prompts, generation_config)
 
     return jsonify(generation.serialize()), 200
 
@@ -113,8 +113,8 @@ async def get_module_names(model_instance_id: str):
 async def get_activations(model_instance_id: str):
 
     username = get_jwt_identity()
-    prompt = request.json["prompt"]
-    current_app.logger.info(f"prompt {prompt}")
+    prompts = request.json["prompts"]
+    current_app.logger.info(f"prompts {prompts}")
     module_names = request.json["module_names"]
     current_app.logger.info(f"module_names {module_names}")
     generation_config = request.json["generation_config"]
@@ -122,7 +122,7 @@ async def get_activations(model_instance_id: str):
 
     model_instance = ModelInstance.find_by_id(model_instance_id)
     activations = model_instance.generate_activations(
-        username, prompt, module_names, generation_config
+        username, prompts, module_names, generation_config
     )
 
     return jsonify(activations), 200
