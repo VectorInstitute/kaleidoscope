@@ -4,8 +4,12 @@ from flask_jwt_extended import (
     create_access_token,
     jwt_required,
 )
+import subprocess
+
+from config import Config
 
 auth = Blueprint("auth", __name__)
+
 
 @auth.route("/authenticate", methods=["POST"])
 def authenticate():
@@ -14,6 +18,12 @@ def authenticate():
     ldapAuthResponse = current_app.ldap3_login_manager.authenticate_direct_credentials(
         auth_params["username"], auth_params["password"]
     )
+
+    try:
+        ldapsearch_cmd = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} getent group llm_user | grep {auth_params['username']}"
+        subprocess.check_output(ldapsearch_cmd, shell=True)
+    except subprocess.CalledProcessError:
+        return make_response({"msg": f"User {auth_params['username']} not a member of the llm_user group "}, 403)
 
     if ldapAuthResponse.status == AuthenticationResponseStatus.success:
         access_token = create_access_token(identity=auth_params["username"])

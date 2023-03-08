@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Parse argument for deployment version. Accepts either "production" or "staging", defaults to production. 
+# Parse argument for deployment version. Accepts either "production" or "staging", defaults to production.
 deploy_version=$1
 branch=$2
 
@@ -37,7 +37,7 @@ elif [ "$deploy_version" == "staging" ]; then
 	cd ..
 	git checkout develop
 	git pull
-	
+
 	# If user specified a branch, switch to that
 	if [ ! -z "$branch" ]; then
 		git checkout --track $branch
@@ -52,5 +52,3 @@ else
 	echo "Deployment version $deploy_version is not valid. Please specify either staging or production."
 	exit 1
 fi
-
-

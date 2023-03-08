@@ -14,7 +14,7 @@ A user toolkit for analyzing and interfacing with Large Language Models (LLMs)
 
 ``lingua`` provides a few high-level APIs namely:
 
-* `generate_text` - Returns an LLM text generation based on prompt input 
+* `generate_text` - Returns an LLM text generation based on prompt input
 * `module_names` - Returns all modules in the LLM neural network
 * `instances` - Returns all active LLMs instantiated by the model service
 
@@ -41,7 +41,7 @@ sudo docker compose -f lingua/docker-compose.yaml up
 ### Install Lingua SDK Toolkit
 The Lingua SDK toolkit is a Python module that provides a programmatic
 interface for interfacing with the services found here. You can download and
-install the SDK from its own repository: 
+install the SDK from its own repository:
 https://github.com/VectorInstitute/lingua-sdk
 
 ## [Documentation](https://vectorinstitute.github.io/lingua/)
@@ -57,5 +57,5 @@ guidelines.
 ## Citation
 Reference to cite when you use Lingua in a project or a research paper:
 ```
-Sivaloganathan, J., Coatsworth, M., Willes, J., Choi, M., & Shen, G. (2022). Lingua. http://VectorInstitute.github.io/lingua. computer software, Vector Institute for Artificial Intelligence. Retrieved from https://github.com/VectorInstitute/lingua.git. 
+Sivaloganathan, J., Coatsworth, M., Willes, J., Choi, M., & Shen, G. (2022). Lingua. http://VectorInstitute.github.io/lingua. computer software, Vector Institute for Artificial Intelligence. Retrieved from https://github.com/VectorInstitute/lingua.git.
 ```
