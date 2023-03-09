@@ -26,7 +26,7 @@ def main():
             return
 
         try:
-            scheduler_output = subprocess.check_output(f"python3 model_service.py --model_type {args.model_type} --model_path {args.model_path} --model_instance_id {args.model_instance_id}", shell=True).decode('utf-8')
+            scheduler_output = subprocess.check_output(f"python3 /model_service/model_service.py --model_type {args.model_type} --model_path {args.model_path} --model_instance_id {args.model_instance_id}", shell=True).decode('utf-8')
             print(f"Result: {scheduler_output}")
         except Exception as err:
             print(f"Job scheduler failed: {err}")

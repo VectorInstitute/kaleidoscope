@@ -14,6 +14,8 @@ services:
     volumes:
       - /h/llm/.ssh:/root/.ssh
       - .:/app
+      - ../model_service:/model_service
+      - /scratch/models/gpt2:/models/gpt2
   web-worker:
     depends_on:
       - "db"

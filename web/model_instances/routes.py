@@ -1,6 +1,7 @@
 import requests
 from flask import Blueprint, request, current_app, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity, verify_jwt_in_request
+from functools import wraps
 
 from db import db
 import tasks
@@ -22,7 +23,7 @@ async def get_current_model_instances():
 @model_instances_bp.route("/instances", methods=["POST"])
 @jwt_required()
 async def create_model_instance():
-
+    current_app.logger.info(f"Received model instance creation request: {request}")
     model_name = request.json["name"]
 
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)

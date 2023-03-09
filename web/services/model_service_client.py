@@ -10,7 +10,7 @@ from config import Config
 
 
 def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
-
+    current_app.logger.info(f"Launching model: {model_name}")
     # TODO: For now we are assuming that local jobs are launched via python, non-local jobs are launched via ssh. We should check the JOB_SCHEDULER_BIN. 
     # If the job is being scheduled locally, just run the command directly
     if Config.JOB_SCHEDULER_HOST == "localhost":

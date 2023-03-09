@@ -16,16 +16,19 @@ MODEL_CONFIG = {
         "name": "OPT-175B",
         "description": "175B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
         "url": "https://huggingface.co/meta/opt-175B",
+        "path": "/models/opt-175b"
     },
     "OPT-6.7B": {
         "name": "OPT-6.7B",
         "description": "6.7B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
         "url": "https://huggingface.co/facebook/opt-6.7b",
+        "path": "/models/opt-6.7b"
     },
     "GPT2": {
         "name": "GPT2",
         "description": "GPT2 model trained by OpenAI, available only for testing and development",
         "url": "https://huggingface.co/gpt2",
+        "path": "/models/gpt2"
     },
     # "Galactica-120B": {
     #     "name": "Galactica-120B",
@@ -69,7 +72,7 @@ class PendingState(ModelInstanceState):
     def launch(self):
         try: 
             # ToDo: set job id params here
-            model_service_client.launch(self._model_instance.id, self._model_instance.name, "/model_path")
+            model_service_client.launch(self._model_instance.id, self._model_instance.name, "/models/gpt2")
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:
             current_app.logger.error(f"Job launch failed: {err}")
@@ -263,7 +266,7 @@ class ModelInstance(BaseMixin, db.Model):
         self._state.launch()
 
     def register(self, host: str) -> None:
-        current_app.logger.info(f"[register] called, host={host}")
+        current_app.logger.info(f"Received registration request from host {host}")
         self._state.register(host)
     
     def activate(self) -> None:
