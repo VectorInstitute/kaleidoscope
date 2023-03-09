@@ -13,6 +13,7 @@ services:
       - 3001:3001
     volumes:
       - /h/llm/.ssh:/root/.ssh
+      - .:/app
   web-worker:
     depends_on:
       - "db"
@@ -24,6 +25,7 @@ services:
     command: -A gateway_service.celery worker -B
     volumes:
       - ~/.ssh:/root/.ssh
+      - .:/app
   db:
     image: postgres
     volumes:
@@ -34,6 +36,6 @@ services:
       - POSTGRES_DB=test
     ports:
       - 5432:5432
-    
+
 volumes:
   postgres_data:
