@@ -2,8 +2,8 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-class BaseMixin(object):
 
+class BaseMixin(object):
     @classmethod
     def create(cls, **kw):
         obj = cls(**kw)

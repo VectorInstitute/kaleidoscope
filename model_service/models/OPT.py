@@ -171,19 +171,23 @@ class OPT(AbstractModel):
             results += generations
 
         # Ensure output format is consistent with other lingua models
-        response = {}
-        response["text"] = results[0]["text"]
-        response["tokens"] = results[0]["tokens"]
-        response["logprobs"] = results[0]["token_scores"]
-        response["activations"] = results[0]["activations"]
+        # UPDATE 01-03-23: Return all results instead of just the first one - 
+        # DOUBT: Risk of combining separate requests? 
+        response = {k: [] for k in \
+                    ["text", "tokens", "logprobs", "activations"]}
+        for result in results:
+            response["text"].append(result["text"])
+            response["tokens"].append(result["tokens"])
+            response["logprobs"].append(result["token_scores"])
+            response["activations"].append(result["activations"])
 
         return response
 
     def get_activations(self, request):
-    
-        request.json['desired_module_activations'] = request.json['module_names']
-        request.json['echo'] = True
-        request.json['max_tokens'] = 0
+
+        request.json["encoded_activation_payload"] = request.json["module_names"]
+        request.json["echo"] = True
+        request.json["max_tokens"] = 0
         response = self.generate(request)
         return response
 
@@ -235,15 +239,15 @@ class OPT(AbstractModel):
                         None, src_rank=0, group=distributed_utils.get_global_group()
                     )
 
-                    desired_module_activations = request_object.pop(
-                        "desired_module_activations", None
+                    encoded_activation_payload = request_object.pop(
+                        "encoded_activation_payload", None
                     )
                     act_retrieval_aux = request_object.pop("_aux", None)
 
-                    if desired_module_activations:
+                    if encoded_activation_payload:
                         hook_dict, _ = get_activation_capture_hook_dict(
                             generator.models[0],
-                            desired_module_activations,
+                            encoded_activation_payload,
                             aux=act_retrieval_aux,
                         )
 
@@ -357,7 +361,9 @@ class OPT(AbstractModel):
                             ):
                                 raise ValueError(
                                     "the remaining args are not the same, currently {}, but want {} with key {}".format(
-                                        unique_dict, ro[key], key,
+                                        unique_dict,
+                                        ro[key],
+                                        key,
                                     )
                                 )
 
@@ -393,19 +399,19 @@ class OPT(AbstractModel):
                     activation_dict = {}
 
                     try:
-                        desired_module_activations = request_object.pop(
-                            "desired_module_activations", None
+                        encoded_activation_payload = request_object.pop(
+                            "encoded_activation_payload", None
                         )
 
                         act_retrieval_aux = request_object.pop("_aux", None)
 
-                        if desired_module_activations:
+                        if encoded_activation_payload:
                             (
                                 hook_dict,
                                 activation_dict,
                             ) = get_activation_capture_hook_dict(
                                 generator.models[0],
-                                desired_module_activations,
+                                encoded_activation_payload,
                                 aux=act_retrieval_aux,
                             )
 
@@ -453,7 +459,8 @@ class OPT(AbstractModel):
                                     val = v[i, 1 : num_real_tokens + 1].clone()
 
                                 ret_dict[k] = codecs.encode(
-                                    pickle.dumps(val), "base64",
+                                    pickle.dumps(val),
+                                    "base64",
                                 ).decode("utf-8")
 
                             gen[0]["activations"] = ret_dict
