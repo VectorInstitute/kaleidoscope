@@ -7,6 +7,7 @@ import uuid
 from flask import current_app
 from sqlalchemy.dialects.postgresql import UUID
 
+from config import Config
 from errors import InvalidStateError
 from db import db, BaseMixin
 from services import model_service_client
@@ -72,12 +73,21 @@ class PendingState(ModelInstanceState):
         try:
             # ToDo: set job id params here
             model_service_client.launch(
-                self._model_instance.id, self._model_instance.name, "/models/gpt2"
+                self._model_instance.id, self._model_instance.name, "/scratch/models/gpt2"
             )
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:
             current_app.logger.error(f"Job launch failed: {err}")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
+
+    def register(self, host: str):
+        # Only the Python job scheduler can register models in pending state
+        # since launching happens immediately
+        if Config.JOB_SCHEDULER == "python":
+            self._model_instance.host = host
+            self._model_instance.transition_to_state(ModelInstanceStates.LOADING)
+        else:
+            raise InvalidStateError(self)
 
     def is_healthy(self):
         is_healthy = model_service_client.verify_job_health(self._model_instance.id)

@@ -1,7 +1,8 @@
+#!/usr/bin/env python3
 import argparse
 import pathlib
 import subprocess
-import torch
+import sys
 
 from config import *
 
@@ -26,18 +27,18 @@ def main():
             return
 
         try:
-            scheduler_output = subprocess.check_output(f"python3 /model_service/model_service.py --model_type {args.model_type} --model_path {args.model_path} --model_instance_id {args.model_instance_id}", shell=True).decode('utf-8')
-            print(f"Result: {scheduler_output}")
+            process = subprocess.Popen(['python3', f'{cwd}/model_service.py', '--model_type', f'{args.model_type}', '--model_path', f'{args.model_path}', '--model_instance_id', f'{args.model_instance_id}'], start_new_session=True)
+            print(f"Started model service under PID {process.pid}")
         except Exception as err:
             print(f"Job scheduler failed: {err}")
 
     elif args.action == "get_status":
         try:
-            status_output = subprocess.check_output(f"squeue --noheader --name {args.model_instance_id}", shell=True).decode('utf-8')
+            status_output = subprocess.check_output(f"ps aux | grep model_service | grep -v grep", shell=True).decode('utf-8')
             print(f"{status_output}")
         except Exception as err:
             print(f"Job status failed: {err}")
-    
+
 
 if __name__ == "__main__":
     main()

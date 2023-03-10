@@ -9,13 +9,10 @@ services:
     command: gateway_service.py
     env_file:
       - .env
-    ports:
-      - 3001:3001
+    network_mode: "host"
     volumes:
-      - /h/llm/.ssh:/root/.ssh
+      - ~/.ssh:/root/.ssh
       - .:/app
-      - ../model_service:/model_service
-      - /scratch/models/gpt2:/models/gpt2
   web-worker:
     depends_on:
       - "db"

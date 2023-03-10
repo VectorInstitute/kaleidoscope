@@ -8,12 +8,10 @@ services:
     command: gateway_service.py
     env_file:
       - .env
-    ports:
-      - 4001:4001
+    network_mode: "host"
     volumes:
       - ~/.ssh:/root/.ssh
       - .:/app
-      - ../model_service:/model_service
   web-worker:
     depends_on:
       - "db"
