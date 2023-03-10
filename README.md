@@ -1,18 +1,15 @@
 # Lingua
-A user toolkit for analyzing and interfacing with Large Language Models (LLMs)
+![PyPI](https://img.shields.io/pypi/v/pylingua)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pylingua)
+![GitHub](https://img.shields.io/github/license/VectorInstitute/lingua)
+![DOI](https://img.shields.io/badge/DOI-in--progress-blue)
+[![Documentation](https://img.shields.io/badge/api-reference-lightgrey.svg)](https://lingua-sdk.readthedocs.io/en/latest/)
 
-<!--
-[![PyPI]()]()
-[![code checks]()]()
-[![integration tests]()]()
-[![docs]()]()
-[![codecov]()
-[![license]()]()
--->
+A user toolkit for analyzing and interfacing with Large Language Models (LLMs)
 
 ## Overview
 
-``lingua`` provides a few high-level APIs namely:
+``lingua`` provides a few high-level APIs, namely:
 
 * `generate_text` - Returns an LLM text generation based on prompt input
 * `module_names` - Returns all modules in the LLM neural network
@@ -44,11 +41,11 @@ interface for interfacing with the services found here. You can download and
 install the SDK from its own repository:
 https://github.com/VectorInstitute/lingua-sdk
 
-## [Documentation](https://vectorinstitute.github.io/lingua/)
-More information can be found on the Lingua documentation site.
+## Documentation
+Full documentation and API reference are available at: http://lingua-sdk.readthedocs.io.
 
 ## Contributing
-Contributing to lingua is welcomed. See [Contributing](https://github.com/VectorInstitute/lingua/blob/main/doc/CONTRIBUTING.md) for
+Contributing to lingua is welcomed. See [Contributing](CONTRIBUTING) for
 guidelines.
 
 ## License
