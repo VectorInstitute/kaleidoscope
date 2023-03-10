@@ -11,15 +11,17 @@ A user toolkit for analyzing and interfacing with Large Language Models (LLMs)
 
 ``lingua`` provides a few high-level APIs, namely:
 
-* `generate_text` - Returns an LLM text generation based on prompt input
-* `module_names` - Returns all modules in the LLM neural network
-* `instances` - Returns all active LLMs instantiated by the model service
+* `model_instances` - Shows a list of all active LLMs instantiated by the model service
+* `load_model` - Loads an LLM via the model service
+* `generate` - Returns an LLM text generation based on prompt input
+* `module_names` - Returns all modules names in the LLM neural network
+* `get_activations` - Retrieves all activations for a set of modules
 
 ``lingua`` is composed of the following components:
 
-* Python SDK - A command line tool wrapping the gateway service API endpoints
-* Web service - A front-end web application tool sending requests to the gateway service
-* Model service - A backend utility that loads models into GPU memory and exposes an interface to recieve requests
+* Python SDK - A frontend Python library for interacting with LLMs, available in a separate repository at https://github.com/VectorInstitute/lingua-sdk
+* Model Service - A backend utility that loads models into GPU memory and exposes an interface to recieve requests
+* Gateway Service - A controller service that interfaces between the frontend user tools and model service
 
 
 ## Getting Started
@@ -30,9 +32,10 @@ Instructions for setting up gateway service.
 git clone https://github.com/VectorInstitute/lingua.git
 ```
 
-### Start app
+### Start gateway container
 ```bash
-sudo docker compose -f lingua/docker-compose.yaml up
+cp lingua/web/.env-example lingua/web/.env
+sudo docker compose -f lingua/web/docker-compose.yaml up
 ```
 
 ### Install Lingua SDK Toolkit
@@ -40,9 +43,6 @@ The Lingua SDK toolkit is a Python module that provides a programmatic
 interface for interfacing with the services found here. You can download and
 install the SDK from its own repository:
 https://github.com/VectorInstitute/lingua-sdk
-
-## Documentation
-Full documentation and API reference are available at: http://lingua-sdk.readthedocs.io.
 
 ## Contributing
 Contributing to lingua is welcomed. See [Contributing](CONTRIBUTING) for

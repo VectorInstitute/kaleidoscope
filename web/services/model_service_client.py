@@ -32,10 +32,7 @@ def generate(
 
     response = requests.post(f"http://{host}/generate", json=body)
 
-    current_app.logger.info(response)
-
     response_body = response.json()
-    current_app.logger.info(response_body)
     return response_body
 
 def generate_activations(
@@ -54,10 +51,7 @@ def generate_activations(
 
     response = requests.post(f"http://{host}/get_activations", json=body)
 
-    current_app.logger.info(response)
-
     response_body = response.json()
-    current_app.logger.info(response_body)
     return response_body
 
 
