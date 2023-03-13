@@ -23,7 +23,12 @@ def authenticate():
         ldapsearch_cmd = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} getent group llm_user | grep {auth_params['username']}"
         subprocess.check_output(ldapsearch_cmd, shell=True)
     except subprocess.CalledProcessError:
-        return make_response({"msg": f"User {auth_params['username']} not a member of the llm_user group "}, 403)
+        return make_response(
+            {
+                "msg": f"User {auth_params['username']} not a member of the llm_user group "
+            },
+            403,
+        )
 
     if ldapAuthResponse.status == AuthenticationResponseStatus.success:
         access_token = create_access_token(identity=auth_params["username"])

@@ -1,4 +1,4 @@
-# Contributing to lingua
+# Contributing to kaleidoscope
 We want to make contributing to this project as easy and transparent as possible, whether it's:
 
 - Reporting a bug
@@ -14,9 +14,9 @@ Pull requests are the best way to propose changes to the codebase
 - CI/CD coming soon.
 
 ## Any contributions you make will be under the MIT Software License
-In short, when you submit code changes, your submissions are understood to be under the same [MIT License](https://github.com/VectorInstitute/lingua/blob/main/LICENSE) that covers the project. Feel free to contact the maintainers if that's a concern.
+In short, when you submit code changes, your submissions are understood to be under the same [MIT License](https://github.com/VectorInstitute/kaleidoscope/blob/main/LICENSE) that covers the project. Feel free to contact the maintainers if that's a concern.
 
-## Report bugs using Github's [issues](https://github.com/VectorInstitute/lingua/issues)
+## Report bugs using Github's [issues](https://github.com/VectorInstitute/kaleidoscope/issues)
 We use GitHub issues to track public bugs. Report a bug by [opening a new issue](); it's that easy!
 
 ## Write bug reports with detail, background, and sample code

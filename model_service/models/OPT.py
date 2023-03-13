@@ -170,11 +170,10 @@ class OPT(AbstractModel):
                 raise generations
             results += generations
 
-        # Ensure output format is consistent with other lingua models
-        # UPDATE 01-03-23: Return all results instead of just the first one - 
-        # DOUBT: Risk of combining separate requests? 
-        response = {k: [] for k in \
-                    ["text", "tokens", "logprobs", "activations"]}
+        # Ensure output format is consistent with other kaleidoscope models
+        # UPDATE 01-03-23: Return all results instead of just the first one -
+        # DOUBT: Risk of combining separate requests?
+        response = {k: [] for k in ["text", "tokens", "logprobs", "activations"]}
         for result in results:
             response["text"].append(result["text"])
             response["tokens"].append(result["tokens"])
