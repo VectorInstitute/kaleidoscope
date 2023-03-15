@@ -1,18 +1,15 @@
 # Lingua
-A user toolkit for analyzing and interfacing with Large Language Models (LLMs)
+![PyPI](https://img.shields.io/pypi/v/pylingua)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pylingua)
+![GitHub](https://img.shields.io/github/license/VectorInstitute/lingua)
+![DOI](https://img.shields.io/badge/DOI-in--progress-blue)
+[![Documentation](https://img.shields.io/badge/api-reference-lightgrey.svg)](https://lingua-sdk.readthedocs.io/en/latest/)
 
-<!--
-[![PyPI]()]()
-[![code checks]()]()
-[![integration tests]()]()
-[![docs]()]()
-[![codecov]()
-[![license]()]()
--->
+A user toolkit for analyzing and interfacing with Large Language Models (LLMs)
 
 ## Overview
 
-``lingua`` provides a few high-level APIs namely:
+``lingua`` provides a few high-level APIs, namely:
 
 * `model_instances` - Shows a list of all active LLMs instantiated by the model service
 * `load_model` - Loads an LLM via the model service
@@ -47,15 +44,12 @@ interface for interfacing with the services found here. You can download and
 install the SDK from its own repository:
 https://github.com/VectorInstitute/lingua-sdk
 
-
 ## Contributing
-Contributing to lingua is welcomed. See [Contributing](https://github.com/VectorInstitute/lingua/blob/main/doc/CONTRIBUTING.md) for
+Contributing to lingua is welcomed. See [Contributing](CONTRIBUTING) for
 guidelines.
-
 
 ## License
 [MIT](LICENSE)
-
 
 ## Citation
 Reference to cite when you use Lingua in a project or a research paper:
