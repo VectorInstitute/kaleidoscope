@@ -77,7 +77,7 @@ class PendingState(ModelInstanceState):
             )
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:
-            current_app.logger.error(f"Job launch failed: {err}")
+            current_app.logger.error(f"Job launch for {self._model_instance.name} failed: {err}")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
 
     def register(self, host: str):
@@ -92,6 +92,7 @@ class PendingState(ModelInstanceState):
     def is_healthy(self):
         is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
+            current_app.logger.error(f"Health check for pending model {self._model_instance.name} failed")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 
@@ -107,6 +108,7 @@ class LaunchingState(ModelInstanceState):
     def is_healthy(self):
         is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
+            current_app.logger.error(f"Health check for launching model {self._model_instance.name} failed")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 
@@ -126,6 +128,7 @@ class LoadingState(ModelInstanceState):
     def is_healthy(self):
         is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
+            current_app.logger.error(f"Health check for loading model {self._model_instance.name} failed")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 
@@ -136,7 +139,6 @@ class LoadingState(ModelInstanceState):
 class ActiveState(ModelInstanceState):
 
     def generate(self, username, prompts, generation_config):
-
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
@@ -180,6 +182,7 @@ class ActiveState(ModelInstanceState):
     def is_healthy(self):
         is_healthy = model_service_client.verify_model_health(self._model_instance.host)
         if not is_healthy:
+            current_app.logger.error(f"Health check for active model {self._model_instance.name} failed")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 

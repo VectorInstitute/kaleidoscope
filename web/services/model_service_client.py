@@ -33,11 +33,11 @@ def generate(
     host: str, generation_id: int, prompts: List[str],  generation_config: Dict
 ) -> Dict:
     
-    current_app.logger.info("generating")
+    current_app.logger.info(f"Sending generation request to http://{host}/generate")
 
     body = {"prompt": prompts, **generation_config}
 
-    current_app.logger.info(f"body {body}")
+    current_app.logger.info(f"Generation request body: {body}")
 
     response = requests.post(f"http://{host}/generate", json=body)
 
@@ -89,9 +89,9 @@ def verify_model_health(host: str) -> bool:
 def verify_job_health(model_instance_id: str) -> bool:
     try:
         ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
-        #print(f"Get status SSH command: {ssh_command}")
+        #current_app.logger.info(f"Get job health SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        #print(f"SSH get status output: [{ssh_output}]")
+        #current_app.logger.info(f"SSH get job health output: [{ssh_output}]")
 
         # If we didn't get any output from SSH, the job doesn't exist
         if not ssh_output.strip(' \n'):

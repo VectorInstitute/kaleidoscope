@@ -34,10 +34,12 @@ def main():
 
     elif args.action == "get_status":
         try:
-            status_output = subprocess.check_output(f"ps aux | grep model_service | grep -v grep", shell=True).decode('utf-8')
+            # TODO: Find a better way to determine if the model_service process is active
+            status_output = subprocess.check_output(f"ps aux | grep model_service | grep -v get_status | grep -v grep", shell=True).decode('utf-8')
             print(f"{status_output}")
         except Exception as err:
-            print(f"Job status failed: {err}")
+            # If the command fails, don't send any response, this will indicate failure
+            pass
 
 
 if __name__ == "__main__":

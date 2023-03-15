@@ -22,6 +22,7 @@ services:
     image: gateway:latest
     entrypoint: celery
     command: -A gateway_service.celery worker -B
+    network_mode: "host"
     volumes:
       - ~/.ssh:/root/.ssh
       - .:/app
