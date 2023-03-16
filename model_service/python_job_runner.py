@@ -35,7 +35,7 @@ def main():
     elif args.action == "get_status":
         try:
             # TODO: Find a better way to determine if the model_service process is active
-            status_output = subprocess.check_output(f"ps aux | grep model_service | grep -v get_status | grep -v grep", shell=True).decode('utf-8')
+            status_output = subprocess.check_output(f"ps aux | grep {args.model_instance_id} | grep -v get_status | grep -v grep", shell=True).decode('utf-8')
             print(f"{status_output}")
         except Exception as err:
             # If the command fails, don't send any response, this will indicate failure
