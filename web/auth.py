@@ -21,7 +21,12 @@ def authenticate():
         ldapsearch_cmd = f"""ldapsearch -x -b "cn=llm_user,ou=Group,dc=vector,dc=local" -H ldap://{Config.LDAP_HOST} | grep {auth_params['username']}"""
         subprocess.check_output(ldapsearch_cmd, shell=True)
     except subprocess.CalledProcessError:
-        return make_response({"msg": f"User {auth_params['username']} not a member of the llm_user group "}, 403)
+        return make_response(
+            {
+                "msg": f"User {auth_params['username']} not a member of the llm_user group "
+            },
+            403,
+        )
 
     ldapAuthResponse = current_app.ldap3_login_manager.authenticate_direct_credentials(
         auth_params["username"], auth_params["password"]

@@ -1,5 +1,5 @@
 version: '3.8'
-name: 'lingua'
+name: 'kaleidoscope'
 services:
   web:
     depends_on:
