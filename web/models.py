@@ -206,6 +206,8 @@ class ModelInstance(BaseMixin, db.Model):
     generations = db.relationship(
         "ModelInstanceGeneration", backref="model_instance", lazy=True
     )
+    created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
+    updated_at = db.Column(db.TIMESTAMP, server_default=db.func.now(), onupdate=db.func.current_timestamp())
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -310,6 +312,8 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
         UUID(as_uuid=True), db.ForeignKey("model_instance.id")
     )
     username = db.Column(db.String)
+    created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
+    updated_at = db.Column(db.TIMESTAMP, server_default=db.func.now(), onupdate=db.func.current_timestamp())
 
     def serialize(self):
         return {
