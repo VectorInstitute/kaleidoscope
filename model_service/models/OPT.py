@@ -183,6 +183,112 @@ class OPT(AbstractModel):
 
         return response
 
+
+    def batch_generate(self, input_path):
+        # read input prompts file
+        # TODO: convert to separate read_file function with support for different file types?
+        # TODO: add support to read multiple files
+        with open(os.path.join(input_path, "prompts.txt"), "r") as f:
+            prompts = f.readlines()
+        # read generation config
+        with open(os.path.join(input_path, "config.json"), "r") as f:
+            generation_args = json.load(f)
+        assert isinstance(prompts, list)
+        
+        print(f"Prompts: {prompts}")
+        print(f"Config: {generation_args}")
+
+        # tokenize prompts
+        # TODO - can be tensorized?
+        prompts = [encode_fn(generator, p) for p in prompts]
+        
+        if "min_tokens" in generation_args:
+            generation_args["min_tokens"] = int(generation_args["min_tokens"])
+        if "max_tokens" in generation_args:
+            generation_args["max_tokens"] = int(generation_args["max_tokens"])
+        else:
+            generation_args["max_tokens"] = 32
+
+        if "stop" in generation_args:
+            stop = generation_args["stop"]
+            if stop is None:
+                pass
+            elif isinstance(stop, str):
+                stop = [encode_fn(generator, stop)[0]]
+            else:
+                stop = [encode_fn(generator, s)[0] for s in stop]
+            generation_args["stop"] = stop
+
+        if "temperature" in generation_args:
+            generation_args["temperature"] = round(
+                float(generation_args["temperature"]), 1
+            )
+        else:
+            generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
+
+        if "top-p" in generation_args:
+            generation_args["top_p"] = round(float(generation_args["top-p"]), 1)
+        else:
+            generation_args["top_p"] = UNBATCHED_ARG_DICT["top_p"]
+
+        # beam search top n
+        if "n" in generation_args:
+            generation_args["n"] = min(MAX_BEAM, max(1, int(generation_args["n"])))
+        else:
+            generation_args["n"] = UNBATCHED_ARG_DICT["n"]
+
+        
+        def truncate_prompt(prompt, gen_len):
+            if gen_len + len(prompt) + 1 > MAX_SEQ_LEN:
+                # cut off the prompt to always fit with number of generations we need
+                # +1 to always have the EOS token
+                return prompt[-(MAX_SEQ_LEN - gen_len - 1) :]
+            else:
+                return prompt
+
+        gen_len = generation_args.get("max_tokens", 0)
+        prompts = [truncate_prompt(prompt, gen_len) for prompt in prompts]
+        
+        # TODO - possible to send in batches?
+        request_object = {
+            "inputs": prompts,
+            "min_tokens": generation_args.get("min_tokens", 0),
+            "max_tokens": generation_args.get("max_tokens", MAX_SEQ_LEN),
+        }
+        # WARNING: seed will not be deterministic when we batch
+        # TODO: do we include the seed or not? we can't guarantee the correctness of this parameter anyway
+        # if "seed" not in request_object:
+        request_object["seed"] = random.randint(0, 20000)
+
+        if torch.distributed.get_rank() == 0:
+            logger.info("request object {}".format(request_object))
+
+        if torch.distributed.is_initialized():
+            distributed_utils.broadcast_object(
+                request_object,
+                src_rank=0,
+                group=distributed_utils.get_global_group(),
+            )
+
+        try:
+            generations = generator.generate(**request_object)
+            print(generations)
+        except RuntimeError:
+            # Probably cuda died. Unfortunately, we need to hard crash
+            # here to kick in our self-healing mechanisms.
+            raise
+        except BaseException as e:
+            # propagate any exceptions to the response so we can report it
+            generations = [e] * len(batch)
+        
+        # write results to output file
+        if not isinstance(generations[0], Exception):
+            with open(os.path.join(input_path, "generations.txt"), "w") as f:
+                for generation in generations:
+                    f.write(f"{generation}\n")
+        else:
+            raise generations[0]
+
     def get_activations(self, request):
 
         request.json["encoded_activation_payload"] = request.json["module_names"]
