@@ -2,6 +2,7 @@ import requests
 from flask import Blueprint, request, current_app, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
+from config import Config
 from db import db
 import tasks
 from models import MODEL_CONFIG, ModelInstance
@@ -89,11 +90,14 @@ async def model_instance_generate(model_instance_id: str):
     current_app.logger.info(f"prompts {prompts}")
 
     current_app.logger.info(f"generation config: {generation_config}")
+    
+    if len(prompts) > Config.BATCH_REQUEST_LIMIT:
+        return jsonify(message=f"Request batch size of {len(prompts)} exceeds prescribed limit of {Config.BATCH_REQUEST_LIMIT}"), 400
+    else:
+        model_instance = ModelInstance.find_by_id(model_instance_id)
+        generation = model_instance.generate(username, prompts, generation_config)
 
-    model_instance = ModelInstance.find_by_id(model_instance_id)
-    generation = model_instance.generate(username, prompts, generation_config)
-
-    return jsonify(generation.serialize()), 200
+        return jsonify(generation.serialize()), 200
 
 
 @model_instances_bp.route("instances/<model_instance_id>/module_names", methods=["GET"])

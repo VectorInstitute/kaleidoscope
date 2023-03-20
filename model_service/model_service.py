@@ -5,7 +5,6 @@ import signal
 import socket
 import sys
 import torch
-import urllib
 import os
 
 from flask import Flask, request, jsonify
@@ -36,14 +35,8 @@ def module_names():
 
 @service.route("/generate", methods=["POST"])
 def generate_text():
-    batch_limit = 8
-    batch_request_size = len(request.json["prompt"])
-    if batch_request_size > batch_limit:
-        # Limit number of prompts in batch request
-        raise urllib.error.HTTPError(400, f"Current request batch size of {batch_request_size} exceeds the prescribed limit of {batch_limit}.")
-    else:
-        result = model.generate(request)
-        return result
+    result = model.generate(request)
+    return result
 
 
 @service.route("/get_activations", methods=["POST"])
