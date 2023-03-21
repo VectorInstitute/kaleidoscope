@@ -1,5 +1,6 @@
 import argparse
 import codecs
+import json
 import logging
 import numpy as np
 import os
@@ -36,6 +37,7 @@ from metaseq.service.utils import get_my_ip, encode_fn, build_logger
 from metaseq.service.responses import OAIResponse
 
 from utils.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
+from utils.io_utils import read_txt, read_json, write_txt 
 
 # global state (mutable!)
 cfg = None
@@ -186,14 +188,11 @@ class OPT(AbstractModel):
 
     def batch_generate(self, input_path):
         # read input prompts file
-        # TODO: convert to separate read_file function with support for different file types?
         # TODO: add support to read multiple files
-        with open(os.path.join(input_path, "prompts.txt"), "r") as f:
-            prompts = f.readlines()
-        # read generation config
-        with open(os.path.join(input_path, "config.json"), "r") as f:
-            generation_args = json.load(f)
+        prompts = read_txt(os.path.join(input_path, "prompts.txt"))
         assert isinstance(prompts, list)
+        # read generation config
+        generation_args = read_json(os.path.join(input_path, "config.json"))
         
         print(f"Prompts: {prompts}")
         print(f"Config: {generation_args}")
@@ -250,10 +249,11 @@ class OPT(AbstractModel):
         prompts = [truncate_prompt(prompt, gen_len) for prompt in prompts]
         
         # TODO - possible to send in batches?
+        batch_size = len(prompts)
         request_object = {
             "inputs": prompts,
-            "min_tokens": generation_args.get("min_tokens", 0),
-            "max_tokens": generation_args.get("max_tokens", MAX_SEQ_LEN),
+            "min_tokens": [generation_args.get("min_tokens", 0)]*batch_size,
+            "max_tokens": [generation_args.get("max_tokens", MAX_SEQ_LEN)]*batch_size,
         }
         # WARNING: seed will not be deterministic when we batch
         # TODO: do we include the seed or not? we can't guarantee the correctness of this parameter anyway
@@ -279,13 +279,11 @@ class OPT(AbstractModel):
             raise
         except BaseException as e:
             # propagate any exceptions to the response so we can report it
-            generations = [e] * len(batch)
+            generations = [e] * batch_size
         
         # write results to output file
         if not isinstance(generations[0], Exception):
-            with open(os.path.join(input_path, "generations.txt"), "w") as f:
-                for generation in generations:
-                    f.write(f"{generation}\n")
+            write_txt(generations, os.path.join(input_path, "generations.txt"))
         else:
             raise generations[0]
 
