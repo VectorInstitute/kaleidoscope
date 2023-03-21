@@ -33,9 +33,9 @@
       "length": 128,
       "temperature": 1,
       "top-p": 0.9,
-      "top-k": 0.0,
-      "repetition-penalty": 1.0,
-      "num-return-sequences": 1
+      <!-- "top-k": 0.0, -->
+      <!-- "repetition-penalty": 1.0, -->
+      <!-- "num-return-sequences": 1 -->
     }
   };
 
@@ -48,10 +48,10 @@
       $("#temperature-value").val(EXAMPLES[name]["temperature"]);
       $("#top-p-select").val(EXAMPLES[name]["top-p"]);
       $("#topp-value").val(EXAMPLES[name]["top-p"]);
-      $("#top-k-select").val(EXAMPLES[name]["top-k"]);
-      $("#repetition-penalty-select").val(EXAMPLES[name]["repetition-penalty"]);
-      $("#repetition-penalty-value").val(EXAMPLES[name]["repetition-penalty"]);
-      $("#num-return-sequence-select").val(EXAMPLES[name]["num-return-sequences"]);
+      <!-- $("#top-k-select").val(EXAMPLES[name]["top-k"]); -->
+      <!-- $("#repetition-penalty-select").val(EXAMPLES[name]["repetition-penalty"]); -->
+      <!-- $("#repetition-penalty-value").val(EXAMPLES[name]["repetition-penalty"]); -->
+      <!-- $("#num-return-sequence-select").val(EXAMPLES[name]["num-return-sequences"]); -->
     }
     else {
       $("#response-length-select").val(EXAMPLES[name]["length"]);
@@ -396,20 +396,20 @@
             <input type="range" class="form-control-range" id="top-p-select" value=0.9 name="top-p" placeholder=0.9 max=1 step=0.01
               min=0 oninput="updateScrollValue(this.value, 'topp-value');">
           </div>
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label for="top-k-select">Top-K</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Top-K"
             data-placement="top"
             data-content="An integer to define the top tokens considered within the sample operation to create new text"></i>
             <input type="number" class="form-control" id="top-k-select" value=0 name="top-k" placeholder=1 max=100
               step=1 min=0>
-          </div>
+          </div> -->
           <div class="form-group">
             <label for="stop-sequences">Stop Sequence</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Stop-Sequences"
             data-placement="top"
             data-content="Words or sequences that will prevent the API from generating further"></i>
             <input type="text" class="form-control" id="stop-sequence-value" name="stop_token" placeholder="Enter stop sequence">
           </div>
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label for="repetition-penalty-select">Repetition Penalty</label><i class="bi bi-info-circle small col"  tabindex="0" data-toggle="popover" data-trigger="hover" title="Repetition Penalty"
             data-placement="top"
             data-content="The more frequently a token is used within text generation the more it is penalized to not be picked in successive generation passes."></i>
@@ -425,7 +425,7 @@
             data-content="An integer to define the proposition that is desired to be returned."></i>
             <input type="number" class="form-control" id="num-return-sequence-select" value=1 name="num_return_sequences"
               placeholder=1 step=1 min=0>
-          </div>
+          </div> -->
           <div class="form-group">
             <label for="module-name-select">Module Name</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Module Names"
             data-placement="top"
