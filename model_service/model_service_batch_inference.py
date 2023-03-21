@@ -121,14 +121,14 @@ def main():
     model_type = args.model_type
     input_path = args.input_path
 
-    # Determine the IP address for the head node of this model
-    master_addr = os.environ["MASTER_ADDR"]
-    model_host = f"{master_addr}:8888"
-    # Models that only run on a single node should advertise their IP address instead of "localhost"
-    if master_addr == "localhost":
-        hostname = socket.gethostname()
-        ip_addr = socket.gethostbyname(hostname)
-        model_host = f"{ip_addr}:8888"
+    ## Determine the IP address for the head node of this model
+    #master_addr = os.environ["MASTER_ADDR"]
+    #model_host = f"{master_addr}:8888"
+    ## Models that only run on a single node should advertise their IP address instead of "localhost"
+    #if master_addr == "localhost":
+    #    hostname = socket.gethostname()
+    #    ip_addr = socket.gethostbyname(hostname)
+    #    model_host = f"{ip_addr}:8888"
 
     #register_model_instance(model_instance_id, model_host)
 

@@ -37,7 +37,7 @@ from metaseq.service.utils import get_my_ip, encode_fn, build_logger
 from metaseq.service.responses import OAIResponse
 
 from utils.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
-from utils.io_utils import read_txt, read_json, write_txt 
+from utils.io_utils import read_txt, read_json, write_txt, read_jsonl, write_jsonl 
 
 # global state (mutable!)
 cfg = None
@@ -189,7 +189,10 @@ class OPT(AbstractModel):
     def batch_generate(self, input_path):
         # read input prompts file
         # TODO: add support to read multiple files
-        prompts = read_txt(os.path.join(input_path, "prompts.txt"))
+        #prompts = read_txt(os.path.join(input_path, "prompts.txt"))
+        prompts = read_jsonl(os.path.join(input_path, "prompts.jsonl"))
+        id_list = [elm["id"] for elm in prompts]
+        prompts = [elm["prompt"] for elm in prompts]
         assert isinstance(prompts, list)
         # read generation config
         generation_args = read_json(os.path.join(input_path, "config.json"))
@@ -283,7 +286,13 @@ class OPT(AbstractModel):
         
         # write results to output file
         if not isinstance(generations[0], Exception):
-            write_txt(generations, os.path.join(input_path, "generations.txt"))
+            final_generations = []
+            for id, gen in zip(id_list, generations):
+                gen_obj = {"id": id}
+                gen_obj.update(gen[0])
+                final_generations.append(gen_obj)
+            write_jsonl(final_generations, os.path.join(input_path, "generations.jsonl"))
+            #write_txt(generations, os.path.join(input_path, "generations.txt"))
         else:
             raise generations[0]
 
@@ -324,7 +333,7 @@ class OPT(AbstractModel):
         request_object = distributed_utils.broadcast_object(
             None, src_rank=0, group=distributed_utils.get_global_group()
         )
-
+        
         if torch.distributed.get_rank() == 0:
             logger.info(f"Worker engaged! {get_my_ip()}")
             thread = threading.Thread(target=self.batching_loop, daemon=True)
