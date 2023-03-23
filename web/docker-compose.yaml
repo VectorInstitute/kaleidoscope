@@ -39,4 +39,4 @@ services:
 
 volumes:
   postgres_data:
-    name: lingua_postgres_data
+    name: kaleidoscope_postgres_data

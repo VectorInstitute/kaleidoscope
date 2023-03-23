@@ -36,4 +36,4 @@ services:
 
 volumes:
   postgres_data:
-    name: lingua-staging_postgres_data_staging
+    name: kaleidoscope-staging_postgres_data_staging
