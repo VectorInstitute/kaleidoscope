@@ -15,15 +15,22 @@ auth = Blueprint("auth", __name__)
 def authenticate():
 
     auth_params = request.authorization
+
+    # Before authenticating, verify that user is a member of the llm_user group
+    try:
+        ldapsearch_cmd = f"""ldapsearch -x -b "cn=llm_user,ou=Group,dc=vector,dc=local" -H ldap://{Config.LDAP_HOST} | grep {auth_params['username']}"""
+        subprocess.check_output(ldapsearch_cmd, shell=True)
+    except subprocess.CalledProcessError:
+        return make_response(
+            {
+                "msg": f"User {auth_params['username']} not a member of the llm_user group "
+            },
+            403,
+        )
+
     ldapAuthResponse = current_app.ldap3_login_manager.authenticate_direct_credentials(
         auth_params["username"], auth_params["password"]
     )
-
-    try:
-        ldapsearch_cmd = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} getent group llm_user | grep {auth_params['username']}"
-        subprocess.check_output(ldapsearch_cmd, shell=True)
-    except subprocess.CalledProcessError:
-        return make_response({"msg": f"User {auth_params['username']} not a member of the llm_user group "}, 403)
 
     if ldapAuthResponse.status == AuthenticationResponseStatus.success:
         access_token = create_access_token(identity=auth_params["username"])

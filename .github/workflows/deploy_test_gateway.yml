@@ -1,4 +1,4 @@
-name: Deploy and test the Lingua gateway
+name: Deploy and test the Kaleidoscope gateway
 run-name: ${{ github.actor }} is testing GitHub Actions
 on: [push, pull_request]
 

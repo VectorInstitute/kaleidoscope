@@ -138,22 +138,21 @@ class LoadingState(ModelInstanceState):
 
 
 class ActiveState(ModelInstanceState):
-
     def generate(self, username, prompts, generation_config):
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
         )
         model_instance_generation.prompts = prompts
-        
+
         current_app.logger.info(model_instance_generation)
 
         # ToDo - add and save response to generation object in db
         generation_response = model_service_client.generate(
-            self._model_instance.host, 
-            model_instance_generation.id, 
+            self._model_instance.host,
+            model_instance_generation.id,
             prompts,
-            generation_config
+            generation_config,
         )
         model_instance_generation.generation = generation_response
         return model_instance_generation
@@ -171,8 +170,8 @@ class ActiveState(ModelInstanceState):
         current_app.logger.info(model_instance_generation)
 
         activations_response = model_service_client.generate_activations(
-            self._model_instance.host, 
-            model_instance_generation.id, 
+            self._model_instance.host,
+            model_instance_generation.id,
             prompts,
             module_names,
             generation_config,
@@ -227,6 +226,10 @@ class ModelInstance(BaseMixin, db.Model):
     host = db.Column(db.String)
     generations = db.relationship(
         "ModelInstanceGeneration", backref="model_instance", lazy=True
+    )
+    created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
+    updated_at = db.Column(
+        db.TIMESTAMP, server_default=db.func.now(), onupdate=db.func.current_timestamp()
     )
 
     def __init__(self, **kwargs):
@@ -305,10 +308,10 @@ class ModelInstance(BaseMixin, db.Model):
         return self._state.get_module_names()
 
     def generate_activations(
-        self, 
-        username: str, 
-        prompts: List[str], 
-        module_names: List[str], 
+        self,
+        username: str,
+        prompts: List[str],
+        module_names: List[str],
         generation_config: Dict = {},
     ) -> Dict:
         return self._state.generate_activations(
@@ -332,6 +335,10 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
         UUID(as_uuid=True), db.ForeignKey("model_instance.id")
     )
     username = db.Column(db.String)
+    created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
+    updated_at = db.Column(
+        db.TIMESTAMP, server_default=db.func.now(), onupdate=db.func.current_timestamp()
+    )
 
     def serialize(self):
         return {

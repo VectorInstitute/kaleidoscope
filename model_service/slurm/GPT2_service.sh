@@ -11,7 +11,7 @@
 
 $model_path=$1
 
-cd ~/lingua/model_service
+cd ~/kaleidoscope/model_service
 source /opt/lmod/lmod/init/profile
 module load cuda-11.3
 module load python/3.8.0

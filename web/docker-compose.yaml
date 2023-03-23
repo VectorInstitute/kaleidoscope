@@ -1,12 +1,12 @@
 version: '3.8'
-name: 'lingua'
+name: 'kaleidoscope'
 services:
   web:
     depends_on:
       - "db"
     build: .
     image: gateway:latest
-    command: gateway_service.py
+    entrypoint: ./docker-entrypoint.sh
     env_file:
       - .env
     network_mode: "host"
@@ -39,3 +39,4 @@ services:
 
 volumes:
   postgres_data:
+    name: lingua_postgres_data

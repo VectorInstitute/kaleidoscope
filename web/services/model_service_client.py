@@ -30,7 +30,7 @@ def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
 
 
 def generate(
-    host: str, generation_id: int, prompts: List[str],  generation_config: Dict
+    host: str, generation_id: int, prompts: List[str], generation_config: Dict
 ) -> Dict:
     
     current_app.logger.info(f"Sending generation request to http://{host}/generate")
@@ -44,14 +44,15 @@ def generate(
     response_body = response.json()
     return response_body
 
+
 def generate_activations(
-    host: str, 
-    generation_id: int, 
-    prompts: List[str], 
-    module_names: List[str], 
-    generation_config: Dict
+    host: str,
+    generation_id: int,
+    prompts: List[str],
+    module_names: List[str],
+    generation_config: Dict,
 ) -> Dict:
-    
+
     current_app.logger.info("activations")
 
     body = {"prompt": prompts, "module_names": module_names, **generation_config}

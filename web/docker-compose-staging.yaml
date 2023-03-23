@@ -1,11 +1,11 @@
 version: '3.8'
-name: lingua-staging
+name: kaleidoscope-staging
 services:
   web:
     depends_on:
       - "db"
     build: .
-    command: gateway_service.py
+    entrypoint: ./docker-entrypoint.sh
     env_file:
       - .env
     network_mode: "host"
@@ -30,9 +30,10 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=lingua-staging
+      - POSTGRES_DB=kaleidoscope-staging
     ports:
       - 8000:5432
 
 volumes:
   postgres_data:
+    name: lingua-staging_postgres_data_staging

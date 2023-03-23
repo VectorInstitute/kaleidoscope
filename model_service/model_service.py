@@ -92,7 +92,7 @@ def register_model_instance(model_instance_id, model_host):
     )
     try:
         response = requests.post(register_url, json=register_data)
-        # HTTP error codes between 450 and 500 are custom to the lingua gateway
+        # HTTP error codes between 450 and 500 are custom to the kaleidoscope gateway
         if int(response.status_code) >= 450 and int(response.status_code) < 500:
             raise requests.HTTPError(response.content.decode("utf-8"))
     # If we fail to contact the gateway service, print an error but continue running anyway
@@ -174,7 +174,7 @@ def main():
     #  print(f"Registering model with url={register_url}, data={register_data}")
     #  try:
     #      response = requests.post(register_url, json=register_data)
-    #      # HTTP error codes between 450 and 500 are custom to the lingua gateway
+    #      # HTTP error codes between 450 and 500 are custom to the kaleidoscope gateway
     #      if int(response.status_code) >= 450 and int(response.status_code) < 500:
     #          raise requests.HTTPError(response.content.decode("utf-8"))
     #  # If we fail to contact the gateway service, print an error but continue running anyway

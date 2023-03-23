@@ -46,7 +46,7 @@ elif [ "$deploy_version" == "staging" ]; then
 	# Rebuild/restart docker service
 	cd web
 	docker compose --file docker-compose-staging.yaml down
-	docker image rm lingua-staging-web-worker lingua-staging-web
+	docker image rm kaleidoscope-staging-web-worker kaleidoscope-staging-web
 	docker compose --file docker-compose-staging.yaml up
 else
 	echo "Deployment version $deploy_version is not valid. Please specify either staging or production."
