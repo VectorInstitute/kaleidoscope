@@ -3,8 +3,6 @@ import pathlib
 import subprocess
 import torch
 
-from config import *
-
 
 def main():
 

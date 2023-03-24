@@ -75,7 +75,7 @@ def send_remove_request(model_type, gateway_host):
     except requests.ConnectionError as e:
         print(f"Connection error: {e}")
     except:
-        print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
+        print(f"Unknown error contacting gateway service at {gateway_host}")
 
 
 def register_model_instance(model_instance_id, model_host, gateway_host):
