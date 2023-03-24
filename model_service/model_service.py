@@ -159,8 +159,14 @@ def main():
     except:
         master_addr = "localhost"
         print("MASTER_ADDR not set, defaulting to localhost")
-    model_port = 9001
-    model_host = f'{master_addr}:{model_port}'
+
+    # Find an ephemeral port to use for this model service
+    sock = socket.socket()
+    sock.bind(('', 0))
+    model_port = sock.getsockname()[1]
+    sock.close()
+
+    model_host = f"{master_addr}:{model_port}"
 
     # Models that only run on a single node should advertise their IP address instead of "localhost"
     if master_addr == "localhost":
