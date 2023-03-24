@@ -25,6 +25,12 @@ def main():
         elif not args.model_path:
             print("Argument --model_path must be specified to launch a job")
             return
+        elif not args.gateway_host:
+            print("Argument --gateway_host must be specified to launch a job")
+            return
+        elif not args.gateway_port:
+            print("Argument --gateway_port must be specified to launch a job")
+            return
 
         try:
             process = subprocess.Popen(
