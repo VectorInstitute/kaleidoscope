@@ -43,11 +43,17 @@ def write_txt(content, file_name):
             f.write(content)
 
 
-def write_jsonl(content, file_name):
+def write_json(content, file_name):
+    with open(file_name, "w") as f:
+        json_item = json.dumps(content)
+        f.write(json_item)
+
+
+def write_jsonl(content, file_name, mode):
     """
     Writes list of objects to jsonl file.
     """
-    with open(file_name, "w", encoding="utf-8") as f:
+    with open(file_name, mode, encoding="utf-8") as f:
         for item in content:
             json_item = json.dumps(item)
             f.write(f"{json_item}\n")
