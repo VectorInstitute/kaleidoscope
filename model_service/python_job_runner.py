@@ -4,8 +4,6 @@ import pathlib
 import subprocess
 import sys
 
-from config import *
-
 
 def main():
 
@@ -14,6 +12,8 @@ def main():
     parser.add_argument("--model_instance_id", required=True, type=str, help="Model type not supported")
     parser.add_argument("--model_type", type=str, help="Type of model requested")
     parser.add_argument("--model_path", type=str, help="Model type not supported")
+    parser.add_argument("--gateway_host", type=str, help="Hostname of gateway service")
+    parser.add_argument("--gateway_port", type=int, help="Port of gateway service")
     args = parser.parse_args()
 
     cwd = pathlib.Path(__file__).parent.resolve()
@@ -27,7 +27,18 @@ def main():
             return
 
         try:
-            process = subprocess.Popen(['python3', f'{cwd}/model_service.py', '--model_type', f'{args.model_type}', '--model_path', f'{args.model_path}', '--model_instance_id', f'{args.model_instance_id}'], start_new_session=True)
+            process = subprocess.Popen(
+                [
+                    'python3',
+                    f'{cwd}/model_service.py',
+                    '--model_type', f'{args.model_type}',
+                    '--model_path', f'{args.model_path}',
+                    '--model_instance_id', f'{args.model_instance_id}',
+                    '--gateway_host', f'{args.gateway_host}',
+                    '--gateway_port', f'{args.gateway_port}'
+                ],
+                start_new_session=True
+            )
             print(f"Started model service under PID {process.pid}")
         except Exception as err:
             print(f"Job scheduler failed: {err}")
