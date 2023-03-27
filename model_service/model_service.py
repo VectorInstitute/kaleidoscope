@@ -75,7 +75,7 @@ def send_remove_request(model_type, gateway_host):
     except requests.ConnectionError as e:
         print(f"Connection error: {e}")
     except:
-        print(f"Unknown error contacting gateway service at {config.GATEWAY_HOST}")
+        print(f"Unknown error contacting gateway service at {gateway_host}")
 
 
 def register_model_instance(model_instance_id, model_host, gateway_host):
@@ -159,8 +159,14 @@ def main():
     except:
         master_addr = "localhost"
         print("MASTER_ADDR not set, defaulting to localhost")
-    model_port = 9001
-    model_host = f'{master_addr}:{model_port}'
+
+    # Find an ephemeral port to use for this model service
+    sock = socket.socket()
+    sock.bind(('', 0))
+    model_port = sock.getsockname()[1]
+    sock.close()
+
+    model_host = f"{master_addr}:{model_port}"
 
     # Models that only run on a single node should advertise their IP address instead of "localhost"
     if master_addr == "localhost":

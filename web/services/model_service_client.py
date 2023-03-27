@@ -15,10 +15,10 @@ def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
         ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_HOST} --gateway_port {Config.GATEWAY_PORT}"""
         current_app.logger.info(f"Launch SSH command: {ssh_command}")
 
-        # Python job scheduler needs ssh to run in the background
-        if Config.JOB_SCHEDULER == "python":
+        # System job scheduler needs ssh to keep running in the background
+        if Config.JOB_SCHEDULER == "system":
             result = subprocess.Popen(ssh_command, shell=True, close_fds=True)
-            current_app.logger.info(f"SSH launched python job with result {result}")
+            current_app.logger.info(f"SSH launched system job with PID {result.pid}")
         # For all other job schedulers, wait for the ssh command to return
         else:
             ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
@@ -89,10 +89,10 @@ def verify_model_health(host: str) -> bool:
 
 def verify_job_health(model_instance_id: str) -> bool:
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
-        #current_app.logger.info(f"Get job health SSH command: {ssh_command}")
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
+        #print(f"Get job health SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        #current_app.logger.info(f"SSH get job health output: [{ssh_output}]")
+        #print(f"SSH get job health output: [{ssh_output}]")
 
         # If we didn't get any output from SSH, the job doesn't exist
         if not ssh_output.strip(' \n'):
@@ -100,7 +100,7 @@ def verify_job_health(model_instance_id: str) -> bool:
             return False
 
         # For now, assume that any output means the job is healthy
-        current_app.logger.info("The model is healthy")
+        print("The model is healthy")
         return True
     except Exception as err:
         print(f"Failed to issue SSH command to job runner: {err}")

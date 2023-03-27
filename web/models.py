@@ -82,9 +82,9 @@ class PendingState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
 
     def register(self, host: str):
-        # Only the Python job scheduler can register models in pending state
+        # Only the system job scheduler can register models in pending state
         # since launching happens immediately
-        if Config.JOB_SCHEDULER == "python":
+        if Config.JOB_SCHEDULER == "system":
             self._model_instance.host = host
             self._model_instance.transition_to_state(ModelInstanceStates.LOADING)
         else:
