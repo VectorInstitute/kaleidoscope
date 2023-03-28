@@ -53,7 +53,8 @@ class ModelInstanceState(ABC):
         raise InvalidStateError(self)
 
     def shutdown(self):
-        raise InvalidStateError(self)
+        model_service_client.shutdown(self._model_instance.id)
+        self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
     def is_healthy(self):
         raise InvalidStateError(self)
@@ -77,9 +78,6 @@ class PendingState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 
-    def shutdown(self):
-        pass
-
 
 class LaunchingState(ModelInstanceState):
     def register(self, host: str):
@@ -91,9 +89,6 @@ class LaunchingState(ModelInstanceState):
         if not is_healthy:
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
-
-    def shutdown(self):
-        pass
 
 
 class LoadingState(ModelInstanceState):
@@ -111,8 +106,6 @@ class LoadingState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 
-    def shutdown(self):
-        pass
 
 
 class ActiveState(ModelInstanceState):
@@ -164,16 +157,13 @@ class ActiveState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 
-    def shutdown(self):
-        pass
-
 
 class FailedState(ModelInstanceState):
     def is_healthy(self):
         return False
 
     def shutdown(self):
-        pass
+        raise InvalidStateError(self)
 
 
 class CompletedState(ModelInstanceState):
@@ -181,7 +171,7 @@ class CompletedState(ModelInstanceState):
         return True
 
     def shutdown(self):
-        pass
+        raise InvalidStateError(self)
 
 
 class ModelInstanceStates(Enum):
@@ -298,6 +288,9 @@ class ModelInstance(BaseMixin, db.Model):
 
     def is_healthy(self) -> bool:
         return self._state.is_healthy()
+    
+    def last_generation(self):
+        return self.generations[-1]
 
     def serialize(self):
         return {

@@ -30,3 +30,5 @@ class Config(object):
 
     CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]
     CELERY_BACKEND_URL = os.environ["CELERY_BACKEND_URL"]
+
+    MODEL_INSTANCE_TIMEOUT = datetime.timedelta(minutes=1)
