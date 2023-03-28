@@ -30,6 +30,15 @@ def read_jsonl(file_name):
     return content
 
 
+def stream_jsonl(file_name):
+    """
+    Reads objects from jsonl file as a stream.
+    """
+    with open(file_name, "r", encoding="utf-8") as f:
+        for line in f:
+            yield json.loads(line.strip("\n|\r"))
+
+
 def write_txt(content, file_name):
     """
     Writes content to a .txit file. Creates a newline seperated file 

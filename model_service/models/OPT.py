@@ -38,6 +38,7 @@ from metaseq.service.responses import OAIResponse
 
 from utils.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
 from utils.io_utils import read_json, read_jsonl, write_jsonl, write_json
+from utils.data_utils import PromptsDataset
 
 # global state (mutable!)
 cfg = None
@@ -238,95 +239,90 @@ class OPT(AbstractModel):
         # read input prompts file
         # TODO: add support to read multiple files
         # ensure data read order is consistent across runs
-        data = read_jsonl(os.path.join(input_path, "prompts.jsonl"))
-        # TODO - shuffle or sort based on length?
+        batch_size = 37
+        dataset = PromptsDataset(os.path.join(input_path, "prompts.jsonl"))
+        loader = torch.utils.data.DataLoader(dataset, 
+                                             batch_size=batch_size, 
+                                             num_workers=0)
 
-        # naive batching
-        batch_size = 25
-        batch_starts = torch.arange(0, len(data), batch_size).tolist() + [len(data)]
-        print(batch_starts)
-        num_batches = len(batch_starts) - 1
-        
         # read checkpoint file to identify which batch to resume from
         resume_batch = 0
         try:
             chkp_dict = read_json(os.path.join(input_path, "checkpoint.json"))
             if chkp_dict["batch_size"] != batch_size:
                 print("batch size changed between runs, processing data from first batch")
-            elif chkp_dict["batch_processed"] == num_batches - 1:
-                print("all batches already processed, processing data again")
             else:
                 resume_batch = chkp_dict["batch_processed"] + 1
                 print(f"resuming process from batch {resume_batch}")
         except FileNotFoundError:
             # checkpoint not created yet, hence start from the first batch
             print("no checkpoint found, processing data from first batch")
-
-        for batch_idx in range(resume_batch, num_batches):
-            data_b = data[batch_starts[batch_idx]:batch_starts[batch_idx+1]]
-            
-            id_list = [elm["id"] for elm in data_b]
-            prompts = [elm["prompt"] for elm in data_b]
-            assert isinstance(prompts, list)
+        #print(resume_batch)
+       
+        for batch_idx, batch in enumerate(loader):
+            if batch_idx >= resume_batch:
+                id_list = batch['id'].tolist()
+                prompts = batch['prompt']
+                assert isinstance(prompts, list)
         
-            #print(f"Prompts: {prompts}")
+                print(f"IDs: {id_list}")
 
-            # tokenize prompts
-            # TODO - can be tensorized?
-            prompts = [encode_fn(generator, p) for p in prompts]
+                # tokenize prompts
+                # TODO - can be tensorized?
+                prompts = [encode_fn(generator, p) for p in prompts]
         
-
-            gen_len = generation_args.get("max_tokens", 0)
-            prompts = [truncate_prompt(prompt, gen_len) for prompt in prompts]
+                gen_len = generation_args.get("max_tokens", 0)
+                prompts = [truncate_prompt(prompt, gen_len) for prompt in prompts]
         
-            # TODO - possible to send in batches?
-            curr_batch_size = len(prompts)
-            request_object = {
-                "inputs": prompts,
-                "min_tokens": [generation_args.get("min_tokens", 0)]*curr_batch_size,
-                "max_tokens": [generation_args.get("max_tokens", MAX_SEQ_LEN)]*curr_batch_size,
-            }
-            # WARNING: seed will not be deterministic when we batch
-            # TODO: do we include the seed or not? we can't guarantee the correctness of this parameter anyway
-            # if "seed" not in request_object:
-            request_object["seed"] = random.randint(0, 20000)
+                # TODO - possible to send in batches?
+                curr_batch_size = len(prompts)
+                request_object = {
+                    "inputs": prompts,
+                    "min_tokens": [generation_args.get("min_tokens", 0)]*curr_batch_size,
+                    "max_tokens": [generation_args.get("max_tokens", MAX_SEQ_LEN)]*curr_batch_size,
+                }
+                # WARNING: seed will not be deterministic when we batch
+                # TODO: do we include the seed or not? we can't guarantee the correctness of this parameter anyway
+                # if "seed" not in request_object:
+                request_object["seed"] = random.randint(0, 20000)
 
-            if torch.distributed.get_rank() == 0:
-                logger.info("request object {}".format(request_object))
+                if torch.distributed.get_rank() == 0:
+                    logger.info("request object {}".format(request_object))
 
-            if torch.distributed.is_initialized():
-                distributed_utils.broadcast_object(
-                    request_object,
-                    src_rank=0,
-                    group=distributed_utils.get_global_group(),
-                )
+                if torch.distributed.is_initialized():
+                    distributed_utils.broadcast_object(
+                        request_object,
+                        src_rank=0,
+                        group=distributed_utils.get_global_group(),
+                    )
 
-            try:
-                generations = generator.generate(**request_object)
-                #print(generations)
-            except RuntimeError:
-                # Probably cuda died. Unfortunately, we need to hard crash
-                # here to kick in our self-healing mechanisms.
-                raise
-            except BaseException as e:
-                # propagate any exceptions to the response so we can report it
-                generations = [e] * curr_batch_size
+                try:
+                    generations = generator.generate(**request_object)
+                    #print(generations)
+                except RuntimeError:
+                    # Probably cuda died. Unfortunately, we need to hard crash
+                    # here to kick in our self-healing mechanisms.
+                    raise
+                except BaseException as e:
+                    # propagate any exceptions to the response so we can report it
+                    generations = [e] * curr_batch_size
         
-            # write results to output file
-            if not isinstance(generations[0], Exception):
-                final_generations = []
-                for id, gen in zip(id_list, generations):
-                    gen_obj = {"id": id}
-                    gen_obj.update(gen[0])
-                    final_generations.append(gen_obj)
-                write_mode = "w" if batch_idx == 0 else "a"
-                write_jsonl(final_generations, 
-                            os.path.join(input_path, "generations.jsonl"), 
-                            write_mode)
-                write_json({"batch_size": batch_size, "batch_processed": batch_idx}, 
-                           os.path.join(input_path, "checkpoint.json"))
-            else:
-                raise generations[0]
+                # write results to output file
+                if not isinstance(generations[0], Exception):
+                    final_generations = []
+                    for id, gen in zip(id_list, generations):
+                        gen_obj = {"id": id}
+                        gen_obj.update(gen[0])
+                        final_generations.append(gen_obj)
+                    write_mode = "w" if batch_idx == 0 else "a"
+                    write_jsonl(final_generations, 
+                                os.path.join(input_path, "generations.jsonl"), 
+                                write_mode)
+                    write_json({"batch_size": batch_size, "batch_processed": batch_idx}, 
+                               os.path.join(input_path, "checkpoint.json"))
+                else:
+                    raise generations[0]
+
 
     def get_activations(self, request):
 
