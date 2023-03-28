@@ -237,10 +237,18 @@ class OPT(AbstractModel):
         
 
         # read input prompts file
-        # TODO: add support to read multiple files
         # ensure data read order is consistent across runs
-        batch_size = 37
-        dataset = PromptsDataset(os.path.join(input_path, "prompts.jsonl"))
+        batch_size = 50
+        
+        datasets = []
+        for file_name in os.listdir(input_path):
+            # only read prompt files with specified prefix and those with jsonl format
+            if file_name.startswith("prompts") and file_name.split(".")[-1] == "jsonl":
+                print(file_name)
+                datasets.append(PromptsDataset(os.path.join(input_path, file_name)))
+        # combine all iterable datasets created from separate files
+        dataset = torch.utils.data.ChainDataset(datasets)
+        
         loader = torch.utils.data.DataLoader(dataset, 
                                              batch_size=batch_size, 
                                              num_workers=0)
