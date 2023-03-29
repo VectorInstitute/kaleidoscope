@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import pathlib
 import subprocess
@@ -37,14 +38,21 @@ def main():
 
         try:
             if args.model_type == "OPT-175B":
-                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} --gateway_host={args.gateway_host} --gateway_port={args.gateway_port} {cwd}/slurm/OPT-175B_service.sh {cwd}"
+                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} {cwd}/slurm/OPT-175B_service.sh {cwd} {args.gateway_host} {args.gateway_port}"
                 print(f"Scheduler command: {scheduler_cmd}")
                 scheduler_output = subprocess.check_output(
                     scheduler_cmd, shell=True
                 ).decode("utf-8")
                 print(f"{scheduler_output}")
             elif args.model_type == "OPT-6.7B":
-                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} --gateway_host={args.gateway_host} --gateway_port={args.gateway_port} {cwd}/slurm/OPT-6.7B_service.sh {cwd}"
+                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} {cwd}/slurm/OPT-6.7B_service.sh {cwd} {args.gateway_host} {args.gateway_port}"
+                print(f"Scheduler command: {scheduler_cmd}")
+                scheduler_output = subprocess.check_output(
+                    scheduler_cmd, shell=True
+                ).decode("utf-8")
+                print(f"{scheduler_output}")
+            elif args.model_type == "GPT2":
+                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} {cwd}/slurm/GPT2_service.sh {cwd} {args.gateway_host} {args.gateway_port}"
                 print(f"Scheduler command: {scheduler_cmd}")
                 scheduler_output = subprocess.check_output(
                     scheduler_cmd, shell=True
