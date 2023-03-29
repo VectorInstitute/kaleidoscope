@@ -5,7 +5,8 @@ from pathlib import Path
 
 class Config(object):
 
-    GATEWAY_HOST = os.environ["GATEWAY_HOST"]
+    GATEWAY_BIND_HOST = os.environ["GATEWAY_BIND_HOST"]
+    GATEWAY_ADVERTISED_HOST = os.environ["GATEWAY_ADVERTISED_HOST"]
     GATEWAY_PORT = os.environ["GATEWAY_PORT"]
 
     JOB_SCHEDULER = os.environ["JOB_SCHEDULER"]
