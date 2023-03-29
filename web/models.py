@@ -290,8 +290,8 @@ class ModelInstance(BaseMixin, db.Model):
         return self._state.is_healthy()
     
     def last_generation(self):
-        return self.generations[-1]
-
+        return self.generations[-1] if self.generations else None
+    
     def serialize(self):
         return {
             "id": str(self.id),
