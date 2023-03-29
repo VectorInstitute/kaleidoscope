@@ -8,7 +8,8 @@ services:
     entrypoint: ./docker-entrypoint.sh
     env_file:
       - .env
-    network_mode: "host"
+    ports:
+      - 4001:4001
     volumes:
       - ~/.ssh:/root/.ssh
       - .:/app
@@ -36,4 +37,4 @@ services:
 
 volumes:
   postgres_data:
-    name: kaleidoscope-staging_postgres_data_staging
+    name: lingua-staging_postgres_data_staging
