@@ -5,11 +5,10 @@ services:
     depends_on:
       - "db"
     build: .
-    entrypoint: ./docker-entrypoint.sh
     env_file:
       - .env
     ports:
-      - 4001:4001
+      - 5001:5001
     volumes:
       - ~/.ssh:/root/.ssh
       - .:/app
@@ -33,8 +32,13 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=kaleidoscope-staging
     ports:
-      - 8000:5432
-
+      - 8001:5432
+  # nginx:
+  #   build: ./nginx
+  #   ports:
+  #     - 1337:80
+  #   depends_on:
+  #     - web
+    
 volumes:
   postgres_data:
-    name: lingua-staging_postgres_data_staging

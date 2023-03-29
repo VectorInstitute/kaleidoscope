@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apt update && apt install -y ldap-utils
 
 # Copy gateway/web dependencies
-COPY requirements.txt ./
+COPY . .
 
 # Upgrade pip
 RUN pip install --upgrade pip
@@ -19,4 +19,4 @@ RUN pip install -r requirements.txt
 EXPOSE 5000
 
 # ENTRYPOINT [ "python" ]
-CMD ["gunicorn"  , "-b", "0.0.0.0:5000", "wsgi:app"]
+CMD ["gunicorn", "--workers=2", "--bind=0.0.0.0:5000", "gateway_service:app"]
