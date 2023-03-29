@@ -12,7 +12,7 @@ from config import Config
 def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
     current_app.logger.info(f"Preparing to launch model: {model_name}")
     try:
-        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_HOST} --gateway_port {Config.GATEWAY_PORT}"""
+        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
         current_app.logger.info(f"Launch SSH command: {ssh_command}")
 
         # System job scheduler needs ssh to keep running in the background
