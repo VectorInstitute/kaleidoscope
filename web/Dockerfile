@@ -5,7 +5,7 @@ FROM --platform=linux/amd64 python:3.8
 WORKDIR /app
 
 # Install apt packages
-RUN apt update && apt install -y ldap-utils
+RUN apt update && apt install -y ldap-utils vim telnet iputils-ping less iproute2
 
 # Copy gateway/web dependencies
 COPY requirements.txt ./
