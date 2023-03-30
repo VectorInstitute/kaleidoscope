@@ -11,7 +11,7 @@ from config import Config
 
 def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id}"
+        ssh_command = f"ssh -i id_rsa_kscope_slurm -o 'StrictHostKeyChecking no' {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id}"
         current_app.logger.info(f"Launch SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
         current_app.logger.info(f"SSH launch job output: [{ssh_output}]")
@@ -80,7 +80,7 @@ def verify_model_health(host: str) -> bool:
 
 def verify_job_health(model_instance_id: str) -> bool:
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action get_status --model_instance_id {model_instance_id}"
+        ssh_command = f"ssh -i id_rsa_kscope_slurm -o 'StrictHostKeyChecking no' {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action get_status --model_instance_id {model_instance_id}"
         # print(f"Get status SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
         # print(f"SSH get status output: [{ssh_output}]")

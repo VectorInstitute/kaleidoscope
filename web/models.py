@@ -12,21 +12,9 @@ from db import db, BaseMixin
 from services import model_service_client
 
 MODEL_CONFIG = {
-    "OPT-175B": {
-        "name": "OPT-175B",
-        "description": "175B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
-        "url": "https://huggingface.co/meta/opt-175B",
-    },
-    "OPT-6.7B": {
-        "name": "OPT-6.7B",
-        "description": "6.7B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
-        "url": "https://huggingface.co/facebook/opt-6.7b",
-    },
-    # "Galactica-120B": {
-    #     "name": "Galactica-120B",
-    #     "description": "120B parameter version of the Galactica model trained by Meta",
-    #     "url": "https://huggingface.co/meta/galactica-120B",
-    # }q
+    "GPT-2": {
+        "name": "GPT-2"
+    }
 }
 
 

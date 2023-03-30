@@ -14,7 +14,7 @@ import config
 
 # Globals
 
-AVAILABLE_MODELS = ["OPT-175B", "OPT-6.7B"]
+
 
 
 # Start the Flask service that will hand off requests to the model libraries
@@ -56,6 +56,9 @@ def initialize_model(model_type):
         from models import OPT
 
         return OPT.OPT()
+    elif model_type == "GPT-2":
+        from models import GPT2
+        return GPT2.GPT2()
 
 
 # Signal handler to send a remove request to the gateway, if this service is killed by the system
@@ -121,7 +124,7 @@ def main():
         "--model_type",
         required=True,
         type=str,
-        help="Model type selected in the list: " + ", ".join(AVAILABLE_MODELS),
+        help="Model type selected in the list: " + ", ".join(config.AVAILABLE_MODELS),
     )
     parser.add_argument(
         "--model_path", required=True, type=str, help="Path to pre-trained model"
@@ -131,9 +134,9 @@ def main():
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Validate input arguments
-    if args.model_type not in AVAILABLE_MODELS:
+    if args.model_type not in config.AVAILABLE_MODELS:
         print(
-            f"Error: model type {args.model_type} is not supported. Please use one of the following: {', '.join(AVAILABLE_MODELS)}"
+            f"Error: model type {args.model_type} is not supported. Please use one of the following: {', '.join(config.AVAILABLE_MODELS)}"
         )
         sys.exit(1)
 

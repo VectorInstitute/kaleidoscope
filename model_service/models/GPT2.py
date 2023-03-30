@@ -14,6 +14,7 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 
 class GPT2(AbstractModel):
+
     def __init__(self):
         self.model_class = GPT2LMHeadModel
         self.model_path = None
@@ -23,7 +24,8 @@ class GPT2(AbstractModel):
 
     def load(self, device, model_path):
         self.device = device
-        self.model = self.model_class.from_pretrained(model_path)
+        #self.model = self.model_class.from_pretrained(model_path)
+        self.model = self.model_class.from_pretrained('gpt2')
         self.model_path = model_path
         self.model.to(device)
 
@@ -63,7 +65,7 @@ class GPT2(AbstractModel):
             if len(stripped_sequence) != 0:
                 stop_sequence = request.json["stop_token"]
 
-        tokenizer = self.tokenizer_class.from_pretrained(self.model_path)
+        tokenizer = self.tokenizer_class.from_pretrained('gpt2')
         encoded_prompt = tokenizer.encode(
             prompt, add_special_tokens=False, return_tensors="pt"
         )
@@ -133,3 +135,6 @@ class GPT2(AbstractModel):
         response["activations"] = {}
 
         return json.dumps(response)
+    
+    def get_activations(self, request):
+        raise NotImplementedError
