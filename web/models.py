@@ -2,6 +2,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import List, Optional, Dict
 from abc import ABC
+from datetime import datetime
 import uuid
 
 from flask import current_app
@@ -58,6 +59,9 @@ class ModelInstanceState(ABC):
 
     def is_healthy(self):
         raise InvalidStateError(self)
+    
+    def is_timed_out(self, timeout):
+        raise InvalidStateError(self)
 
 
 class PendingState(ModelInstanceState):
@@ -77,6 +81,9 @@ class PendingState(ModelInstanceState):
         if not is_healthy:
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
+    
+    def is_timed_out(self, timeout):
+        return False
 
 
 class LaunchingState(ModelInstanceState):
@@ -89,6 +96,9 @@ class LaunchingState(ModelInstanceState):
         if not is_healthy:
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
+    
+    def is_timed_out(self, timeout):
+        return False
 
 
 class LoadingState(ModelInstanceState):
@@ -105,6 +115,9 @@ class LoadingState(ModelInstanceState):
         if not is_healthy:
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
+    
+    def is_timed_out(self, timeout):
+        return False
 
 
 
@@ -156,6 +169,14 @@ class ActiveState(ModelInstanceState):
         if not is_healthy:
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
+    
+    def is_timed_out(self, timeout):
+        last_event_datetime = self.updated_at
+        last_generation = self.last_generation()
+        if last_generation:
+            last_event_datetime = last_generation.created_at
+
+        return (datetime.now() - last_event_datetime) > timeout
 
 
 class FailedState(ModelInstanceState):
