@@ -314,7 +314,8 @@ class ModelInstance(BaseMixin, db.Model):
         return self._state.is_timed_out(timeout)
     
     def last_generation(self):
-        last_generation = db.select(ModelInstanceGeneration).where(ModelInstanceGeneration.model_instance_id == self.id).order_by(ModelInstanceGeneration.created_at.desc()).first()
+        last_generation_query = db.select(ModelInstanceGeneration).where(ModelInstanceGeneration.model_instance_id == self.id).order_by(ModelInstanceGeneration.created_at.desc())
+        last_generation = db.session.execute(last_generation_query).scalars().first()
         current_app.logger.info(f"[last_generation] last_generation={last_generation}")
         if last_generation:
             current_app.logger.info(f"[last_generation] last_generation={last_generation.id}, {last_generation.created_at}")
