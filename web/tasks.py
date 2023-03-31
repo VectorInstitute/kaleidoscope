@@ -11,8 +11,6 @@ from flask import current_app
 def verify_model_instance_health():
     current_model_instances = ModelInstance.find_current_instances()
     for model_instance in current_model_instances:
-        current_app.logger.info(model_instance.id)
-        current_app.logger.info(model_instance.state_name)
         if not model_instance.is_healthy() or model_instance.is_timed_out(Config.MODEL_INSTANCE_TIMEOUT):
             model_instance.shutdown()
 
