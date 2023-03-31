@@ -112,7 +112,7 @@
       var formData = getFormData();
       var promptData = formData.prompt;
       delete formData.prompt;
-      var submitData = {"prompt":"hello world", "generation_config":formData};
+      var submitData = {"prompts":promptData, "generation_config":formData};
       console.log(submitData);
       $.ajax({
         url: "models/instances/"+selectedModel+"/generate",
@@ -122,13 +122,10 @@
           "Authorization": "Bearer " + localStorage.getItem("accessToken")
         },
         data: JSON.stringify(submitData),
-        error: function(data){
-          console.log(data);
-        }
       }).done(function (data) {
+        console.log(data);
         loadCompleteAnimation();
         var generationData= data['generation'];
-        console.log(generationData['text']);
         parseData(generationData, selectedModel);
       }).fail(function (data) {
           console.log(data);
@@ -154,8 +151,8 @@
     //TODO: identify ways to handle intermediate activation data
     selectedModelName= $("#"+selectedModel).attr("name");
     $("span").removeClass("generated-text-font");
-    var text= data['tokens'];
-    var logProbTokens= data['logprobs'];
+    var text= data['tokens'][0];
+    var logProbTokens= data['logprobs'][0];
     textWrapper= $("<span></span>");
     try {
       var logProbs= [];
@@ -178,10 +175,10 @@
                 <strong class="pr-3">${text[i]}</strong>
                 <span>${logProbs[i]}%</span>
               </li>
-              <li class="list-group-item d-flex justify-content-between">
+              <!-- <li class="list-group-item d-flex justify-content-between">
                 <strong class="pr-3">Token 2</strong>
                 <span>X%</span>
-              </li>
+              </li> -->
             </ul>
           </div>`;
         labelledText= $("<span class='generated-text' tabindex='0' data-trigger='hover' data-html='true' data-placement='bottom' data-content='"+textPanel+"'></span>").text(text[i]);
