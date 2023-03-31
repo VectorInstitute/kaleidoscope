@@ -309,6 +309,9 @@ class ModelInstance(BaseMixin, db.Model):
 
     def is_healthy(self) -> bool:
         return self._state.is_healthy()
+
+    def is_timed_out(self, timeout):
+        return self._state.is_timed_out(timeout)
     
     def last_generation(self):
         return self.generations[-1] if self.generations else None
