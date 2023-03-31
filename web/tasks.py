@@ -1,11 +1,7 @@
-from datetime import datetime
 from celery import shared_task
 
 from models import ModelInstance
 from config import Config
-
-from flask import current_app
-
 
 @shared_task
 def verify_model_instance_health():
