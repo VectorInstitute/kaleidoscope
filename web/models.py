@@ -171,8 +171,8 @@ class ActiveState(ModelInstanceState):
         return is_healthy
     
     def is_timed_out(self, timeout):
-        last_event_datetime = self.updated_at
-        last_generation = self.last_generation()
+        last_event_datetime = self._model_instance.updated_at
+        last_generation = self._model_instance.last_generation()
         if last_generation:
             last_event_datetime = last_generation.created_at
 
