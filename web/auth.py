@@ -16,19 +16,26 @@ def authenticate():
 
     auth_params = request.authorization
 
-    # Before authenticating, verify that user is a member of the llm_user group
+    # Verify that we can connect to the LDAP server
     try:
-        ldapsearch_cmd = f"""ldapsearch -x -b "cn=llm_user,ou=Group,dc=vector,dc=local" -H ldap://{Config.LDAP_HOST} | grep {auth_params['username']}"""
-        subprocess.check_output(ldapsearch_cmd, shell=True)
-    except subprocess.CalledProcessError:
+        connection = current_app.ldap3_login_manager.make_connection()
+        connection.bind()
+    except Exception as err:
+        return make_response(
+            {"msg": f"Could not connect to LDAP server at {Config.LDAP_HOST} ({err})"}, 500
+        )
+
+    # Before authenticating, verify that user is a member of the user access group
+    groups = current_app.ldap3_login_manager.get_user_groups(auth_params["username"])
+    if not any(str(group["cn"]) == f"['{Config.LDAP_USER_ACCESS_GROUP}']" for group in groups):
         return make_response(
             {
-                "msg": f"User {auth_params['username']} not a member of the llm_user group "
+                "msg": f"User {auth_params['username']} not a member of the {Config.LDAP_USER_ACCESS_GROUP} group "
             },
             403,
         )
 
-    ldapAuthResponse = current_app.ldap3_login_manager.authenticate_direct_credentials(
+    ldapAuthResponse = current_app.ldap3_login_manager.authenticate(
         auth_params["username"], auth_params["password"]
     )
 
