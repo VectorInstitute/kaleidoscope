@@ -328,6 +328,17 @@ class ModelInstance(BaseMixin, db.Model):
             username, prompts, module_names, generation_config
         )
 
+    def edit_activations(
+        self,
+        username: str,
+        prompts: List[str],
+        modules: List[str],
+        generation_config: Dict = {},
+    ) -> Dict:
+        return self._state.edit_activations(
+            username, prompts, modules, generation_config
+        )
+
     def is_healthy(self) -> bool:
         return self._state.is_healthy()
 
