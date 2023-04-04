@@ -5,12 +5,14 @@ from pathlib import Path
 
 class Config(object):
 
-    GATEWAY_HOST = os.environ["GATEWAY_HOST"]
+    GATEWAY_BIND_HOST = os.environ["GATEWAY_BIND_HOST"]
+    GATEWAY_ADVERTISED_HOST = os.environ["GATEWAY_ADVERTISED_HOST"]
     GATEWAY_PORT = os.environ["GATEWAY_PORT"]
 
+    JOB_SCHEDULER = os.environ["JOB_SCHEDULER"]
     JOB_SCHEDULER_HOST = os.environ["JOB_SCHEDULER_HOST"]
     JOB_SCHEDULER_USER = os.environ["JOB_SCHEDULER_USER"]
-    JOB_SCHEDULER_REMOTE_BIN = os.environ["JOB_SCHEDULER_REMOTE_BIN"]
+    JOB_SCHEDULER_BIN = os.environ["JOB_SCHEDULER_BIN"]
 
     JWT_SECRET_KEY = os.environ["JWT_SECRET_KEY"]
     JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(

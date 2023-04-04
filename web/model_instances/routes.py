@@ -27,7 +27,7 @@ async def get_current_model_instances():
 @model_instances_bp.route("/instances", methods=["POST"])
 @jwt_required()
 async def create_model_instance():
-
+    current_app.logger.info(f"Received model instance creation request: {request}")
     model_name = request.json["name"]
 
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
@@ -82,14 +82,10 @@ async def activate_model_instance(model_instance_id: str):
 async def model_instance_generate(model_instance_id: str):
 
     username = get_jwt_identity()
-    current_app.logger.info(f"generating request for {username}")
+    current_app.logger.info(f"Sending generate request for {username}: {request.json}")
 
     prompts = request.json["prompts"]
     generation_config = request.json["generation_config"]
-    current_app.logger.info(f"prompts {prompts}")
-
-    current_app.logger.info(f"generation config: {generation_config}")
-
     model_instance = ModelInstance.find_by_id(model_instance_id)
     generation = model_instance.generate(username, prompts, generation_config)
 
