@@ -110,10 +110,7 @@
       getPromptText();
       var selectedModel = $("#model-select").find(":selected").val();
       var formData = getFormData();
-      var promptData = formData.prompt;
-      delete formData.prompt;
-      var submitData = {"prompts":promptData, "generation_config":formData};
-      console.log(submitData);
+      var submitData = formatFormData(formData);
       $.ajax({
         url: "models/instances/"+selectedModel+"/generate",
         type: "POST",
@@ -137,6 +134,17 @@
       });
     });
   });
+
+  function formatFormData(formData) {
+    var promptData = formData.prompt;
+    if (formData.stop.length == 0) {
+      delete formData.stop;
+    }
+    delete formData.prompt;
+    var submitData = {"prompts":promptData, "generation_config":formData};
+    console.log(submitData);
+    return submitData;
+  };
 
   function getFormData() {
     unstructuredFormData= $("#text-submit").serializeArray();
@@ -195,7 +203,7 @@
     document.getElementById("submit-button").style.display = "none";
   };
 
-  function getTextGenerationETA(){
+  function getTextGenerationETA() {
     var responseLength = $("#response-length-select").val();
     var eta = Math.round(TIME_PER_TOKEN * responseLength + TIME_CONSTANT);
     $("#eta").text(eta);
@@ -213,12 +221,12 @@
     document.getElementById("textbox-input").style.backgroundColor = "#ffebeb";
   };
 
-  function clearText(){
+  function clearText() {
     setPrompt("none");
     document.getElementById("textbox-input").style.backgroundColor = "transparent";
   };
 
-  function getPromptText(){
+  function getPromptText() {
     document.getElementById("textbox").value= document.getElementById("textbox-input").outerText;
   };
 
@@ -234,7 +242,7 @@
       headers: {
         "Authorization": "Bearer " + localStorage.getItem("accessToken")
       },
-      success: function( data ) {
+      success: function(data) {
         for(let i=0; i<data['module_names'].length; i++){
           moduleNameOption= $("<option value="+data['module_names'][i]+"></option>").text(data['module_names'][i])
           $("#module-name-select").append(moduleNameOption);
@@ -243,7 +251,7 @@
     });
   };
 
-  function copyAuthKey(){
+  function copyAuthKey() {
     authKey= localStorage.getItem("accessToken");
     console.log("API Key: " + authKey);
     $("#auth-key").attr("data-content", authKey);
@@ -373,7 +381,7 @@
               data-placement="top" data-content="An integer to define the maximum number of tokens to generate."></i>
               <input type="number" class="float-right rounded border text-center col-md-4" id="response-length-value" value=128 placeholder=128
                 max=512 min=1 oninput="updateScrollValue(this.value, 'response-length-select');">
-              <input type="range" class="form-control-range" id="response-length-select" value=128 name="max-tokens" placeholder=128
+              <input type="range" class="form-control-range" id="response-length-select" value=128 name="max_tokens" placeholder=128
                 max=512 min=1 oninput="updateScrollValue(this.value, 'response-length-value');">
           </div>
           <div class="form-group">
@@ -390,7 +398,7 @@
             data-content="A decimal to define the tokens that are within the sample operation of text generation"></i>
             <input type="number" class="float-right rounded border text-center col-md-4" id="topp-value" value=0.9 placeholder=0.9
               max=1 step=0.01 min=0 oninput="updateScrollValue(this.value, 'top-p-select');">
-            <input type="range" class="form-control-range" id="top-p-select" value=0.9 name="top-p" placeholder=0.9 max=1 step=0.01
+            <input type="range" class="form-control-range" id="top-p-select" value=0.9 name="top_p" placeholder=0.9 max=1 step=0.01
               min=0 oninput="updateScrollValue(this.value, 'topp-value');">
           </div>
           <!-- <div class="form-group">
@@ -404,7 +412,7 @@
             <label for="stop-sequences">Stop Sequence</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Stop-Sequences"
             data-placement="top"
             data-content="Words or sequences that will prevent the API from generating further"></i>
-            <input type="text" class="form-control" id="stop-sequence-value" name="stop_token" placeholder="Enter stop sequence">
+            <input type="text" class="form-control" id="stop-sequence-value" name="stop" placeholder="Enter stop sequence">
           </div>
           <!-- <div class="form-group">
             <label for="repetition-penalty-select">Repetition Penalty</label><i class="bi bi-info-circle small col"  tabindex="0" data-toggle="popover" data-trigger="hover" title="Repetition Penalty"
