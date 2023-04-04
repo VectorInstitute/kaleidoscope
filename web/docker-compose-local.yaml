@@ -9,10 +9,9 @@ services:
     entrypoint: ./docker-entrypoint.sh
     env_file:
       - .env
-    ports:
-      - 3001:3001
+    network_mode: "host"
     volumes:
-      - /h/llm/.ssh:/root/.ssh
+      - ~/.ssh:/root/.ssh
       - .:/app
   web-worker:
     depends_on:
@@ -23,6 +22,7 @@ services:
     image: gateway:latest
     entrypoint: celery
     command: -A gateway_service.celery worker -B
+    network_mode: "host"
     volumes:
       - ~/.ssh:/root/.ssh
       - .:/app
@@ -39,4 +39,4 @@ services:
 
 volumes:
   postgres_data:
-    name: lingua_postgres_data
+    name: kaleidoscope_postgres_data
