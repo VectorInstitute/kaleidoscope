@@ -56,6 +56,20 @@ def generate_activations(
     return response_body
 
 
+def edit_activations(
+    host: str,
+    generation_id: int,
+    prompts: List[str],
+    modules: Dict[str, Optional[Callable]],
+    generation_config: Dict,
+) -> Dict:
+    body = {"prompt": prompts, "modules": modules, **generation_config}
+    current_app.logger.info(f"Sending edit activations request, body: {body}")
+    response = requests.post(f"http://{host}/edit_activations", json=body)
+    response_body = response.json()
+    return response_body
+
+
 def get_module_names(host: str) -> Dict:
 
     response = requests.get(

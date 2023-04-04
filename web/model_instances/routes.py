@@ -125,15 +125,22 @@ async def get_activations(model_instance_id: str):
         username, prompts, module_names, generation_config
     )
 
+
+@model_instances_bp.route(
+    "/instances/<model_instance_id>/edit_activations", methods=["POST"]
+)
+@jwt_required()
+async def edit_activations(model_instance_id: str):
+
+    username = get_jwt_identity()
+    prompts = request.json["prompts"]
+    modules = request.json["modules"]
+    generation_config = request.json["generation_config"]
+    current_app.logger.info(f"Editing activations for model {model_instance_id} with prompts {prompts} and modules {modules}")
+
+    model_instance = ModelInstance.find_by_id(model_instance_id)
+    activations = model_instance.edit_activations(
+        username, prompts, modules, generation_config
+    )
+
     return jsonify(activations), 200
-
-    # model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
-    # model_instance = db.session.execute(model_instance_query).first()
-
-    # data = request.json
-    # result = requests.post(
-    #     "http://" + model_instance[0].host + "/get_activations",
-    #     json=data
-    # ).json()
-
-    # return result, 200

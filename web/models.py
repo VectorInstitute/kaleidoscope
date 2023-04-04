@@ -158,6 +158,25 @@ class ActiveState(ModelInstanceState):
 
         return activations_response
 
+    def edit_activations(self, username, prompts, modules, generation_config):
+
+        model_instance_generation = ModelInstanceGeneration.create(
+            model_instance_id=self._model_instance.id,
+            username=username,
+        )
+
+        current_app.logger.info(model_instance_generation)
+
+        activations_response = model_service_client.edit_activations(
+            self._model_instance.host,
+            model_instance_generation.id,
+            prompts,
+            modules,
+            generation_config,
+        )
+
+        return activations_response
+
     def is_healthy(self):
         is_healthy = model_service_client.verify_model_health(self._model_instance.host)
         if not is_healthy:

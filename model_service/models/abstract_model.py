@@ -17,3 +17,7 @@ class AbstractModel(abc.ABC):
     @abc.abstractmethod
     def get_activations(self, request):
         pass
+
+    @abc.abstractmethod
+    def edit_activations(self, request):
+        pass

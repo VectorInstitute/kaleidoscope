@@ -190,6 +190,13 @@ class OPT(AbstractModel):
         response = self.generate(request)
         return response
 
+    def edit_activations(self, request):
+        request.json["encoded_activation_payload"] = request.json["modules"]
+        request.json["echo"] = True
+        request.json["max_tokens"] = 0
+        response = self.generate(request)
+        return response
+
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
         # disable multithreading in tokenizers and torch, as different Flask threads
         # may then fight for resources.
