@@ -81,15 +81,6 @@ class PendingState(ModelInstanceState):
             current_app.logger.error(f"Job launch for {self._model_instance.name} failed: {err}")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
 
-    def register(self, host: str):
-        # Only the system job scheduler can register models in pending state
-        # since launching happens immediately
-        if Config.JOB_SCHEDULER == "system":
-            self._model_instance.host = host
-            self._model_instance.transition_to_state(ModelInstanceStates.LOADING)
-        else:
-            raise InvalidStateError(self)
-
     def is_healthy(self):
         is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:

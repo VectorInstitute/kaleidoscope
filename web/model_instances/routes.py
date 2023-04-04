@@ -1,7 +1,6 @@
 import requests
 from flask import Blueprint, request, current_app, jsonify
-from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity, verify_jwt_in_request
-from functools import wraps
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from db import db
 import tasks
