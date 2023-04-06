@@ -46,7 +46,7 @@ def get_activations():
 
 
 @service.route("/edit_activations", methods=["POST"])
-def get_activations():
+def edit_activations():
     print(request)
     print(request.json)
     result = model.edit_activations(request)
