@@ -167,7 +167,6 @@ class ActiveState(ModelInstanceState):
             module_names,
             generation_config,
         )
-
         return activations_response
 
     def edit_activations(self, username, prompts, modules, generation_config):
@@ -326,6 +325,17 @@ class ModelInstance(BaseMixin, db.Model):
     ) -> Dict:
         return self._state.generate_activations(
             username, prompts, module_names, generation_config
+        )
+
+    def edit_activations(
+        self,
+        username: str,
+        prompts: List[str],
+        modules: Dict[str, Optional[Callable]],
+        generation_config: Dict = {},
+    ) -> Dict:
+        return self._state.edit_activations(
+            username, prompts, modules, generation_config
         )
 
     def is_healthy(self) -> bool:

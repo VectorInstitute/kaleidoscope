@@ -121,6 +121,8 @@ async def get_activations(model_instance_id: str):
         username, prompts, module_names, generation_config
     )
 
+    return jsonify(activations)
+
 
 @model_instances_bp.route(
     "/instances/<model_instance_id>/edit_activations", methods=["POST"]
