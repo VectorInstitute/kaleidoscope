@@ -33,9 +33,9 @@
       "length": 128,
       "temperature": 1,
       "top-p": 0.9,
-      "top-k": 0.0,
-      "repetition-penalty": 1.0,
-      "num-return-sequences": 1
+      <!-- "top-k": 0.0, -->
+      <!-- "repetition-penalty": 1.0, -->
+      <!-- "num-return-sequences": 1 -->
     }
   };
 
@@ -48,10 +48,10 @@
       $("#temperature-value").val(EXAMPLES[name]["temperature"]);
       $("#top-p-select").val(EXAMPLES[name]["top-p"]);
       $("#topp-value").val(EXAMPLES[name]["top-p"]);
-      $("#top-k-select").val(EXAMPLES[name]["top-k"]);
-      $("#repetition-penalty-select").val(EXAMPLES[name]["repetition-penalty"]);
-      $("#repetition-penalty-value").val(EXAMPLES[name]["repetition-penalty"]);
-      $("#num-return-sequence-select").val(EXAMPLES[name]["num-return-sequences"]);
+      <!-- $("#top-k-select").val(EXAMPLES[name]["top-k"]); -->
+      <!-- $("#repetition-penalty-select").val(EXAMPLES[name]["repetition-penalty"]); -->
+      <!-- $("#repetition-penalty-value").val(EXAMPLES[name]["repetition-penalty"]); -->
+      <!-- $("#num-return-sequence-select").val(EXAMPLES[name]["num-return-sequences"]); -->
     }
     else {
       $("#response-length-select").val(EXAMPLES[name]["length"]);
@@ -110,10 +110,7 @@
       getPromptText();
       var selectedModel = $("#model-select").find(":selected").val();
       var formData = getFormData();
-      var promptData = formData.prompt;
-      delete formData.prompt;
-      var submitData = {"prompt":"hello world", "generation_config":formData};
-      console.log(submitData);
+      var submitData = formatFormData(formData);
       $.ajax({
         url: "models/instances/"+selectedModel+"/generate",
         type: "POST",
@@ -122,13 +119,10 @@
           "Authorization": "Bearer " + localStorage.getItem("accessToken")
         },
         data: JSON.stringify(submitData),
-        error: function(data){
-          console.log(data);
-        }
       }).done(function (data) {
+        console.log(data);
         loadCompleteAnimation();
         var generationData= data['generation'];
-        console.log(generationData['text']);
         parseData(generationData, selectedModel);
       }).fail(function (data) {
           console.log(data);
@@ -140,6 +134,17 @@
       });
     });
   });
+
+  function formatFormData(formData) {
+    var promptData = formData.prompt;
+    if (formData.stop.length == 0) {
+      delete formData.stop;
+    }
+    delete formData.prompt;
+    var submitData = {"prompts":promptData, "generation_config":formData};
+    console.log(submitData);
+    return submitData;
+  };
 
   function getFormData() {
     unstructuredFormData= $("#text-submit").serializeArray();
@@ -154,8 +159,8 @@
     //TODO: identify ways to handle intermediate activation data
     selectedModelName= $("#"+selectedModel).attr("name");
     $("span").removeClass("generated-text-font");
-    var text= data['tokens'];
-    var logProbTokens= data['logprobs'];
+    var text= data['tokens'][0];
+    var logProbTokens= data['logprobs'][0];
     textWrapper= $("<span></span>");
     try {
       var logProbs= [];
@@ -178,10 +183,10 @@
                 <strong class="pr-3">${text[i]}</strong>
                 <span>${logProbs[i]}%</span>
               </li>
-              <li class="list-group-item d-flex justify-content-between">
+              <!-- <li class="list-group-item d-flex justify-content-between">
                 <strong class="pr-3">Token 2</strong>
                 <span>X%</span>
-              </li>
+              </li> -->
             </ul>
           </div>`;
         labelledText= $("<span class='generated-text' tabindex='0' data-trigger='hover' data-html='true' data-placement='bottom' data-content='"+textPanel+"'></span>").text(text[i]);
@@ -198,7 +203,7 @@
     document.getElementById("submit-button").style.display = "none";
   };
 
-  function getTextGenerationETA(){
+  function getTextGenerationETA() {
     var responseLength = $("#response-length-select").val();
     var eta = Math.round(TIME_PER_TOKEN * responseLength + TIME_CONSTANT);
     $("#eta").text(eta);
@@ -216,12 +221,12 @@
     document.getElementById("textbox-input").style.backgroundColor = "#ffebeb";
   };
 
-  function clearText(){
+  function clearText() {
     setPrompt("none");
     document.getElementById("textbox-input").style.backgroundColor = "transparent";
   };
 
-  function getPromptText(){
+  function getPromptText() {
     document.getElementById("textbox").value= document.getElementById("textbox-input").outerText;
   };
 
@@ -237,7 +242,7 @@
       headers: {
         "Authorization": "Bearer " + localStorage.getItem("accessToken")
       },
-      success: function( data ) {
+      success: function(data) {
         for(let i=0; i<data['module_names'].length; i++){
           moduleNameOption= $("<option value="+data['module_names'][i]+"></option>").text(data['module_names'][i])
           $("#module-name-select").append(moduleNameOption);
@@ -246,7 +251,7 @@
     });
   };
 
-  function copyAuthKey(){
+  function copyAuthKey() {
     authKey= localStorage.getItem("accessToken");
     console.log("API Key: " + authKey);
     $("#auth-key").attr("data-content", authKey);
@@ -376,7 +381,7 @@
               data-placement="top" data-content="An integer to define the maximum number of tokens to generate."></i>
               <input type="number" class="float-right rounded border text-center col-md-4" id="response-length-value" value=128 placeholder=128
                 max=512 min=1 oninput="updateScrollValue(this.value, 'response-length-select');">
-              <input type="range" class="form-control-range" id="response-length-select" value=128 name="max-tokens" placeholder=128
+              <input type="range" class="form-control-range" id="response-length-select" value=128 name="max_tokens" placeholder=128
                 max=512 min=1 oninput="updateScrollValue(this.value, 'response-length-value');">
           </div>
           <div class="form-group">
@@ -393,23 +398,23 @@
             data-content="A decimal to define the tokens that are within the sample operation of text generation"></i>
             <input type="number" class="float-right rounded border text-center col-md-4" id="topp-value" value=0.9 placeholder=0.9
               max=1 step=0.01 min=0 oninput="updateScrollValue(this.value, 'top-p-select');">
-            <input type="range" class="form-control-range" id="top-p-select" value=0.9 name="top-p" placeholder=0.9 max=1 step=0.01
+            <input type="range" class="form-control-range" id="top-p-select" value=0.9 name="top_p" placeholder=0.9 max=1 step=0.01
               min=0 oninput="updateScrollValue(this.value, 'topp-value');">
           </div>
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label for="top-k-select">Top-K</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Top-K"
             data-placement="top"
             data-content="An integer to define the top tokens considered within the sample operation to create new text"></i>
             <input type="number" class="form-control" id="top-k-select" value=0 name="top-k" placeholder=1 max=100
               step=1 min=0>
-          </div>
+          </div> -->
           <div class="form-group">
             <label for="stop-sequences">Stop Sequence</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Stop-Sequences"
             data-placement="top"
             data-content="Words or sequences that will prevent the API from generating further"></i>
-            <input type="text" class="form-control" id="stop-sequence-value" name="stop_token" placeholder="Enter stop sequence">
+            <input type="text" class="form-control" id="stop-sequence-value" name="stop" placeholder="Enter stop sequence">
           </div>
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label for="repetition-penalty-select">Repetition Penalty</label><i class="bi bi-info-circle small col"  tabindex="0" data-toggle="popover" data-trigger="hover" title="Repetition Penalty"
             data-placement="top"
             data-content="The more frequently a token is used within text generation the more it is penalized to not be picked in successive generation passes."></i>
@@ -425,7 +430,7 @@
             data-content="An integer to define the proposition that is desired to be returned."></i>
             <input type="number" class="form-control" id="num-return-sequence-select" value=1 name="num_return_sequences"
               placeholder=1 step=1 min=0>
-          </div>
+          </div> -->
           <div class="form-group">
             <label for="module-name-select">Module Name</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Module Names"
             data-placement="top"

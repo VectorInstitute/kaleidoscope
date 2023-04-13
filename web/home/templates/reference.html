@@ -4,13 +4,13 @@
 
 {% block body %}
     <div class="jumbotron">
-        <h1 class="display-4">Lingua SDK</h1>
+        <h1 class="display-4">Kaleidoscope SDK</h1>
         <p class="lead">Vector Institute's models can be intefraced from the playground and SDK</p>
         <hr class="my-4">
         <p class="lead">SDKs</p>
         <ul class="list-inline">
             <li class="list-inline-item text-muted">Python</li>
-            <li class="list-inline-item p-1 border"><code>pip install pylingua</code></li>
+            <li class="list-inline-item p-1 border"><code>pip install kscope</code></li>
         </ul>
     </div>
     <!-- API endpoint list -->
@@ -19,7 +19,7 @@
             <div class="alert alert-light bg-light" role="alert">
                 <div class="accordion mt-3 col-8" id="accordionExample">
                     <div class="card">
-                        <div class="card-header" id="headingOne">
+                        <div class="card-header" id="generateApiRef">
                             <h2 class="mb-0">
                                 <button class="btn text-left font-weight-light alert-heading" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
                                 /generate_text
@@ -31,7 +31,7 @@
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-header" id="headingTwo">
+                        <div class="card-header" id="moduleApiRef">
                             <h2 class="mb-0">
                                 <button class="btn text-left font-weight-light alert-heading collapsed" type="button" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
                                 /module_names
@@ -42,19 +42,19 @@
                             <div class="card-body">Retrieves module names.</div>
                         </div>
                     </div>
-                    <!-- <div class="card">
-                        <div class="card-header" id="headingThree">
+                    <div class="card">
+                        <div class="card-header" id="activationApiRef">
                             <h2 class="mb-0">
                             <button class="btn text-left font-weight-light alert-heading collapsed" type="button" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                /tokenize_text
+                                /get_activations
                             </button>
                             </h2>
                         </div>
                         <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordionExample">
-                            <div class="card-body">Retrieves token vectors.</div>
+                            <div class="card-body">Retrieves activations for selected modules.</div>
                         </div>
                     </div>
-                    <div class="card">
+                    <!-- <div class="card">
                         <div class="card-header" id="headingFour">
                             <h2 class="mb-0">
                                 <button class="btn text-left font-weight-light alert-heading collapsed" type="button" data-toggle="collapse" data-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">

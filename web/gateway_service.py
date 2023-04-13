@@ -6,6 +6,7 @@ from flask import Flask
 from flask_ldap3_login import LDAP3LoginManager
 from flask_jwt_extended import JWTManager
 from celery import Celery
+from flask_migrate import Migrate
 
 from config import Config
 from auth import auth
@@ -27,8 +28,7 @@ def create_app():
     app.register_blueprint(model_instances_bp, url_prefix="/models")
 
     db.init_app(app)
-    with app.app_context():
-        db.create_all()
+    migrate = Migrate(app, db)
 
     return app
 
@@ -63,4 +63,4 @@ app = create_app()
 celery = make_celery(app)
 
 if __name__ == "__main__":
-    app.run(host=Config.GATEWAY_HOST, port=Config.GATEWAY_PORT)
+    app.run(host=Config.GATEWAY_BIND_HOST, port=Config.GATEWAY_PORT)
