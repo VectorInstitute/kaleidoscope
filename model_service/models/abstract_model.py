@@ -1,5 +1,7 @@
 import abc
 
+from pytriton.decorators import batch
+
 
 class AbstractModel(abc.ABC):
     @abc.abstractmethod
@@ -11,7 +13,8 @@ class AbstractModel(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def generate(self, request):
+    @batch
+    def generate(self, **inputs):
         pass
 
     @abc.abstractmethod

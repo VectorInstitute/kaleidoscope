@@ -1,49 +1,23 @@
 import argparse
-import flask
+import logging
+import numpy as np
 import requests
-import signal
 import socket
 import sys
 import torch
+from transformers import pipeline
 import os
 
-from flask import Flask, request, jsonify
+from pytriton.decorators import batch
+from pytriton.model_config import ModelConfig, Tensor
+from pytriton.triton import Triton, TritonConfig
 
 
 # Globals
 
 AVAILABLE_MODELS = ["OPT-175B", "OPT-6.7B", "GPT2"]
-
-
-# Start the Flask service that will hand off requests to the model libraries
-
-service = Flask(__name__)
-
-
-@service.route("/health", methods=["GET"])
-def health():
-    return {"msg": "Still Alive"}, 200
-
-
-@service.route("/module_names", methods=["GET"])
-def module_names():
-    result = model.module_names()
-    return result
-
-
-@service.route("/generate", methods=["POST"])
-def generate_text():
-    result = model.generate(request)
-    return result
-
-
-@service.route("/get_activations", methods=["POST"])
-def get_activations():
-    print(request)
-    print(request.json)
-    result = model.get_activations(request)
-    return result
-
+logger = logging.getLogger("kaleidoscope.model_service")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
 # We only want to load the model library that's being requested, not all of them
 # TODO: Is there a way to make this happen automatically, without separate entries?
@@ -52,7 +26,6 @@ def get_activations():
 def initialize_model(model_type):
     if model_type == "OPT-175B" or model_type == "OPT-6.7B":
         from models import OPT
-
         return OPT.OPT()
     elif model_type == "GPT2":
         from models import GPT2
@@ -110,8 +83,8 @@ def activate_model_instance(model_instance_id, gateway_host):
     print(f"Sending model activation request to {activation_url}")
     try:
         response = requests.post(activation_url)
-    except:
-        print(f"Model instance activation failed with status code {response.status_code}: {response.text}")
+    except Exception as err:
+        print(f"Model instance activation failed with error: {err}")
         print(f"Continuing to load model anyway, but it will not be accessible to any gateway services")
 
 
@@ -139,7 +112,7 @@ def main():
 
     # Validate input arguments
     if args.model_type not in AVAILABLE_MODELS:
-        print(
+        logger.error(
             f"Error: model type {args.model_type} is not supported. Please use one of the following: {', '.join(AVAILABLE_MODELS)}"
         )
         sys.exit(1)
@@ -158,7 +131,7 @@ def main():
         master_addr = os.environ['MASTER_ADDR']
     except:
         master_addr = "localhost"
-        print("MASTER_ADDR not set, defaulting to localhost")
+        logger.info("MASTER_ADDR not set, defaulting to localhost")
 
     # Find an ephemeral port to use for this model service
     sock = socket.socket()
@@ -174,23 +147,36 @@ def main():
         ip_addr = socket.gethostbyname(hostname)
         model_host = f"{ip_addr}:{model_port}"
 
-    register_model_instance(model_instance_id, model_host, gateway_host)
+    #register_model_instance(model_instance_id, model_host, gateway_host)
 
     # Load the model into GPU memory
-    print(f"Loading model into device {args.device}")
+    logger.info(f"Loading model into device {args.device}")
     model.load(args.device, args.model_path)
 
     # Register signal handlers
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    #signal.signal(signal.SIGINT, signal_handler)
+    #signal.signal(signal.SIGTERM, signal_handler)
 
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
-    activate_model_instance(model_instance_id, gateway_host)
-    print("Starting model service, press Ctrl+C to exit")
-    service.run(host=model_host.split(":")[0], port=model_host.split(":")[1])
+    #activate_model_instance(model_instance_id, gateway_host)
+    
+    triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
+    with Triton(config=triton_config) as triton:
+        triton.bind(
+            model_name="GPT2",
+            infer_func=model.generate,
+            inputs=[
+                Tensor(name="prompts", dtype=bytes, shape=(1,)),
+            ],
+            outputs=[
+                Tensor(name="sequences", dtype=bytes, shape=(-1,)),
+            ],
+            config=ModelConfig(max_batch_size=128),
+        )
+        logger.info("Starting model service, press Ctrl+C to exit")
+        triton.serve()
 
-    # Inform the gateway service that we are shutting down and it should remove this model
-    send_remove_request(args.model_type)
+
 
 
 if __name__ == "__main__":

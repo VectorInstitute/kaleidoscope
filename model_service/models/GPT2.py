@@ -1,16 +1,17 @@
-import argparse
-import json
 import logging
 import numpy as np
 import random
 import re
-import time
 import torch
 
 from .abstract_model import AbstractModel
-from werkzeug.exceptions import HTTPException
 
+from pytriton.decorators import batch
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
+
+
+logger = logging.getLogger("kaleidoscope.model_service.gpt2")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
 
 class GPT2(AbstractModel):
@@ -36,9 +37,12 @@ class GPT2(AbstractModel):
             )
         }
 
-    def generate(self, request):
-
+    @batch
+    def generate(self, **inputs):
+        logger.info(f"Starting generation on GPT2 model")
+        """
         prompt = request.json["prompt"]
+
         length = (
             int(request.json["max-tokens"]) if "max-tokens" in request.json else 128
         )
@@ -62,11 +66,15 @@ class GPT2(AbstractModel):
             stripped_sequence = str(request.json["stop_token"]).strip()
             if len(stripped_sequence) != 0:
                 stop_sequence = request.json["stop_token"]
-
+        """
         tokenizer = self.tokenizer_class.from_pretrained(self.model_path)
+        prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
+        prompts = np.squeeze(prompts, axis=-1).tolist()
+        logger.info(f"Prompts: {prompts}")
         encoded_prompt = tokenizer.encode(
-            prompt, add_special_tokens=False, return_tensors="pt"
+            prompts, add_special_tokens=False, return_tensors="pt"
         )
+        logger.info(f"Encoded prompt: {encoded_prompt}")
         encoded_prompt = encoded_prompt.to(self.device)
 
         if encoded_prompt.size()[-1] == 0:
@@ -76,13 +84,13 @@ class GPT2(AbstractModel):
 
         output_sequences = self.model.generate(
             input_ids=input_ids,
-            max_length=length + len(encoded_prompt[0]),
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
-            repetition_penalty=repetition_penalty,
+            max_length=128 + len(encoded_prompt[0]),
+            temperature=1.0,
+            top_k=0,
+            top_p=0.9,
+            repetition_penalty=1.0,
             do_sample=True,
-            num_return_sequences=num_return_sequences,
+            num_return_sequences=1,
         )
 
         # Remove the batch dimension when returning multiple sequences
@@ -103,7 +111,7 @@ class GPT2(AbstractModel):
             )
 
             # Remove all text after the stop token
-            text = text[: text.find(stop_sequence) if stop_sequence else None]
+            #text = text[: text.find(stop_sequence) if stop_sequence else None]
 
             # Add the prompt at the beginning of the sequence. Remove the excess text that was used for pre-processing
             total_sequence = text[
@@ -126,14 +134,10 @@ class GPT2(AbstractModel):
 
         generated_text = "".join(str(x) for x in total_sequence)
 
-        response = {}
-        response["text"] = generated_text
-        response["tokens"] = random_tokens
-        response["logprobs"] = random_logprobs
-        response["activations"] = {}
+        return {"sequences": np.array(generated_sequences)}
 
-        return json.dumps(response)
 
+    @batch
     def get_activations(self, request):
         response = self.generate(request)
         response["activations"] = torch.empty(0)
