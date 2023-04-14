@@ -37,3 +37,5 @@ class Config(object):
 
     CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]
     CELERY_BACKEND_URL = os.environ["CELERY_BACKEND_URL"]
+
+    BATCH_REQUEST_LIMIT = os.environ["BATCH_REQUEST_LIMIT"]
