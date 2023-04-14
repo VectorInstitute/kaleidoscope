@@ -133,3 +133,9 @@ class GPT2(AbstractModel):
         response["activations"] = {}
 
         return json.dumps(response)
+
+    def get_activations(self, request):
+        response = self.generate(request)
+        response["activations"] = torch.empty(0)
+        response["error"] = "Activation retrival not implemented for GPT2 model."
+        return response

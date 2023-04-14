@@ -8,6 +8,7 @@ import uuid
 from flask import current_app
 from sqlalchemy.dialects.postgresql import UUID
 
+from config import Config
 from errors import InvalidStateError
 from db import db, BaseMixin
 from services import model_service_client
@@ -17,11 +18,20 @@ MODEL_CONFIG = {
         "name": "OPT-175B",
         "description": "175B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
         "url": "https://huggingface.co/meta/opt-175B",
+        "path": "/ssd005/projects/llm/OPT-175B-mp32"
     },
     "OPT-6.7B": {
         "name": "OPT-6.7B",
         "description": "6.7B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
         "url": "https://huggingface.co/facebook/opt-6.7b",
+        "path": "/ssd005/projects/llm/opt-6.7b"
+    },
+    "GPT2": {
+        "name": "GPT2",
+        "description": "GPT2 model trained by OpenAI, available only for testing and development",
+        "url": "https://huggingface.co/gpt2",
+        # For HuggingFace models, just passing the name will download them on demand
+        "path": "gpt2"
     },
     # "Galactica-120B": {
     #     "name": "Galactica-120B",
@@ -69,16 +79,17 @@ class PendingState(ModelInstanceState):
         try:
             # ToDo: set job id params here
             model_service_client.launch(
-                self._model_instance.id, self._model_instance.name, "/model_path"
+                self._model_instance.id, self._model_instance.name, MODEL_CONFIG[self._model_instance.name]["path"]
             )
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:
-            current_app.logger.error(f"Job launch failed: {err}")
+            current_app.logger.error(f"Job launch for {self._model_instance.name} failed: {err}")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
 
     def is_healthy(self):
         is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
+            current_app.logger.error(f"Health check for pending model {self._model_instance.name} failed")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
     
@@ -94,6 +105,7 @@ class LaunchingState(ModelInstanceState):
     def is_healthy(self):
         is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
+            current_app.logger.error(f"Health check for launching model {self._model_instance.name} failed")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
     
@@ -113,6 +125,7 @@ class LoadingState(ModelInstanceState):
     def is_healthy(self):
         is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
+            current_app.logger.error(f"Health check for loading model {self._model_instance.name} failed")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
     
@@ -123,7 +136,6 @@ class LoadingState(ModelInstanceState):
 
 class ActiveState(ModelInstanceState):
     def generate(self, username, prompts, generation_config):
-
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
@@ -167,6 +179,7 @@ class ActiveState(ModelInstanceState):
     def is_healthy(self):
         is_healthy = model_service_client.verify_model_health(self._model_instance.host)
         if not is_healthy:
+            current_app.logger.error(f"Health check for active model {self._model_instance.name} failed")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
     
@@ -279,7 +292,7 @@ class ModelInstance(BaseMixin, db.Model):
         self._state.launch()
 
     def register(self, host: str) -> None:
-        current_app.logger.info(f"[register] called, host={host}")
+        current_app.logger.info(f"Received registration request from host {host}")
         self._state.register(host)
 
     def activate(self) -> None:

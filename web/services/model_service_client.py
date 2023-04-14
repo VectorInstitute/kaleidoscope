@@ -10,11 +10,20 @@ from config import Config
 
 
 def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
+    current_app.logger.info(f"Preparing to launch model: {model_name}")
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id}"
+        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
         current_app.logger.info(f"Launch SSH command: {ssh_command}")
-        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        current_app.logger.info(f"SSH launch job output: [{ssh_output}]")
+
+        # System job scheduler needs ssh to keep running in the background
+        if Config.JOB_SCHEDULER == "system":
+            result = subprocess.Popen(ssh_command, shell=True, close_fds=True)
+            current_app.logger.info(f"SSH launched system job with PID {result.pid}")
+        # For all other job schedulers, wait for the ssh command to return
+        else:
+            ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
+            current_app.logger.info(f"SSH launch job output: [{ssh_output}]")
+
     except Exception as err:
         current_app.logger.error(f"Failed to issue SSH command to job runner: {err}")
     return
@@ -33,12 +42,12 @@ def shutdown(model_instance_id: str) -> None:
 def generate(
     host: str, generation_id: int, prompts: List[str], generation_config: Dict
 ) -> Dict:
-
-    current_app.logger.info("generating")
+    
+    current_app.logger.info(f"Sending generation request to http://{host}/generate")
 
     body = {"prompt": prompts, **generation_config}
 
-    current_app.logger.info(f"body {body}")
+    current_app.logger.info(f"Generation request body: {body}")
 
     response = requests.post(f"http://{host}/generate", json=body)
 
@@ -90,17 +99,20 @@ def verify_model_health(host: str) -> bool:
 
 def verify_job_health(model_instance_id: str) -> bool:
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action get_status --model_instance_id {model_instance_id}"
-        # print(f"Get status SSH command: {ssh_command}")
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
+        #print(f"Get job health SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        # print(f"SSH get status output: [{ssh_output}]")
+        #print(f"SSH get job health output: [{ssh_output}]")
 
         # If we didn't get any output from SSH, the job doesn't exist
-        if not ssh_output.strip(" \n"):
+        if not ssh_output.strip(' \n'):
+            current_app.logger.info("No output from ssh, the model doesn't exist")
             return False
 
         # For now, assume that any output means the job is healthy
+        print("The model is healthy")
         return True
     except Exception as err:
         print(f"Failed to issue SSH command to job runner: {err}")
         return False
+
