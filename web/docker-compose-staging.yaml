@@ -7,8 +7,8 @@ services:
     build: .
     env_file:
       - .env
-    expose:
-      - 5001
+    ports:
+      - 5001:5001
     volumes:
       - ~/.ssh:/root/.ssh
       - .:/app
