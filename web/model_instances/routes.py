@@ -87,14 +87,9 @@ async def model_instance_generate(model_instance_id: str):
 
     prompts = request.json["prompts"]
     generation_config = request.json["generation_config"]
-
+    
     if len(prompts) > Config.BATCH_REQUEST_LIMIT:
-        return (
-            jsonify(
-                msg=f"Request batch size of {len(prompts)} exceeds prescribed limit of {Config.BATCH_REQUEST_LIMIT}"
-            ),
-            400,
-        )
+        return jsonify(msg=f"Request batch size of {len(prompts)} exceeds prescribed limit of {Config.BATCH_REQUEST_LIMIT}"), 400
     else:
         model_instance = ModelInstance.find_by_id(model_instance_id)
         generation = model_instance.generate(username, prompts, generation_config)
@@ -127,12 +122,7 @@ async def get_activations(model_instance_id: str):
     current_app.logger.info(f"generation_config {generation_config}")
 
     if len(prompts) > Config.BATCH_REQUEST_LIMIT:
-        return (
-            jsonify(
-                msg=f"Request batch size of {len(prompts)} exceeds prescribed limit of {Config.BATCH_REQUEST_LIMIT}"
-            ),
-            400,
-        )
+        return jsonify(msg=f"Request batch size of {len(prompts)} exceeds prescribed limit of {Config.BATCH_REQUEST_LIMIT}"), 400
     else:
         model_instance = ModelInstance.find_by_id(model_instance_id)
         activations = model_instance.generate_activations(

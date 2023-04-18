@@ -56,7 +56,6 @@ def initialize_model(model_type):
         return OPT.OPT()
     elif model_type == "GPT2":
         from models import GPT2
-
         return GPT2.GPT2()
 
 
@@ -112,12 +111,8 @@ def activate_model_instance(model_instance_id, gateway_host):
     try:
         response = requests.post(activation_url)
     except:
-        print(
-            f"Model instance activation failed with status code {response.status_code}: {response.text}"
-        )
-        print(
-            f"Continuing to load model anyway, but it will not be accessible to any gateway services"
-        )
+        print(f"Model instance activation failed with status code {response.status_code}: {response.text}")
+        print(f"Continuing to load model anyway, but it will not be accessible to any gateway services")
 
 
 def main():
@@ -134,18 +129,10 @@ def main():
     )
     parser.add_argument("--model_instance_id", required=True, type=str)
     parser.add_argument(
-        "--gateway_host",
-        required=False,
-        type=str,
-        help="Hostname of gateway service",
-        default="llm.cluster.local",
+        "--gateway_host", required=False, type=str, help="Hostname of gateway service", default="llm.cluster.local"
     )
     parser.add_argument(
-        "--gateway_port",
-        required=False,
-        type=int,
-        help="Port of gateway service",
-        default=3001,
+        "--gateway_port", required=False, type=int, help="Port of gateway service", default=3001
     )
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -168,14 +155,14 @@ def main():
 
     # Determine the IP address for the head node of this model
     try:
-        master_addr = os.environ["MASTER_ADDR"]
+        master_addr = os.environ['MASTER_ADDR']
     except:
         master_addr = "localhost"
         print("MASTER_ADDR not set, defaulting to localhost")
 
     # Find an ephemeral port to use for this model service
     sock = socket.socket()
-    sock.bind(("", 0))
+    sock.bind(('', 0))
     model_port = sock.getsockname()[1]
     sock.close()
 

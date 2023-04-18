@@ -22,15 +22,12 @@ def authenticate():
         connection.bind()
     except Exception as err:
         return make_response(
-            {"msg": f"Could not connect to LDAP server at {Config.LDAP_HOST} ({err})"},
-            500,
+            {"msg": f"Could not connect to LDAP server at {Config.LDAP_HOST} ({err})"}, 500
         )
 
     # Before authenticating, verify that user is a member of the user access group
     groups = current_app.ldap3_login_manager.get_user_groups(auth_params["username"])
-    if not any(
-        str(group["cn"]) == f"['{Config.LDAP_USER_ACCESS_GROUP}']" for group in groups
-    ):
+    if not any(str(group["cn"]) == f"['{Config.LDAP_USER_ACCESS_GROUP}']" for group in groups):
         return make_response(
             {
                 "msg": f"User {auth_params['username']} not a member of the {Config.LDAP_USER_ACCESS_GROUP} group "

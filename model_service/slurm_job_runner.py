@@ -83,6 +83,5 @@ def main():
         except Exception as err:
             print(f"Job scheduler failed: {err}")
 
-
 if __name__ == "__main__":
     main()

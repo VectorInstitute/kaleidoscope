@@ -21,15 +21,12 @@ def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
             current_app.logger.info(f"SSH launched system job with PID {result.pid}")
         # For all other job schedulers, wait for the ssh command to return
         else:
-            ssh_output = subprocess.check_output(ssh_command, shell=True).decode(
-                "utf-8"
-            )
+            ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
             current_app.logger.info(f"SSH launch job output: [{ssh_output}]")
 
     except Exception as err:
         current_app.logger.error(f"Failed to issue SSH command to job runner: {err}")
     return
-
 
 def shutdown(model_instance_id: str) -> None:
     try:
@@ -45,7 +42,7 @@ def shutdown(model_instance_id: str) -> None:
 def generate(
     host: str, generation_id: int, prompts: List[str], generation_config: Dict
 ) -> Dict:
-
+    
     current_app.logger.info(f"Sending generation request to http://{host}/generate")
 
     body = {"prompt": prompts, **generation_config}
@@ -103,12 +100,12 @@ def verify_model_health(host: str) -> bool:
 def verify_job_health(model_instance_id: str) -> bool:
     try:
         ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
-        # print(f"Get job health SSH command: {ssh_command}")
+        #print(f"Get job health SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        # print(f"SSH get job health output: [{ssh_output}]")
+        #print(f"SSH get job health output: [{ssh_output}]")
 
         # If we didn't get any output from SSH, the job doesn't exist
-        if not ssh_output.strip(" \n"):
+        if not ssh_output.strip(' \n'):
             current_app.logger.info("No output from ssh, the model doesn't exist")
             return False
 
@@ -118,3 +115,4 @@ def verify_job_health(model_instance_id: str) -> bool:
     except Exception as err:
         print(f"Failed to issue SSH command to job runner: {err}")
         return False
+

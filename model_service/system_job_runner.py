@@ -8,12 +8,8 @@ import sys
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--action", required=True, type=str, help="Action for job runner to perform"
-    )
-    parser.add_argument(
-        "--model_instance_id", required=True, type=str, help="Model type not supported"
-    )
+    parser.add_argument("--action", required=True, type=str, help="Action for job runner to perform")
+    parser.add_argument("--model_instance_id", required=True, type=str, help="Model type not supported")
     parser.add_argument("--model_type", type=str, help="Type of model requested")
     parser.add_argument("--model_path", type=str, help="Model type not supported")
     parser.add_argument("--gateway_host", type=str, help="Hostname of gateway service")
@@ -39,20 +35,15 @@ def main():
         try:
             process = subprocess.Popen(
                 [
-                    "python3",
-                    f"{cwd}/model_service.py",
-                    "--model_type",
-                    f"{args.model_type}",
-                    "--model_path",
-                    f"{args.model_path}",
-                    "--model_instance_id",
-                    f"{args.model_instance_id}",
-                    "--gateway_host",
-                    f"{args.gateway_host}",
-                    "--gateway_port",
-                    f"{args.gateway_port}",
+                    'python3',
+                    f'{cwd}/model_service.py',
+                    '--model_type', f'{args.model_type}',
+                    '--model_path', f'{args.model_path}',
+                    '--model_instance_id', f'{args.model_instance_id}',
+                    '--gateway_host', f'{args.gateway_host}',
+                    '--gateway_port', f'{args.gateway_port}'
                 ],
-                start_new_session=True,
+                start_new_session=True
             )
             print(f"Started model service under PID {process.pid}")
         except Exception as err:
@@ -61,10 +52,7 @@ def main():
     elif args.action == "get_status":
         try:
             # TODO: Find a better way to determine if the model_service process is active
-            status_output = subprocess.check_output(
-                f"ps aux | grep {args.model_instance_id} | grep -v get_status | grep -v grep",
-                shell=True,
-            ).decode("utf-8")
+            status_output = subprocess.check_output(f"ps aux | grep {args.model_instance_id} | grep -v get_status | grep -v grep", shell=True).decode('utf-8')
             print(f"{status_output}")
         except Exception as err:
             # If the command fails, don't send any response, this will indicate failure
