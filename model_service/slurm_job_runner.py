@@ -1,9 +1,8 @@
+#!/usr/bin/env python3
 import argparse
 import pathlib
 import subprocess
 import torch
-
-from config import *
 
 
 def main():
@@ -17,6 +16,8 @@ def main():
     )
     parser.add_argument("--model_type", type=str, help="Type of model requested")
     parser.add_argument("--model_path", type=str, help="Model type not supported")
+    parser.add_argument("--gateway_host", type=str, help="Hostname of gateway service")
+    parser.add_argument("--gateway_port", type=int, help="Port of gateway service")
     args = parser.parse_args()
 
     cwd = pathlib.Path(__file__).parent.resolve()
@@ -28,17 +29,30 @@ def main():
         elif not args.model_path:
             print("Argument --model_path must be specified to launch a job")
             return
+        elif not args.gateway_host:
+            print("Argument --gateway_host must be specified to launch a job")
+            return
+        elif not args.gateway_port:
+            print("Argument --gateway_port must be specified to launch a job")
+            return
 
         try:
             if args.model_type == "OPT-175B":
-                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} {cwd}/slurm/OPT-175B_service.sh {cwd}"
+                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} {cwd}/slurm/OPT-175B_service.sh {cwd} {args.gateway_host} {args.gateway_port}"
                 print(f"Scheduler command: {scheduler_cmd}")
                 scheduler_output = subprocess.check_output(
                     scheduler_cmd, shell=True
                 ).decode("utf-8")
                 print(f"{scheduler_output}")
             elif args.model_type == "OPT-6.7B":
-                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} {cwd}/slurm/OPT-6.7B_service.sh {cwd}"
+                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} {cwd}/slurm/OPT-6.7B_service.sh {cwd} {args.gateway_host} {args.gateway_port}"
+                print(f"Scheduler command: {scheduler_cmd}")
+                scheduler_output = subprocess.check_output(
+                    scheduler_cmd, shell=True
+                ).decode("utf-8")
+                print(f"{scheduler_output}")
+            elif args.model_type == "GPT2":
+                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} {cwd}/slurm/GPT2_service.sh {cwd} {args.gateway_host} {args.gateway_port}"
                 print(f"Scheduler command: {scheduler_cmd}")
                 scheduler_output = subprocess.check_output(
                     scheduler_cmd, shell=True
@@ -57,6 +71,17 @@ def main():
             print(f"{status_output}")
         except Exception as err:
             print(f"Job status failed: {err}")
+
+    elif args.action == "shutdown":
+        try:
+            scheduler_cmd = f"scancel --jobname={args.model_instance_id}"
+            print(f"Scheduler command: {scheduler_cmd}")
+            scheduler_output = subprocess.check_output(
+                scheduler_cmd, shell=True
+            ).decode("utf-8")
+            print(f"{scheduler_output}")
+        except Exception as err:
+            print(f"Job scheduler failed: {err}")
 
 
 if __name__ == "__main__":

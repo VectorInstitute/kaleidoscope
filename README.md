@@ -1,4 +1,4 @@
-![kaleiodsciope-logo](https://user-images.githubusercontent.com/72175053/226013488-3c3225b1-807a-412b-8893-f32f06034af5.png)
+![Kaleidoscope](https://user-images.githubusercontent.com/72175053/229659242-27090171-2005-4d1c-9de3-0a5b02ef8ceb.png)
 -----------------
 # Kaleidoscope
 ![PyPI](https://img.shields.io/pypi/v/kscope)
