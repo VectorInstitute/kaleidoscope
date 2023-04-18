@@ -2,6 +2,7 @@ import requests
 from flask import Blueprint, request, current_app, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
+from config import Config
 from db import db
 import tasks
 from models import MODEL_CONFIG, ModelInstance
@@ -27,7 +28,7 @@ async def get_current_model_instances():
 @model_instances_bp.route("/instances", methods=["POST"])
 @jwt_required()
 async def create_model_instance():
-
+    current_app.logger.info(f"Received model instance creation request: {request}")
     model_name = request.json["name"]
 
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
@@ -82,18 +83,18 @@ async def activate_model_instance(model_instance_id: str):
 async def model_instance_generate(model_instance_id: str):
 
     username = get_jwt_identity()
-    current_app.logger.info(f"generating request for {username}")
+    current_app.logger.info(f"Sending generate request for {username}: {request.json}")
 
     prompts = request.json["prompts"]
     generation_config = request.json["generation_config"]
-    current_app.logger.info(f"prompts {prompts}")
+    
+    if len(prompts) > int(Config.BATCH_REQUEST_LIMIT):
+        return jsonify(msg=f"Request batch size of {len(prompts)} exceeds prescribed limit of {Config.BATCH_REQUEST_LIMIT}"), 400
+    else:
+        model_instance = ModelInstance.find_by_id(model_instance_id)
+        generation = model_instance.generate(username, prompts, generation_config)
 
-    current_app.logger.info(f"generation config: {generation_config}")
-
-    model_instance = ModelInstance.find_by_id(model_instance_id)
-    generation = model_instance.generate(username, prompts, generation_config)
-
-    return jsonify(generation.serialize()), 200
+        return jsonify(generation.serialize()), 200
 
 
 @model_instances_bp.route("instances/<model_instance_id>/module_names", methods=["GET"])
@@ -120,12 +121,15 @@ async def get_activations(model_instance_id: str):
     generation_config = request.json["generation_config"]
     current_app.logger.info(f"generation_config {generation_config}")
 
-    model_instance = ModelInstance.find_by_id(model_instance_id)
-    activations = model_instance.generate_activations(
-        username, prompts, module_names, generation_config
-    )
+    if len(prompts) > Config.BATCH_REQUEST_LIMIT:
+        return jsonify(msg=f"Request batch size of {len(prompts)} exceeds prescribed limit of {Config.BATCH_REQUEST_LIMIT}"), 400
+    else:
+        model_instance = ModelInstance.find_by_id(model_instance_id)
+        activations = model_instance.generate_activations(
+            username, prompts, module_names, generation_config
+        )
 
-    return jsonify(activations), 200
+        return jsonify(activations), 200
 
     # model_instance_query = db.select(ModelInstance).filter_by(type=model_type)
     # model_instance = db.session.execute(model_instance_query).first()
