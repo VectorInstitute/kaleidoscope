@@ -73,9 +73,6 @@ class ModelInstanceState(ABC):
     def is_timed_out(self, timeout):
         raise InvalidStateError(self)
 
-    def is_timed_out(self, timeout):
-        raise InvalidStateError(self)
-
 
 class PendingState(ModelInstanceState):
     def launch(self):
