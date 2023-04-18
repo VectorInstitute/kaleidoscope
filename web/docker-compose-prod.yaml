@@ -1,27 +1,25 @@
+# Production environment
 version: '3.8'
-name: 'kaleidoscope'
+name: kaleidoscope-staging
 services:
   web:
     depends_on:
       - "db"
     build: .
-    image: gateway:latest
-    entrypoint: ./docker-entrypoint.sh
     env_file:
       - .env
     ports:
-      - 3001:3001
+      - 5001:5001
     volumes:
-      - /h/llm/.ssh:/root/.ssh
+      - ~/.ssh:/root/.ssh
       - .:/app
   web-worker:
     depends_on:
       - "db"
     build: .
+    entrypoint: celery
     env_file:
       - .env
-    image: gateway:latest
-    entrypoint: celery
     command: -A gateway_service.celery worker -B
     volumes:
       - ~/.ssh:/root/.ssh
@@ -32,11 +30,17 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=vector
-      - POSTGRES_DB=test
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=kaleidoscope-staging
     ports:
-      - 5432:5432
-
+      - 8001:5432
+  nginx:
+    build: ./nginx
+    ports:
+      - 1337:80
+    depends_on:
+      - web
+    
 volumes:
   postgres_data:
-    name: lingua_postgres_data
+    name: kaleidoscope-staging_postgres_data_staging

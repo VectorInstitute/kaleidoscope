@@ -16,4 +16,10 @@ RUN pip install --upgrade pip
 # Install dependancies
 RUN pip install -r requirements.txt
 
-CMD ["gunicorn", "--config", "gunicorn.conf.py"]
+EXPOSE 5000
+
+ENTRYPOINT [ "python" ]
+CMD ["gateway_service.py" ]
+
+# Gunicorn config for production environment
+# CMD ["gunicorn", "--config", "gunicorn.conf.py"]
