@@ -37,4 +37,4 @@ services:
 
 volumes:
   postgres_data:
-    name: kaleidoscope-staging_postgres_data_staging
+    name: kaleidoscope-staging_postgres_data
