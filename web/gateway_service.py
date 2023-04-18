@@ -63,4 +63,4 @@ app = create_app()
 celery = make_celery(app)
 
 if __name__ == "__main__":
-    app.run(host=Config.GATEWAY_HOST, port=Config.GATEWAY_PORT)
+    app.run(host=Config.GATEWAY_BIND_HOST, port=Config.GATEWAY_PORT)
