@@ -119,6 +119,16 @@ def main():
 
     gateway_host = f"{args.gateway_host}:{args.gateway_port}"
 
+    # Determine the distributed training rank (if applicable)
+    rank = 0
+    if 'SLURM_PROCID' in os.environ:
+        try:
+            rank = int(os.environ['SLURM_PROCID'])
+        except:
+            pass
+
+    print(f"Loading model service with rank {rank}")
+
     # Setup a global model instance
     global model, model_type
 
@@ -147,7 +157,9 @@ def main():
         ip_addr = socket.gethostbyname(hostname)
         model_host = f"{ip_addr}:{model_port}"
 
-    #register_model_instance(model_instance_id, model_host, gateway_host)
+    if rank == 0:
+        #register_model_instance(model_instance_id, model_host, gateway_host)
+        pass
 
     # Load the model into GPU memory
     logger.info(f"Loading model into device {args.device}")
@@ -158,23 +170,24 @@ def main():
     #signal.signal(signal.SIGTERM, signal_handler)
 
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
-    #activate_model_instance(model_instance_id, gateway_host)
-    
-    triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
-    with Triton(config=triton_config) as triton:
-        triton.bind(
-            model_name="GPT2",
-            infer_func=model.generate,
-            inputs=[
-                Tensor(name="prompts", dtype=bytes, shape=(1,)),
-            ],
-            outputs=[
-                Tensor(name="sequences", dtype=bytes, shape=(-1,)),
-            ],
-            config=ModelConfig(max_batch_size=128),
-        )
-        logger.info("Starting model service, press Ctrl+C to exit")
-        triton.serve()
+    if rank == 0:
+        #activate_model_instance(model_instance_id, gateway_host)
+        
+        triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
+        with Triton(config=triton_config) as triton:
+            triton.bind(
+                model_name="GPT2",
+                infer_func=model.generate,
+                inputs=[
+                    Tensor(name="prompts", dtype=bytes, shape=(1,)),
+                ],
+                outputs=[
+                    Tensor(name="sequences", dtype=bytes, shape=(-1,)),
+                ],
+                config=ModelConfig(max_batch_size=128),
+            )
+            logger.info("Starting model service, press Ctrl+C to exit")
+            triton.serve()
 
 
 
