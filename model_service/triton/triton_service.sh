@@ -9,4 +9,4 @@
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
 export MASTER_ADDR=localhost
-singularity exec --nv --bind /ssd005,/scratch,/checkpoint /ssd005/projects/llm/triton.sif /usr/bin/python3 -s ~/scratch/kaleidoscope-triton/model_service/model_service.py --model_type GPT2 --model_path /checkpoint/opt_test/gpt2 --model_instance_id test --gateway_host 127.0.0.1 --gateway_port 9001
+singularity exec --nv --bind /ssd005,/scratch,/checkpoint /ssd005/projects/llm/triton.sif /usr/bin/python3 -s ~/marshallw/kaleidoscope/model_service/model_service.py --model_type GPT2 --model_path /checkpoint/opt_test/gpt2 --model_instance_id test --gateway_host 127.0.0.1 --gateway_port 9001
