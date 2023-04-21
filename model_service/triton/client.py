@@ -60,7 +60,7 @@ def main():
 
     sequence = np.array(
         [
-            ["one day I will see the world"],
+            ["Show me the meaning of being lonely"],
             ["I would love to learn cook the Asian street food"],
             ["Carnival in Rio de Janeiro"],
             ["William Shakespeare was a great writer"],
@@ -70,7 +70,7 @@ def main():
     logger.info(f"Sequence: {sequence}")
 
     logger.info(f"Waiting for response...")
-    with ModelClient(args.url, "GPT2", init_timeout_s=args.init_timeout_s) as client:
+    with ModelClient(args.url, "OPT-6.7B", init_timeout_s=args.init_timeout_s) as client:
         for req_idx in range(1, args.iterations + 1):
             logger.info(f"Sending request ({req_idx}).")
             result_dict = client.infer_batch(sequence)

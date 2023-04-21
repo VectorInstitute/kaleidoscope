@@ -40,6 +40,7 @@ class GPT2(AbstractModel):
     @batch
     def generate(self, **inputs):
         logger.info(f"Starting generation on GPT2 model")
+        logger.info(f"inputs = {inputs}")
         """
         prompt = request.json["prompt"]
 

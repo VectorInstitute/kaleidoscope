@@ -170,24 +170,24 @@ def main():
     #signal.signal(signal.SIGTERM, signal_handler)
 
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
-    if rank == 0:
-        #activate_model_instance(model_instance_id, gateway_host)
-        
-        triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
-        with Triton(config=triton_config) as triton:
-            triton.bind(
-                model_name="GPT2",
-                infer_func=model.generate,
-                inputs=[
-                    Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                ],
-                outputs=[
-                    Tensor(name="sequences", dtype=bytes, shape=(-1,)),
-                ],
-                config=ModelConfig(max_batch_size=128),
-            )
-            logger.info("Starting model service, press Ctrl+C to exit")
-            triton.serve()
+
+    #activate_model_instance(model_instance_id, gateway_host)
+    
+    triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
+    with Triton(config=triton_config) as triton:
+        triton.bind(
+            model_name=model_type,
+            infer_func=model.generate,
+            inputs=[
+                Tensor(name="prompts", dtype=bytes, shape=(1,))
+            ],
+            outputs=[
+                Tensor(name="sequences", dtype=bytes, shape=(-1,)),
+            ],
+            config=ModelConfig(max_batch_size=128),
+        )
+        logger.info("Starting model service, press Ctrl+C to exit")
+        triton.serve()
 
 
 

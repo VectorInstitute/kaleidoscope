@@ -16,6 +16,8 @@ from .abstract_model import AbstractModel
 from collections import defaultdict
 from werkzeug.exceptions import HTTPException
 
+from pytriton.decorators import batch
+
 from metaseq import options
 from metaseq.dataclass.configs import MetaseqConfig
 from metaseq.dataclass.utils import convert_namespace_to_omegaconf
@@ -85,11 +87,19 @@ class OPT(AbstractModel):
             )
         }
 
-    def generate(self, request):
+    @batch
+    def generate(self, **inputs):
+
+        prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
+        prompts = np.squeeze(prompts, axis=-1).tolist()
+        logger.info(f"Prompts: {prompts}")
+
+        """
         prompts = request.json["prompt"]
         del request.json["prompt"]
         generation_args = request.json
-
+        """
+        
         if isinstance(prompts, str):
             # single string. tokenize and turn it to the single pre-tokenized case
             prompts = [encode_fn(generator, prompts)]
@@ -105,6 +115,7 @@ class OPT(AbstractModel):
         # final case: multi pre-tokenized
         assert len(prompts[0]) > 0
 
+        """
         if "min_tokens" in generation_args:
             generation_args["min_tokens"] = int(generation_args["min_tokens"])
         if "max_tokens" in generation_args:
@@ -139,6 +150,10 @@ class OPT(AbstractModel):
             generation_args["n"] = min(MAX_BEAM, max(1, int(generation_args["n"])))
         else:
             generation_args["n"] = UNBATCHED_ARG_DICT["n"]
+        """
+
+        generation_args = {}
+        generation_args['max_tokens'] = 32
 
         ret_queue = queue.Queue()
         for i, prompt in enumerate(prompts):
@@ -174,13 +189,12 @@ class OPT(AbstractModel):
         # UPDATE 01-03-23: Return all results instead of just the first one -
         # DOUBT: Risk of combining separate requests?
         response = {k: [] for k in ["text", "tokens", "logprobs", "activations"]}
+        idx = 0
+        generated_sequences = []
         for result in results:
-            response["text"].append(result["text"])
-            response["tokens"].append(result["tokens"])
-            response["logprobs"].append(result["token_scores"])
-            response["activations"].append(result["activations"])
+            generated_sequences.append(result["text"])
 
-        return response
+        return {"sequences": np.array(generated_sequences)}
 
     def get_activations(self, request):
 
