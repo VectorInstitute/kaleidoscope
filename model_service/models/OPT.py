@@ -10,6 +10,7 @@ import sys
 import threading
 import time
 import torch
+from torch import Tensor
 import traceback
 
 from .abstract_model import AbstractModel
@@ -42,6 +43,17 @@ cfg = None
 is_model_loaded = False
 logger = build_logger()
 BATCH_QUEUE = PriorityQueueRingShard()
+
+
+def decode_str(obj_in_str):
+    return pickle.loads(codecs.decode(obj_in_str.encode("utf-8"), "base64"))
+
+
+# Helper functions for debugging activation editing functionality
+def replace_with_ones(act: Tensor) -> Tensor:
+    """Replace an activation with an activation filled with ones."""
+    out = torch.ones_like(act, dtype=act.dtype).cuda()
+    return out
 
 
 class OPT(AbstractModel):
@@ -183,7 +195,6 @@ class OPT(AbstractModel):
         return response
 
     def get_activations(self, request):
-
         request.json["encoded_activation_payload"] = request.json["module_names"]
         request.json["echo"] = True
         request.json["max_tokens"] = 0
@@ -191,7 +202,7 @@ class OPT(AbstractModel):
         return response
 
     def edit_activations(self, request):
-        request.json["encoded_activation_payload"] = request.json["modules"]
+        request.json["encoded_activation_payload"] = decode_str(request.json["modules"])
         request.json["echo"] = True
         request.json["max_tokens"] = 0
         response = self.generate(request)
