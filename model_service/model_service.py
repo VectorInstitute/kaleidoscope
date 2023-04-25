@@ -1,12 +1,11 @@
 import argparse
 import logging
 import numpy as np
+import os
 import requests
 import socket
 import sys
 import torch
-from transformers import pipeline
-import os
 
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
@@ -15,7 +14,7 @@ from pytriton.triton import Triton, TritonConfig
 
 # Globals
 
-AVAILABLE_MODELS = ["OPT-175B", "OPT-6.7B", "GPT2"]
+AVAILABLE_MODELS = ["OPT-175B", "OPT-6.7B", "GPT2", "GPT-J"]
 logger = logging.getLogger("kaleidoscope.model_service")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
@@ -30,6 +29,9 @@ def initialize_model(model_type):
     elif model_type == "GPT2":
         from models import GPT2
         return GPT2.GPT2()
+    elif model_type == "GPT-J":
+        from models import GPT_J
+        return GPT_J.GPT_J()
 
 
 # Signal handler to send a remove request to the gateway, if this service is killed by the system
