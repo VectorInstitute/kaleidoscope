@@ -1,3 +1,4 @@
+"""This module are a set of utility tooks for performing PyTorch hooks"""
 from contextlib import contextmanager
 from functools import partial
 import logging
@@ -9,16 +10,16 @@ from megatron.mpu.mappings import gather_from_tensor_model_parallel_region
 from megatron.mpu import ColumnParallelLinear, RowParallelLinear
 from metaseq.modules.layer_norm import FusedLayerNorm
 from metaseq.modules.dropout import Dropout
-from metaseq.distributed import utils as distributed_utils
 from metaseq.model_parallel.modules.transformer_layer import (
     ModelParallelTransformerDecoderLayer,
 )
 from metaseq.model_parallel.modules.multihead_attention import (
     ModelParallelMultiheadAttention,
 )
-from metaseq.model_parallel.models.transformer import ModelParallelTransformerDecoder
+from metaseq.model_parallel.models.transformer import (
+    ModelParallelTransformerDecoder,
+)
 from transformers.models.opt.modeling_opt import (
-    OPTDecoderLayer,
     OPTAttention,
     OPTLearnedPositionalEmbedding,
 )
@@ -49,9 +50,7 @@ def apply_forward_hook(model, hook_dict):
         all_hooks.clear()
 
 
-def get_activation_capture_hook_dict(
-    model, desired_module_activations, aux=None, model_type="opt"
-):
+def get_activation_capture_hook_dict(model, desired_module_activations, aux=None, model_type="opt"):
     """
     Attach the specified hook forward-pass hook functions onto the given
     model. The model types are one of [opt, hf]
@@ -60,7 +59,7 @@ def get_activation_capture_hook_dict(
 
     desired_module_activations = set(desired_module_activations)
 
-    for n, m in model.named_modules():
+    for n, _ in model.named_modules():
         if n in desired_module_activations:
             if model_type == "opt":
                 hook_dict[n] = partial(opt_forward_hook_fn, n, activation_dict, aux)
@@ -72,6 +71,7 @@ def get_activation_capture_hook_dict(
 
 
 def opt_forward_hook_fn(registered_name, save_dict, aux, m, _, outputs):
+    """A function to perform a forward hook on OPT"""
     # NOTE: Don't consider inputs, since there can be arbitrary code between
     #       module calls
     type_m = type(m)
@@ -91,10 +91,9 @@ def opt_forward_hook_fn(registered_name, save_dict, aux, m, _, outputs):
             # and then permute it back
             if not aux:
                 logger.info(
-                    (
-                        "Rank {}: Required auxillary data for self-attention maps"
-                        "is not present"
-                    ).format(torch.distributed.get_rank())
+                    f"Rank {torch.distributed.get_rank()}: \
+                    Required auxillary data for self-attention"
+                    "maps is not present"
                 )
 
             outputs = gather_from_tensor_model_parallel_region(
@@ -191,7 +190,7 @@ def hf_forward_hook_fn(registered_name, save_dict, aux, m, _, outputs):
     type_m = type(m)
     layer_type = registered_name.split(".")[-1]  # In the case of duplicate types
 
-    if type_m == torch.nn.Embedding or type_m == OPTLearnedPositionalEmbedding:
+    if type_m in (torch.nn.Embedding, OPTLearnedPositionalEmbedding):
         output = outputs
 
     elif type_m == OPTAttention:
