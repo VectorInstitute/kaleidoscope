@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import List, Optional, Dict
 from abc import ABC
+from datetime import datetime
 import uuid
 
 from flask import current_app
@@ -74,10 +75,14 @@ class ModelInstanceState(ABC):
 
     def shutdown(self):
         """Shutdown abstract"""
-        raise InvalidStateError(self)
+        model_service_client.shutdown(self._model_instance.id)
+        self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
     def is_healthy(self):
         """Health abstract"""
+        raise InvalidStateError(self)
+
+    def is_timed_out(self, timeout):
         raise InvalidStateError(self)
 
 
@@ -108,8 +113,8 @@ class PendingState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 
-    def shutdown(self):
-        pass
+    def is_timed_out(self, timeout):
+        return False
 
 
 class LaunchingState(ModelInstanceState):
@@ -130,8 +135,8 @@ class LaunchingState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 
-    def shutdown(self):
-        pass
+    def is_timed_out(self, timeout):
+        return False
 
 
 class LoadingState(ModelInstanceState):
@@ -155,8 +160,8 @@ class LoadingState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 
-    def shutdown(self):
-        pass
+    def is_timed_out(self, timeout):
+        return False
 
 
 class ActiveState(ModelInstanceState):
@@ -212,8 +217,13 @@ class ActiveState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
 
-    def shutdown(self):
-        pass
+    def is_timed_out(self, timeout):
+        last_event_datetime = self._model_instance.updated_at
+        last_generation = self._model_instance.last_generation()
+        if last_generation:
+            last_event_datetime = last_generation.created_at
+
+        return (datetime.now() - last_event_datetime) > timeout
 
 
 class FailedState(ModelInstanceState):
@@ -223,7 +233,7 @@ class FailedState(ModelInstanceState):
         return False
 
     def shutdown(self):
-        pass
+        raise InvalidStateError(self)
 
 
 class CompletedState(ModelInstanceState):
@@ -233,7 +243,7 @@ class CompletedState(ModelInstanceState):
         return True
 
     def shutdown(self):
-        pass
+        raise InvalidStateError(self)
 
 
 class ModelInstanceStates(Enum):
@@ -362,6 +372,18 @@ class ModelInstance(BaseMixin, db.Model):
     def is_healthy(self) -> bool:
         """Retrieve health status"""
         return self._state.is_healthy()
+
+    def is_timed_out(self, timeout):
+        return self._state.is_timed_out(timeout)
+
+    def last_generation(self):
+        last_generation_query = (
+            db.select(ModelInstanceGeneration)
+            .where(ModelInstanceGeneration.model_instance_id == self.id)
+            .order_by(ModelInstanceGeneration.created_at.desc())
+        )
+        last_generation = db.session.execute(last_generation_query).scalars().first()
+        return last_generation
 
     def serialize(self):
         return {
