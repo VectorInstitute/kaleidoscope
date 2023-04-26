@@ -1,3 +1,4 @@
+# Staging environment
 version: '3.8'
 name: kaleidoscope-staging
 services:
@@ -5,7 +6,6 @@ services:
     depends_on:
       - "db"
     build: .
-    entrypoint: ./docker-entrypoint.sh
     env_file:
       - .env
     ports:
@@ -34,7 +34,13 @@ services:
       - POSTGRES_DB=kaleidoscope-staging
     ports:
       - 8000:5432
-
+  nginx:
+    build: ./nginx
+    ports:
+      - 1337:80
+    depends_on:
+      - web
+    
 volumes:
   postgres_data:
     name: kaleidoscope-staging_postgres_data_staging
