@@ -12,8 +12,6 @@ from flask import Flask, request, jsonify
 
 # Globals
 
-AVAILABLE_MODELS = ["OPT-175B", "OPT-6.7B", "GPT2"]
-
 
 # Start the Flask service that will hand off requests to the model libraries
 
@@ -122,7 +120,7 @@ def main():
         "--model_type",
         required=True,
         type=str,
-        help="Model type selected in the list: " + ", ".join(AVAILABLE_MODELS),
+        help="Model type selected in the list: " + ", ".join(config.AVAILABLE_MODELS),
     )
     parser.add_argument(
         "--model_path", required=True, type=str, help="Path to pre-trained model"
@@ -138,9 +136,9 @@ def main():
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Validate input arguments
-    if args.model_type not in AVAILABLE_MODELS:
+    if args.model_type not in config.AVAILABLE_MODELS:
         print(
-            f"Error: model type {args.model_type} is not supported. Please use one of the following: {', '.join(AVAILABLE_MODELS)}"
+            f"Error: model type {args.model_type} is not supported. Please use one of the following: {', '.join(config.AVAILABLE_MODELS)}"
         )
         sys.exit(1)
 

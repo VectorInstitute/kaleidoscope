@@ -33,11 +33,6 @@ MODEL_CONFIG = {
         # For HuggingFace models, just passing the name will download them on demand
         "path": "gpt2"
     },
-    # "Galactica-120B": {
-    #     "name": "Galactica-120B",
-    #     "description": "120B parameter version of the Galactica model trained by Meta",
-    #     "url": "https://huggingface.co/meta/galactica-120B",
-    # }q
 }
 
 
