@@ -55,6 +55,8 @@ RUN mkdir build -p && \
       .. && \
     make -j"$(grep -c ^processor /proc/cpuinfo)" install
 
+# Add a new layer to the image for the actual server
+# This will clean up all the files left behind from the instructions above
 FROM ${BASE_IMAGE} as server
 
 ENV NCCL_LAUNCH_MODE=GROUP
@@ -68,6 +70,11 @@ WORKDIR /workspace
 RUN   apt-key del 7fa2af80
 ADD   https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb .
 RUN   dpkg -i cuda-keyring_1.0-1_all.deb
+
+# Need to install OpenMPI before installing PyTorch
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends && \
+	openmpi-bin openmpi-doc libopenmpi-dev
 
 # Install pytorch
 RUN pip3 install torch==1.9.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html  && \
@@ -85,8 +92,8 @@ RUN mkdir /var/run/sshd -p
 # temporal changes only for the blogpost about GPT-J and T5
 RUN ln -sf /usr/bin/python3.8 /usr/bin/python
 
-# TODO: Do we need this?
-ADD . /workspace/fastertransformer_backend
+WORKDIR /workspace
+RUN git clone https://github.com/triton-inference-server/fastertransformer_backend.git
 
 # Install PyTriton
 RUN pip install -U https://github.com/triton-inference-server/pytriton/releases/download/v0.1.4/pytriton-0.1.4-py3-none-manylinux_2_31_x86_64.whl
@@ -96,13 +103,14 @@ ADD requirements.txt .
 RUN pip install -r requirements.txt
 
 # Now clone and build FasterTransformer
-# Note, this can take 1-2 hours and your computer will be completely useless while compiling. Save all your work first!
+# NOTE: This will take 1-2 hours and your computer will be completely useless while compiling. Save all your work first!
 RUN git clone https://github.com/NVIDIA/FasterTransformer.git
 RUN mkdir -p FasterTransformer/build
 WORKDIR /workspace/FasterTransformer/build
-RUN git submodule init
-RUN git submodule update
+RUN git submodule init && git submodule update
 RUN cmake -DSM=xx -DCMAKE_BUILD_TYPE=Release -DBUILD_PYT=ON -DBUILD_MULTI_GPU=ON ..
-#RUN make -j32
+RUN make -j32
+
+
 
 
