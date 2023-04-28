@@ -1,4 +1,5 @@
 import argparse
+import cloudpickle
 import codecs
 import logging
 import numpy as np
@@ -45,8 +46,13 @@ logger = build_logger()
 BATCH_QUEUE = PriorityQueueRingShard()
 
 
+def encode_obj(obj):
+    return codecs.encode(cloudpickle.dumps(obj), "base64").decode("utf-8")
+
+
 def decode_str(obj_in_str):
     return pickle.loads(codecs.decode(obj_in_str.encode("utf-8"), "base64"))
+
 
 
 # Helper functions for debugging activation editing functionality
@@ -202,10 +208,15 @@ class OPT(AbstractModel):
         return response
 
     def edit_activations(self, request):
-        request.json["encoded_activation_payload"] = decode_str(request.json["modules"])
+        decoded_modules = decode_str(request.json['modules'])
+        logger.info(f"About to edit activations, decoded modules: {decoded_modules}")
+        request.json["encoded_activation_payload"] = request.json['modules'] #encode_obj(request.json["modules"])
         request.json["echo"] = True
         request.json["max_tokens"] = 0
+        logger.info(f"Send activation edit request: {request}")
         response = self.generate(request)
+        logger.info(f"Get activation edit response: {response}")
+
         return response
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
@@ -419,7 +430,6 @@ class OPT(AbstractModel):
                         encoded_activation_payload = request_object.pop(
                             "encoded_activation_payload", None
                         )
-
                         act_retrieval_aux = request_object.pop("_aux", None)
 
                         if encoded_activation_payload:
