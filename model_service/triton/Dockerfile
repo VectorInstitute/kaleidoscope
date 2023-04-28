@@ -10,6 +10,8 @@ RUN   apt-key del 7fa2af80
 ADD   https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb .
 RUN   dpkg -i cuda-keyring_1.0-1_all.deb
 
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     zip unzip wget build-essential autoconf autogen gdb git \
