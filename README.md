@@ -47,7 +47,7 @@ install the SDK from its own repository:
 https://github.com/VectorInstitute/kaleidoscope-sdk
 
 ## Contributing
-Contributing to kaleidoscope is welcomed. See [Contributing](CONTRIBUTING) for
+Contributing to kaleidoscope is welcomed. See [Contributing](CONTRIBUTING.md) for
 guidelines.
 
 ## License

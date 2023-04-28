@@ -1,19 +1,22 @@
+"""A module to abstract the models' functionality"""
 import abc
 
 
 class AbstractModel(abc.ABC):
+    """An abstraction of a generative AI model"""
+
     @abc.abstractmethod
     def load(self, device, model_path):
-        pass
+        """An abstract method for loading a model"""
 
     @abc.abstractmethod
     def module_names(self):
-        pass
+        """An abstract method for getting module names"""
 
     @abc.abstractmethod
     def generate(self, request):
-        pass
+        """An abstract method for generating text"""
 
     @abc.abstractmethod
     def get_activations(self, request):
-        pass
+        """An abstract method for getting intermediate activations"""
