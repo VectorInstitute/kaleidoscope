@@ -73,9 +73,14 @@ RUN   apt-key del 7fa2af80
 ADD   https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb .
 RUN   dpkg -i cuda-keyring_1.0-1_all.deb
 
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
+
 # Need to install OpenMPI before installing PyTorch
 RUN apt-get update && \
     apt-get install -y --no-install-recommends openmpi-bin openmpi-doc libopenmpi-dev
+
+# Upgrade pip3
+RUN pip install --upgrade pip
 
 # Install pytorch
 RUN pip3 install torch==1.9.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html  && \
