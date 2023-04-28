@@ -1,18 +1,22 @@
+"""Module for model service client"""
 from __future__ import annotations
-from flask import current_app
 import subprocess
 from typing import Dict, List
+from flask import current_app
 
 import requests
 
-import models
 from config import Config
 
 
 def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
+    """Launch a model based on a defined path"""
     current_app.logger.info(f"Preparing to launch model: {model_name}")
     try:
-        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
+        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} \
+        {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_name} \
+        --model_path {model_path} --model_instance_id {model_instance_id} \
+        --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
         current_app.logger.info(f"Launch SSH command: {ssh_command}")
 
         # System job scheduler needs ssh to keep running in the background
@@ -26,11 +30,12 @@ def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
 
     except Exception as err:
         current_app.logger.error(f"Failed to issue SSH command to job runner: {err}")
-    return
+
 
 def shutdown(model_instance_id: str) -> None:
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action shutdown --model_instance_id {model_instance_id}"
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 \
+        {Config.JOB_SCHEDULER_BIN} --action shutdown --model_instance_id {model_instance_id}"
         current_app.logger.info(f"Shutdown SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
         current_app.logger.info(f"SSH shutdown job output: [{ssh_output}]")
@@ -39,10 +44,9 @@ def shutdown(model_instance_id: str) -> None:
     return
 
 
-def generate(
-    host: str, generation_id: int, prompts: List[str], generation_config: Dict
-) -> Dict:
-    
+def generate(host: str, generation_id: int, prompts: List[str], generation_config: Dict) -> Dict:
+    """Generate into JSON format"""
+
     current_app.logger.info(f"Sending generation request to http://{host}/generate")
 
     body = {"prompt": prompts, **generation_config}
@@ -62,10 +66,14 @@ def generate_activations(
     module_names: List[str],
     generation_config: Dict,
 ) -> Dict:
-
+    """Generate intermediate activations"""
     current_app.logger.info("activations")
 
-    body = {"prompt": prompts, "module_names": module_names, **generation_config}
+    body = {
+        "prompt": prompts,
+        "module_names": module_names,
+        **generation_config,
+    }
 
     current_app.logger.info(f"body {body}")
 
@@ -76,7 +84,7 @@ def generate_activations(
 
 
 def get_module_names(host: str) -> Dict:
-
+    """Retrieve module names"""
     response = requests.get(
         f"http://{host}/module_names",
     )
@@ -89,6 +97,7 @@ def get_module_names(host: str) -> Dict:
 
 
 def verify_model_health(host: str) -> bool:
+    """Verify the health of a model"""
     try:
         response = requests.get(f"http://{host}/health")
         return response.status_code == 200
@@ -98,14 +107,16 @@ def verify_model_health(host: str) -> bool:
 
 
 def verify_job_health(model_instance_id: str) -> bool:
+    """Verify if the tasks is healthy"""
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
-        #print(f"Get job health SSH command: {ssh_command}")
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} \
+        {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
+        # print(f"Get job health SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        #print(f"SSH get job health output: [{ssh_output}]")
+        # print(f"SSH get job health output: [{ssh_output}]")
 
         # If we didn't get any output from SSH, the job doesn't exist
-        if not ssh_output.strip(' \n'):
+        if not ssh_output.strip(" \n"):
             current_app.logger.info("No output from ssh, the model doesn't exist")
             return False
 
@@ -115,4 +126,3 @@ def verify_job_health(model_instance_id: str) -> bool:
     except Exception as err:
         print(f"Failed to issue SSH command to job runner: {err}")
         return False
-
