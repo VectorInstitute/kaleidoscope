@@ -500,7 +500,7 @@ class GPT(nn.Module):
 
         assert torch.cuda.is_available(), "CUDA is required for this model."
 
-        assert head_num % tensor_para_size == 0, "head_num must be a multiple of tensor_para_size."
+        # assert head_num % tensor_para_size == 0, "head_num must be a multiple of tensor_para_size." - UNCOMMENT LATER
         assert layer_num % pipeline_para_size == 0, "layer_num must be a multiple of pipeline_para_size."
 
         # Load the C++ model into Pytorch model.
@@ -519,12 +519,14 @@ class GPT(nn.Module):
                                   adapter_inter_size=self.adapter_inter_size,
                                   int8_mode=int8_mode,
                                   inter_size=inter_size)
-
+        
         # Prepare for tensor/pipeline parallel
-        try:
-            dist.init_process_group(backend='mpi')
-        except:
-            print("[INFO] WARNING: Have initialized the process group")
+        dist.init_process_group(backend='nccl') # REMOVE
+        # try:
+        #     dist.init_process_group(backend='mpi')
+        # except:
+        #     print("[INFO] WARNING: Have initialized the process group")
+        assert 1 == 0, "Initialized" # TEMP - REMOVE LATER
         self.rank = dist.get_rank()
         self.device_count = torch.cuda.device_count()
         self.device = self.rank % self.device_count

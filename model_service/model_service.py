@@ -163,9 +163,23 @@ def main():
         #register_model_instance(model_instance_id, model_host, gateway_host)
         pass
 
+    # reset env var MASTER_ADDR to ip addr
+    if master_addr == "localhost":
+        hostname = socket.gethostname()
+        ip_addr = socket.gethostbyname(hostname)
+        os.environ["MASTER_ADDR"] = ip_addr
+    # reset env var MASTER_PORT to free port
+    sock = socket.socket()
+    sock.bind(('', 0))
+    model_port = sock.getsockname()[1]
+    sock.close()
+    os.environ["MASTER_PORT"] = str(model_port)
+
     # Load the model into GPU memory
     logger.info(f"Loading model into device {args.device}")
+    logger.info(f"Loading model from model path {args.model_path}")
     model.load(args.device, args.model_path)
+    assert 1 == 0, "Model loaded" # TEMP - REMOVE LATER
 
     # Register signal handlers
     #signal.signal(signal.SIGINT, signal_handler)

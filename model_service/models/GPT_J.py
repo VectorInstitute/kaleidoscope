@@ -6,6 +6,7 @@ from pathlib import Path
 import random
 import re
 import torch
+import os
 
 from .abstract_model import AbstractModel
 
@@ -30,8 +31,8 @@ class GPT_J(AbstractModel):
         self.device = device
 
         args = argparse.Namespace(
-            model_name="gpt",
-            pipeline_para_size=1,
+            model_name="gptj",
+            pipeline_para_size=4,
             int8_mode=False,
             data_type="fp32",
             sparse=False,
@@ -44,10 +45,31 @@ class GPT_J(AbstractModel):
 
         lib_path = "/workspace/FasterTransformer/build/lib/libth_transformer.so"
         gpt_params = init_parameters.gpt_init_kwargs()
-        gpt = ParallelGPT(**gpt_params, lib_path=lib_path)
 
-        self.model_path = model_path
+        # set RANK and WORLD_SIZE for nccl backend - TODO: configure them later
+        os.environ['RANK'] = os.environ['SLURM_PROCID']
+        os.environ['WORLD_SIZE'] = str(torch.cuda.device_count())
+        print(os.environ["MASTER_ADDR"])
+        print(os.environ["MASTER_PORT"])
+        print(os.environ["NCCL_IB_DISABLE"])
+        print(os.environ["NCCL_SOCKET_IFNAME"])
+        
+        self.model = ParallelGPT(**gpt_params, lib_path=lib_path)
+
+        # TODO - patch model required?
+
+        if not self.model.load(ckpt_path=model_path.as_posix()):
+            raise RuntimeError(f"Could not load {model_path} checkpoint")
+
+        if init_parameters.sparse:
+            self.model.sparse()
+
+        # eval model
+        self.model.eval()
+        # set to device
         self.model.to(device)
+        
+        self.model_path = model_path
 
 
     def module_names(self):
