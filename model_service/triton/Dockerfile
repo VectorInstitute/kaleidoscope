@@ -73,8 +73,7 @@ RUN   dpkg -i cuda-keyring_1.0-1_all.deb
 
 # Need to install OpenMPI before installing PyTorch
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends && \
-	openmpi-bin openmpi-doc libopenmpi-dev
+    apt-get install -y --no-install-recommends openmpi-bin openmpi-doc libopenmpi-dev
 
 # Install pytorch
 RUN pip3 install torch==1.9.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html  && \
@@ -109,7 +108,7 @@ RUN mkdir -p FasterTransformer/build
 WORKDIR /workspace/FasterTransformer/build
 RUN git submodule init && git submodule update
 RUN cmake -DSM=xx -DCMAKE_BUILD_TYPE=Release -DBUILD_PYT=ON -DBUILD_MULTI_GPU=ON ..
-RUN make -j32
+RUN make -j4
 
 
 
