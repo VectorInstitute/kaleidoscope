@@ -30,7 +30,7 @@ def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
 
 def shutdown(model_instance_id: str) -> None:
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_REMOTE_BIN} --action shutdown --model_instance_id {model_instance_id}"
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action shutdown --model_instance_id {model_instance_id}"
         current_app.logger.info(f"Shutdown SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
         current_app.logger.info(f"SSH shutdown job output: [{ssh_output}]")
