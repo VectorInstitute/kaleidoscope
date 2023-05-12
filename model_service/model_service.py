@@ -109,6 +109,9 @@ def main():
     parser.add_argument(
         "--gateway_port", required=False, type=int, help="Port of gateway service", default=3001
     )
+    parser.add_argument(
+        "--master_port", required=False, type=int, help="Port for device communication", default=29400
+    )
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -163,17 +166,8 @@ def main():
         #register_model_instance(model_instance_id, model_host, gateway_host)
         pass
 
-    # reset env var MASTER_ADDR to ip addr
-    if master_addr == "localhost":
-        hostname = socket.gethostname()
-        ip_addr = socket.gethostbyname(hostname)
-        os.environ["MASTER_ADDR"] = ip_addr
-    # reset env var MASTER_PORT to free port
-    sock = socket.socket()
-    sock.bind(('', 0))
-    model_port = sock.getsockname()[1]
-    sock.close()
-    os.environ["MASTER_PORT"] = str(model_port)
+    # set master port
+    os.environ["MASTER_PORT"] = str(args.master_port)
 
     # Load the model into GPU memory
     logger.info(f"Loading model into device {args.device}")

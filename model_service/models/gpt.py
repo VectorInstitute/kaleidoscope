@@ -108,16 +108,16 @@ class GPTWeights:
             self.inference_data_type])] * layer_num)   # self_layernorm_beta
         self.w.extend([torch.zeros(global_hidden_units, local_hidden_units * 3,
                       dtype=str_type_map[self.inference_data_type])] * layer_num)   # self_kernel
-        self.w.extend([torch.zeros(local_hidden_units * 3, dtype=str_type_map[self.inference_data_type])]
-                      * layer_num)   # self_bias
+        # self.w.extend([torch.zeros(local_hidden_units * 3, dtype=str_type_map[self.inference_data_type])]
+        #               * layer_num)   # self_bias
         self.w.extend([torch.zeros(local_hidden_units, global_hidden_units, dtype=str_type_map[
             self.inference_data_type])] * layer_num)   # self_output_kernel
-        self.w.extend([torch.zeros(global_hidden_units, dtype=str_type_map[
-            self.inference_data_type])] * layer_num)   # self_output_bias
-        self.w.extend([torch.zeros(global_hidden_units, dtype=str_type_map[
-            self.inference_data_type])] * layer_num)   # ffn_layernorm_gamma
-        self.w.extend([torch.zeros(global_hidden_units, dtype=str_type_map[
-            self.inference_data_type])] * layer_num)   # ffn_layernorm_beta
+        # self.w.extend([torch.zeros(global_hidden_units, dtype=str_type_map[
+        #     self.inference_data_type])] * layer_num)   # self_output_bias
+        # self.w.extend([torch.zeros(global_hidden_units, dtype=str_type_map[
+        #     self.inference_data_type])] * layer_num)   # ffn_layernorm_gamma
+        # self.w.extend([torch.zeros(global_hidden_units, dtype=str_type_map[
+        #     self.inference_data_type])] * layer_num)   # ffn_layernorm_beta
         self.w.extend([torch.zeros(global_hidden_units, local_inter_size,
                       dtype=str_type_map[self.inference_data_type])] * layer_num)   # ffn_kernel1
         self.w.extend([torch.zeros(local_inter_size, dtype=str_type_map[
@@ -279,16 +279,16 @@ class GPTWeights:
                  for i in range(self.layer_num)])
         w.extend([load_to_torch(
             f"{ckpt_path}/model.layers.{i}.attention.query_key_value.weight.{tp_rank}.bin", is_load(i)) for i in range(self.layer_num)])
-        w.extend([load_to_torch(
-            f"{ckpt_path}/model.layers.{i}.attention.query_key_value.bias.{tp_rank}.bin", is_load(i)) for i in range(self.layer_num)])
+        # w.extend([load_to_torch(
+        #     f"{ckpt_path}/model.layers.{i}.attention.query_key_value.bias.{tp_rank}.bin", is_load(i)) for i in range(self.layer_num)])
         w.extend([load_to_torch(f"{ckpt_path}/model.layers.{i}.attention.dense.weight.{tp_rank}.bin",
                  is_load(i)) for i in range(self.layer_num)])
-        w.extend([load_to_torch(f"{ckpt_path}/model.layers.{i}.attention.dense.bias.bin", is_load(i))
-                 for i in range(self.layer_num)])
-        w.extend([load_to_torch(f"{ckpt_path}/model.layers.{i}.post_attention_layernorm.weight.bin",
-                 is_load(i)) for i in range(self.layer_num)])
-        w.extend([load_to_torch(f"{ckpt_path}/model.layers.{i}.post_attention_layernorm.bias.bin",
-                 is_load(i)) for i in range(self.layer_num)])
+        # w.extend([load_to_torch(f"{ckpt_path}/model.layers.{i}.attention.dense.bias.bin", is_load(i))
+        #          for i in range(self.layer_num)])
+        # w.extend([load_to_torch(f"{ckpt_path}/model.layers.{i}.post_attention_layernorm.weight.bin",
+        #          is_load(i)) for i in range(self.layer_num)])
+        # w.extend([load_to_torch(f"{ckpt_path}/model.layers.{i}.post_attention_layernorm.bias.bin",
+        #          is_load(i)) for i in range(self.layer_num)])
         w.extend([load_to_torch(
                 f"{ckpt_path}/model.layers.{i}.mlp.dense_h_to_4h.weight.{tp_rank}.bin" \
                     if os.path.isfile(f"{ckpt_path}/model.layers.{i}.mlp.dense_h_to_4h.weight.{tp_rank}.bin") \
@@ -521,12 +521,13 @@ class GPT(nn.Module):
                                   inter_size=inter_size)
         
         # Prepare for tensor/pipeline parallel
-        dist.init_process_group(backend='nccl') # REMOVE
+        # dist.init_process_group(backend='nccl') # REMOVE
+        dist.init_process_group(backend='mpi')
+        # dist.init_process_group(backend='nccl', rank=int(os.environ['SLURM_PROCID']), world_size=torch.cuda.device_count())
         # try:
         #     dist.init_process_group(backend='mpi')
         # except:
         #     print("[INFO] WARNING: Have initialized the process group")
-        assert 1 == 0, "Initialized" # TEMP - REMOVE LATER
         self.rank = dist.get_rank()
         self.device_count = torch.cuda.device_count()
         self.device = self.rank % self.device_count
@@ -542,6 +543,7 @@ class GPT(nn.Module):
         is_load = self.weights.load(ckpt_path, tp_rank=self.tensor_para_rank,
                                     pipeline_para_rank=self.pipeline_para_rank)
         self.cuda()
+        assert 1 == 0 # REMOVE
         torch.cuda.empty_cache()  # clean cache for model weight preprocessing
         return is_load
 
@@ -688,7 +690,9 @@ class GptInitModelParameters:
                       has_positional_encoding=False,
                       has_pre_decoder_layernorm=True,
                       has_post_decoder_layernorm=True,
-                      use_attention_linear_bias=True)
+                      use_attention_linear_bias=True),
+
+        'gptj': dict(has_positional_encoding=False),
     }
 
     def gpt_init_kwargs(self):
@@ -737,12 +741,15 @@ class GptInitModelParameters:
         if config_reader.has_option(model_name, 'model_variant'):
             model_type = config_reader.get(model_name, 'model_variant')
             model_params = cls.PREDEFINED_MODELS[model_type]
+            print(model_type)
+            print(model_params)
+            print(type(model_params))
             param.update(model_params)
 
         return param
 
     def update(self, update_params: dict):
-        for k, v in update_params:
+        for k, v in update_params.items():
             setattr(self, k, v)
         return self
 

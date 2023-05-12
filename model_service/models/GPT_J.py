@@ -13,6 +13,7 @@ from .abstract_model import AbstractModel
 from .gpt import GptInitModelParameters
 from .parallel_gpt import ParallelGPT
 from pytriton.decorators import batch
+from .utils import patch_gpt_model_if_needed
 
 
 logger = logging.getLogger("kaleidoscope.model_service.GPT_J")
@@ -32,7 +33,7 @@ class GPT_J(AbstractModel):
 
         args = argparse.Namespace(
             model_name="gptj",
-            pipeline_para_size=4,
+            pipeline_para_size=2,
             int8_mode=False,
             data_type="fp32",
             sparse=False,
@@ -43,7 +44,7 @@ class GPT_J(AbstractModel):
         config_reader.read(config_path)
         init_parameters = GptInitModelParameters.from_args(args, config_reader)
 
-        lib_path = "/workspace/FasterTransformer/build/lib/libth_transformer.so"
+        lib_path = Path("/workspace/FasterTransformer/build/lib/libth_transformer.so")
         gpt_params = init_parameters.gpt_init_kwargs()
 
         # set RANK and WORLD_SIZE for nccl backend - TODO: configure them later
@@ -51,15 +52,19 @@ class GPT_J(AbstractModel):
         os.environ['WORLD_SIZE'] = str(torch.cuda.device_count())
         print(os.environ["MASTER_ADDR"])
         print(os.environ["MASTER_PORT"])
-        print(os.environ["NCCL_IB_DISABLE"])
-        print(os.environ["NCCL_SOCKET_IFNAME"])
+        # print(os.environ["NCCL_SOCKET_IFNAME"])
+        # print(os.environ["NCCL_IB_DISABLE"])
+        # print(os.environ["NCCL_IBEXT_DISABLE"])
         
         self.model = ParallelGPT(**gpt_params, lib_path=lib_path)
 
         # TODO - patch model required?
+        patch_gpt_model_if_needed(self.model, config_reader.getint("gptj", "inter_size"), 
+                                  tp=config_reader.getint("gptj", "tensor_para_size"))
 
-        if not self.model.load(ckpt_path=model_path.as_posix()):
+        if not self.model.load(ckpt_path=Path(model_path).as_posix()):
             raise RuntimeError(f"Could not load {model_path} checkpoint")
+        assert 1 == 0 # REMOVE
 
         if init_parameters.sparse:
             self.model.sparse()
