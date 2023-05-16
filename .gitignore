@@ -137,3 +137,4 @@ logs/
 
 # git repos
 /model_service/triton/ft_workspace/fastertransformer_backend/
+/model_service/models/GPT-J/fastertransformer_backend/
