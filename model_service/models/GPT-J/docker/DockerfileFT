@@ -1,0 +1,35 @@
+# Use base image from blog - https://github.com/triton-inference-server/fastertransformer_backend/blob/dev/t5_gptj_blog/notebooks/GPT-J_and_T5_inference.ipynb
+ARG TRITON_VERSION=22.03
+ARG BASE_IMAGE=triton_with_ft:${TRITON_VERSION}
+FROM ${BASE_IMAGE}
+
+# Create FT workspace and add current dir to workspace
+WORKDIR /ft_workspace
+ADD . /ft_workspace
+
+# Create model store dir
+RUN cd /ft_workspace && mkdir triton-model-store
+
+# Build FasterTransformer
+# Clone and prepare
+RUN git clone https://github.com/NVIDIA/FasterTransformer.git && \
+    cd FasterTransformer && \
+    git checkout 6b3fd4392831f972d48127e881a048567dd92811 && \
+    cd ../    
+RUN cd FasterTransformer/ && \
+    mkdir -p build && \
+    cd build && \
+    git submodule init && git submodule update
+# Run cmake
+WORKDIR /ft_workspace/FasterTransformer/build
+RUN cmake -DSM=80 -DCMAKE_BUILD_TYPE=Release -DBUILD_PYT=ON -DBUILD_MULTI_GPU=ON ..
+RUN make -j4
+# make -j32
+RUN cd ../../
+
+# Install jax and transformers for weight conversion script
+RUN pip3 install jaxlib==0.3.10 jax==0.3.13 transformers==4.19.2
+
+# Copy GPT-J config to model store
+WORKDIR /ft_workspace
+RUN cp -r ./fastertransformer_backend/all_models/gptj triton-model-store/
