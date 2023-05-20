@@ -3,7 +3,7 @@ import tritonclient.http as httpclient
 
 from tritonclient.utils import np_to_triton_dtype
 
-URL = "localhost:8000"
+# URL = "localhost:8000"
 MODEl_GPTJ_FASTERTRANSFORMER = "ensemble" 
 
 OUTPUT_LEN = 128
@@ -15,7 +15,9 @@ TOP_P = 0.0
 start_id = 220
 end_id = 50256
 
-client = httpclient.InferenceServerClient("localhost:8000",
+server_ip_addr = "172.17.8.174"
+
+client = httpclient.InferenceServerClient(f"{server_ip_addr}:8000",
                                            concurrency=1,
                                            verbose=False)
 

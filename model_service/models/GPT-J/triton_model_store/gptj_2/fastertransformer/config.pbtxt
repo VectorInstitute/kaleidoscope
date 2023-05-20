@@ -250,7 +250,7 @@ parameters {
 parameters {
   key: "model_checkpoint_path"
   value: {
-    string_value: "/scratch/ssd002/projects/opt_test/gpt-j-6b-slim/2-gpu/"
+    string_value: "/ft_workspace/model_checkpoint/"
   }
 }
 parameters {

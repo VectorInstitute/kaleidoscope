@@ -6,15 +6,17 @@ import requests
 import socket
 import sys
 import torch
+import subprocess
+import pathlib
 
-from pytriton.decorators import batch
-from pytriton.model_config import ModelConfig, Tensor
-from pytriton.triton import Triton, TritonConfig
+# from pytriton.decorators import batch
+# from pytriton.model_config import ModelConfig, Tensor
+# from pytriton.triton import Triton, TritonConfig
 
 
 # Globals
-
 AVAILABLE_MODELS = ["OPT-175B", "OPT-6.7B", "GPT2", "GPT-J"]
+TRITON_HTTP_PORT = 8000
 logger = logging.getLogger("kaleidoscope.model_service")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
@@ -29,14 +31,9 @@ def initialize_model(model_type):
     elif model_type == "GPT2":
         from models import GPT2
         return GPT2.GPT2()
-    elif model_type == "GPT-J":
-        from models import GPT_J
-        return GPT_J.GPT_J()
 
 
 # Signal handler to send a remove request to the gateway, if this service is killed by the system
-
-
 def signal_handler(sig, frame):
     global model_type
     send_remove_request(model_type)
@@ -134,13 +131,6 @@ def main():
 
     print(f"Loading model service with rank {rank}")
 
-    # Setup a global model instance
-    global model, model_type
-
-    model = initialize_model(args.model_type)
-    model_instance_id = args.model_instance_id
-    model_type = args.model_type
-
     # Determine the IP address for the head node of this model
     try:
         master_addr = os.environ['MASTER_ADDR']
@@ -148,12 +138,13 @@ def main():
         master_addr = "localhost"
         logger.info("MASTER_ADDR not set, defaulting to localhost")
 
-    # Find an ephemeral port to use for this model service
-    sock = socket.socket()
-    sock.bind(('', 0))
-    model_port = sock.getsockname()[1]
-    sock.close()
+    # # Find an ephemeral port to use for this model service - TODO - required when using Triton or PyTriton?
+    # sock = socket.socket()
+    # sock.bind(('', 0))
+    # model_port = sock.getsockname()[1]
+    # sock.close()
 
+    model_port = TRITON_HTTP_PORT
     model_host = f"{master_addr}:{model_port}"
 
     # Models that only run on a single node should advertise their IP address instead of "localhost"
@@ -161,19 +152,42 @@ def main():
         hostname = socket.gethostname()
         ip_addr = socket.gethostbyname(hostname)
         model_host = f"{ip_addr}:{model_port}"
+    
+    if rank == 0:
+        logger.info(model_host)
 
+    if args.model_type == "GPT-J":
+        # If directly loading model in triton
+        if rank  == 0:
+            os.system(
+                f"CUDA_VISIBLE_DEVICES=0,1 " + \
+                f"/opt/tritonserver/bin/tritonserver " + \
+                f"--model-repository={args.model_path}/models/GPT-J/triton_model_store/gptj_2"
+            )
+
+    else:
+        # If using pytriton
+
+        # Setup a global model instance
+        global model, model_type
+
+        model = initialize_model(args.model_type)
+        model_instance_id = args.model_instance_id
+        model_type = args.model_type
+
+        # set master port
+        os.environ["MASTER_PORT"] = str(args.master_port)
+
+        # Load the model into GPU memory
+        logger.info(f"Loading model into device {args.device}")
+        logger.info(f"Loading model from model path {args.model_path}")
+        model.load(args.device, args.model_path)
+        assert 1 == 0, "Model loaded" # TEMP - REMOVE LATER
+
+    # load first and then register
     if rank == 0:
         #register_model_instance(model_instance_id, model_host, gateway_host)
         pass
-
-    # set master port
-    os.environ["MASTER_PORT"] = str(args.master_port)
-
-    # Load the model into GPU memory
-    logger.info(f"Loading model into device {args.device}")
-    logger.info(f"Loading model from model path {args.model_path}")
-    model.load(args.device, args.model_path)
-    assert 1 == 0, "Model loaded" # TEMP - REMOVE LATER
 
     # Register signal handlers
     #signal.signal(signal.SIGINT, signal_handler)
@@ -183,21 +197,22 @@ def main():
 
     #activate_model_instance(model_instance_id, gateway_host)
     
-    triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
-    with Triton(config=triton_config) as triton:
-        triton.bind(
-            model_name=model_type,
-            infer_func=model.generate,
-            inputs=[
-                Tensor(name="prompts", dtype=bytes, shape=(1,))
-            ],
-            outputs=[
-                Tensor(name="sequences", dtype=bytes, shape=(-1,)),
-            ],
-            config=ModelConfig(max_batch_size=128),
-        )
-        logger.info("Starting model service, press Ctrl+C to exit")
-        triton.serve()
+    # if args.model_type != "GPT-J":
+    #     triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
+    #     with Triton(config=triton_config) as triton:
+    #         triton.bind(
+    #             model_name=model_type,
+    #             infer_func=model.generate,
+    #             inputs=[
+    #                 Tensor(name="prompts", dtype=bytes, shape=(1,))
+    #             ],
+    #             outputs=[
+    #                 Tensor(name="sequences", dtype=bytes, shape=(-1,)),
+    #             ],
+    #             config=ModelConfig(max_batch_size=128),
+    #         )
+    #         logger.info("Starting model service, press Ctrl+C to exit")
+    #         triton.serve()
 
 
 
