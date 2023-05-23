@@ -13,6 +13,7 @@ import time
 import torch
 from torch import Tensor
 import traceback
+from typing import Dict, Callable
 
 from .abstract_model import AbstractModel
 from collections import defaultdict
@@ -36,8 +37,8 @@ from metaseq.service.constants import (
 )
 from metaseq.service.utils import get_my_ip, encode_fn, build_logger
 from metaseq.service.responses import OAIResponse
-
-from utils.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
+from metaseq_cli.activation_utils import ActivationPayload
+from metaseq_cli.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
 
 # global state (mutable!)
 cfg = None
@@ -201,16 +202,32 @@ class OPT(AbstractModel):
         return response
 
     def get_activations(self, request):
-        request.json["encoded_activation_payload"] = request.json["module_names"]
+        activation_payload = ActivationPayload(
+            module_names_activation_retrieval = request.json["module_names"],
+        )
+        request.json["encoded_activation_payload"] = activation_payload
         request.json["echo"] = True
         request.json["max_tokens"] = 0
         response = self.generate(request)
         return response
 
     def edit_activations(self, request):
+        # Extract modules + editing functions from encoded request
         decoded_modules = decode_str(request.json['modules'])
-        logger.info(f"About to edit activations, decoded modules: {decoded_modules}")
-        request.json["encoded_activation_payload"] = request.json['modules'] #encode_obj(request.json["modules"])
+        editing_fns: Dict[str, Callable] = {}
+        for module_name, edit_fn in decoded_modules.items():
+            if edit_fn is not None:
+                logger.info(f"Adding module name {module_name} with edit function {edit_fn}")
+                editing_fns[module_name] = edit_fn
+
+        # Define activation payload
+        activation_payload = ActivationPayload(
+            module_names_activation_retrieval=list(decoded_modules.keys()),
+            module_editing_fn_pairs=editing_fns,
+        )
+
+        logger.info(f"About to edit activations, payload: {activation_payload}")
+        request.json["encoded_activation_payload"] = encode_obj(activation_payload)
         request.json["echo"] = True
         request.json["max_tokens"] = 0
         logger.info(f"Send activation edit request: {request}")
