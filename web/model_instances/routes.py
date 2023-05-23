@@ -123,10 +123,14 @@ async def get_activations(model_instance_id: str):
 
     if len(prompts) > int(Config.BATCH_REQUEST_LIMIT):
         return jsonify(msg=f"Request batch size of {len(prompts)} exceeds prescribed limit of {Config.BATCH_REQUEST_LIMIT}"), 400
-    else:
+
+    try:
+        model_instance = ModelInstance.find_by_id(model_instance_id)
         activations = model_instance.generate_activations(
             username, prompts, module_names, generation_config
         )
+    except Exception as err:
+        current_app.logger.info(f"Activations request failed with error: {err}")
 
     return jsonify(activations)
 
