@@ -1,12 +1,16 @@
 from __future__ import annotations
-from flask import current_app
+# from flask import current_app
 import subprocess
 from typing import Dict, List
 
 import requests
 
-import models
-from config import Config
+# import models
+# from config import Config
+
+import numpy as np
+import tritonclient.http as httpclient
+from tritonclient.utils import np_to_triton_dtype
 
 
 def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
@@ -43,16 +47,82 @@ def generate(
     host: str, generation_id: int, prompts: List[str], generation_config: Dict
 ) -> Dict:
     
-    current_app.logger.info(f"Sending generation request to http://{host}/generate")
+    # current_app.logger.info(f"Sending generation request to http://{host}/generate")
 
-    body = {"prompt": prompts, **generation_config}
+    # body = {"prompt": prompts, **generation_config}
 
-    current_app.logger.info(f"Generation request body: {body}")
+    # current_app.logger.info(f"Generation request body: {body}")
 
-    response = requests.post(f"http://{host}/generate", json=body)
+    # response = requests.post(f"http://{host}/generate", json=body)
 
-    response_body = response.json()
-    return response_body
+    # response_body = response.json()
+    # return response_body
+
+    # Only for GPT-J
+    MODEl_GPTJ_FASTERTRANSFORMER = "ensemble" 
+    OUTPUT_LEN = 128
+    BATCH_SIZE = 2
+    BEAM_WIDTH = 1
+    TOP_K = 1
+    TOP_P = 0.0
+    start_id = 220
+    end_id = 50256
+
+    # Inference hyperparameters
+    def prepare_tensor(name, input):
+        tensor = httpclient.InferInput(
+            name, input.shape, np_to_triton_dtype(input.dtype))
+        tensor.set_data_from_numpy(input)
+        return tensor
+
+    # explanation
+    def prepare_inputs(input0):
+        bad_words_list = np.array([[""]]*(len(input0)), dtype=object)
+        stop_words_list = np.array([[""]]*(len(input0)), dtype=object)
+        input0_data = np.array(input0).astype(object)
+        output0_len = np.ones_like(input0).astype(np.uint32) * OUTPUT_LEN
+        runtime_top_k = (TOP_K * np.ones([input0_data.shape[0], 1])).astype(np.uint32)
+        runtime_top_p = TOP_P * np.ones([input0_data.shape[0], 1]).astype(np.float32)
+        beam_search_diversity_rate = 0.0 * np.ones([input0_data.shape[0], 1]).astype(np.float32)
+        temperature = 1.0 * np.ones([input0_data.shape[0], 1]).astype(np.float32)
+        len_penalty = 1.0 * np.ones([input0_data.shape[0], 1]).astype(np.float32)
+        repetition_penalty = 1.0 * np.ones([input0_data.shape[0], 1]).astype(np.float32)
+        random_seed = 0 * np.ones([input0_data.shape[0], 1]).astype(np.int32)
+        is_return_log_probs = True * np.ones([input0_data.shape[0], 1]).astype(bool)
+        beam_width = (BEAM_WIDTH * np.ones([input0_data.shape[0], 1])).astype(np.uint32)
+        start_ids = start_id * np.ones([input0_data.shape[0], 1]).astype(np.uint32)
+        end_ids = end_id * np.ones([input0_data.shape[0], 1]).astype(np.uint32)
+
+        inputs = [
+            prepare_tensor("INPUT_0", input0_data),
+            prepare_tensor("INPUT_1", output0_len),
+            prepare_tensor("INPUT_2", bad_words_list),
+            prepare_tensor("INPUT_3", stop_words_list),
+            prepare_tensor("runtime_top_k", runtime_top_k),
+            prepare_tensor("runtime_top_p", runtime_top_p),
+            prepare_tensor("beam_search_diversity_rate", beam_search_diversity_rate),
+            prepare_tensor("temperature", temperature),
+            prepare_tensor("len_penalty", len_penalty),
+            prepare_tensor("repetition_penalty", repetition_penalty),
+            prepare_tensor("random_seed", random_seed),
+            prepare_tensor("is_return_log_probs", is_return_log_probs),
+            prepare_tensor("beam_width", beam_width),
+            prepare_tensor("start_id", start_ids),
+            prepare_tensor("end_id", end_ids),
+        ]
+        return inputs
+    
+    client = httpclient.InferenceServerClient(host,
+                                              concurrency=1,
+                                              verbose=False)
+    
+    input0 = [[elm] for elm in prompts]
+    inputs = prepare_inputs(input0)
+
+    result = client.infer(MODEl_GPTJ_FASTERTRANSFORMER, inputs)
+    output0 = result.as_numpy("OUTPUT_0")
+    print(output0.shape)
+    print(output0)
 
 
 def generate_activations(
