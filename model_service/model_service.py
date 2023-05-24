@@ -1,13 +1,13 @@
+"""Module for the model service API routes"""
 import argparse
-import flask
-import requests
 import signal
 import socket
 import sys
-import torch
 import os
+import requests
+import torch
 
-from flask import Flask, request, jsonify
+from flask import Flask, request
 
 
 # Globals
@@ -22,23 +22,27 @@ service = Flask(__name__)
 
 @service.route("/health", methods=["GET"])
 def health():
+    """Retrieve model health status"""
     return {"msg": "Still Alive"}, 200
 
 
 @service.route("/module_names", methods=["GET"])
 def module_names():
+    """Retrieve module names of a specified model"""
     result = model.module_names()
     return result
 
 
 @service.route("/generate", methods=["POST"])
 def generate_text():
+    """Submit a job for model generation"""
     result = model.generate(request)
     return result
 
 
 @service.route("/get_activations", methods=["POST"])
 def get_activations():
+    """Retrieve intermediate activations from specified model"""
     print(request)
     print(request.json)
     result = model.get_activations(request)
@@ -58,73 +62,76 @@ def edit_activations():
 
 
 def initialize_model(model_type):
-    if model_type == "OPT-175B" or model_type == "OPT-6.7B":
+    """Instantiates a ML model based on the argument"""
+    if model_type in ("OPT-175B", "OPT-6.7B"):
         from models import OPT
 
         return OPT.OPT()
-    elif model_type == "GPT2":
+    if model_type == "GPT2":
         from models import GPT2
+
         return GPT2.GPT2()
 
-
-# Signal handler to send a remove request to the gateway, if this service is killed by the system
+    return None
 
 
 def signal_handler(sig, frame):
+    """Sends a remove request to gateway if the service is killed by the system"""
     global model_type
     send_remove_request(model_type)
     sys.exit(0)
 
 
 def send_remove_request(model_type, gateway_host):
+    """Removes a model from the model instances"""
     remove_url = f"http://{gateway_host}/models/{model_type}/remove"
     try:
-        response = requests.delete(remove_url)
-    except requests.ConnectionError as e:
-        print(f"Connection error: {e}")
-    except:
-        print(f"Unknown error contacting gateway service at {gateway_host}")
+        requests.delete(remove_url, timeout=300)
+    except requests.ConnectionError as err:
+        print(f"Connection error: {err}")
+    except Exception as other_error:
+        print(f"Unknown error contacting gateway service at {gateway_host} with: {other_error}")
 
 
 def register_model_instance(model_instance_id, model_host, gateway_host):
-
-    print(f"Preparing model registration request")
-    register_url = (
-        f"http://{gateway_host}/models/instances/{model_instance_id}/register"
-    )
+    """Registers a specified model to the model instances list"""
+    print("Preparing model registration request")
+    register_url = f"http://{gateway_host}/models/instances/{model_instance_id}/register"
     register_data = {"host": model_host}
-    print(
-        f"Sending model registration request to {register_url} with data: {register_data}"
-    )
+    print(f"Sending model registration request to {register_url} with data: {register_data}")
     try:
-        response = requests.post(register_url, json=register_data)
+        response = requests.post(register_url, json=register_data, timeout=300)
         # HTTP error codes between 450 and 500 are custom to the kaleidoscope gateway
         if int(response.status_code) >= 450 and int(response.status_code) < 500:
             raise requests.HTTPError(response.content.decode("utf-8"))
     # If we fail to contact the gateway service, print an error but continue running anyway
     # TODO: HTTPError probably isn't the best way to catch custom errors
-    except requests.HTTPError as e:
-        print(e)
-    except requests.ConnectionError as e:
-        print(f"Connection error: {e}")
-    except:
-        print(f"Unknown error contacting gateway service at {gateway_host}")
+    except requests.HTTPError as err:
+        print(err)
+    except requests.ConnectionError as err:
+        print(f"Connection error: {err}")
+    except Exception as other_error:
+        print(f"Unknown error contacting gateway service at {gateway_host} with: {other_error}")
 
 
 def activate_model_instance(model_instance_id, gateway_host):
-    activation_url = (
-        f"http://{gateway_host}/models/instances/{model_instance_id}/activate"
-    )
+    """Send a model activation request"""
+    activation_url = f"http://{gateway_host}/models/instances/{model_instance_id}/activate"
     print(f"Sending model activation request to {activation_url}")
     try:
-        response = requests.post(activation_url)
-    except:
-        print(f"Model instance activation failed with status code {response.status_code}: {response.text}")
-        print(f"Continuing to load model anyway, but it will not be accessible to any gateway services")
+        response = requests.post(activation_url, timeout=300)
+    except Exception:
+        print(
+            f"Model instance activation failed with status code \
+            {response.status_code}: {response.text}"
+        )
+        print(
+            "Continuing to load model anyway, but it will not be accessible to any gateway services"
+        )
 
 
 def main():
-
+    """Load model into GPU memorys"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--model_type",
@@ -133,14 +140,25 @@ def main():
         help="Model type selected in the list: " + ", ".join(AVAILABLE_MODELS),
     )
     parser.add_argument(
-        "--model_path", required=True, type=str, help="Path to pre-trained model"
+        "--model_path",
+        required=True,
+        type=str,
+        help="Path to pre-trained model",
     )
     parser.add_argument("--model_instance_id", required=True, type=str)
     parser.add_argument(
-        "--gateway_host", required=False, type=str, help="Hostname of gateway service", default="llm.cluster.local"
+        "--gateway_host",
+        required=False,
+        type=str,
+        help="Hostname of gateway service",
+        default="llm.cluster.local",
     )
     parser.add_argument(
-        "--gateway_port", required=False, type=int, help="Port of gateway service", default=3001
+        "--gateway_port",
+        required=False,
+        type=int,
+        help="Port of gateway service",
+        default=3001,
     )
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -148,7 +166,8 @@ def main():
     # Validate input arguments
     if args.model_type not in AVAILABLE_MODELS:
         print(
-            f"Error: model type {args.model_type} is not supported. Please use one of the following: {', '.join(AVAILABLE_MODELS)}"
+            f"Error: model type {args.model_type} is not supported. \
+            Please use one of the following: {', '.join(AVAILABLE_MODELS)}"
         )
         sys.exit(1)
 
@@ -156,10 +175,10 @@ def main():
 
     # Determine the distributed training rank (if applicable)
     rank = 0
-    if 'SLURM_PROCID' in os.environ:
+    if "SLURM_PROCID" in os.environ:
         try:
-            rank = int(os.environ['SLURM_PROCID'])
-        except:
+            rank = int(os.environ["SLURM_PROCID"])
+        except Exception:
             pass
 
     print(f"Loading model service with rank {rank}")
@@ -173,14 +192,14 @@ def main():
 
     # Determine the IP address for the head node of this model
     try:
-        master_addr = os.environ['MASTER_ADDR']
-    except:
+        master_addr = os.environ["MASTER_ADDR"]
+    except Exception:
         master_addr = "localhost"
         print("MASTER_ADDR not set, defaulting to localhost")
 
     # Find an ephemeral port to use for this model service
     sock = socket.socket()
-    sock.bind(('', 0))
+    sock.bind(("", 0))
     model_port = sock.getsockname()[1]
     sock.close()
 
@@ -203,7 +222,8 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
+    # Now start the service. This will block until user hits Ctrl+C
+    #   or the process gets killed by the system
     if rank == 0:
         activate_model_instance(model_instance_id, gateway_host)
     print("Starting model service, press Ctrl+C to exit")

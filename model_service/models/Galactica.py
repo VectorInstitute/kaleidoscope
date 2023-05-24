@@ -1,17 +1,15 @@
+"""Module for Galactica LLM configurations"""
 import json
-import logging
-import numpy as np
 import random
-import time
-import torch
-
-from .abstract_model import AbstractModel
-from werkzeug.exceptions import HTTPException
 
 from transformers import AutoTokenizer, OPTForCausalLM
 
+from .abstract_model import AbstractModel
+
 
 class Galactica(AbstractModel):
+    """Class to represent the Galactica LLM"""
+
     def __init__(self):
         self.model = None
         self.device = None
@@ -26,9 +24,7 @@ class Galactica(AbstractModel):
     def module_names(self):
         return {
             "module_names": tuple(
-                module[0]
-                for module in self.model.base_model.named_modules()
-                if module[0] != ""
+                module[0] for module in self.model.base_model.named_modules() if module[0] != ""
             )
         }
 
@@ -36,9 +32,7 @@ class Galactica(AbstractModel):
 
         prompt = request.json["prompt"]
         length = int(request.json["length"]) if "length" in request.json else 128
-        temperature = (
-            float(request.json["temperature"]) if "temperature" in request.json else 1.0
-        )
+        temperature = float(request.json["temperature"]) if "temperature" in request.json else 1.0
         top_k = int(request.json["k"]) if "k" in request.json else 0
         top_p = float(request.json["p"]) if "p" in request.json else 0.9
         num_return_sequences = (
@@ -90,21 +84,18 @@ class Galactica(AbstractModel):
             generated_sequence = generated_sequence.tolist()
 
             # Decode text
-            text = self.tokenizer.decode(
-                generated_sequence, clean_up_tokenization_spaces=True
-            )
+            text = self.tokenizer.decode(generated_sequence, clean_up_tokenization_spaces=True)
 
             # Remove all text after the stop token
             text = text[: text.find(stop_sequence) if stop_sequence else None]
 
-            # Add the prompt at the beginning of the sequence. Remove the excess text that was used for pre-processing
+            # Add the prompt at the beginning of the sequence.
+            # Remove the excess text that was used for pre-processing
             total_sequence = (
                 prompt
                 + text[
                     len(
-                        self.tokenizer.decode(
-                            encoded_prompt[0], clean_up_tokenization_spaces=True
-                        )
+                        self.tokenizer.decode(encoded_prompt[0], clean_up_tokenization_spaces=True)
                     ) :
                 ]
             )
@@ -113,7 +104,7 @@ class Galactica(AbstractModel):
             print(total_sequence)
 
             # TODO: Add the real logprobs
-            for i in range(len(generated_sequence)):
+            for _ in range(len(generated_sequence)):
                 random_logprobs.append(random.uniform(-3, -0.001))
 
         generated_text = "".join(str(x) for x in total_sequence)

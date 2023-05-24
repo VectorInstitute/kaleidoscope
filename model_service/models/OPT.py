@@ -1,23 +1,14 @@
-import argparse
+"""Module for OPT LLM configurations"""
 import cloudpickle
 import codecs
-import logging
-import numpy as np
+from collections import defaultdict
 import os
 import pickle
 import queue
 import random
-import sys
 import threading
 import time
 import torch
-from torch import Tensor
-import traceback
-from typing import Dict, Callable
-
-from .abstract_model import AbstractModel
-from collections import defaultdict
-from werkzeug.exceptions import HTTPException
 
 from metaseq import options
 from metaseq.dataclass.configs import MetaseqConfig
@@ -30,7 +21,6 @@ from metaseq.service.constants import (
     MAX_SEQ_LEN,
     MAX_BATCH_TOKENS,
     MAX_BEAM,
-    DEFAULT_PORT,
     TOTAL_WORLD_SIZE,
     LAUNCH_ARGS,
     UNBATCHED_ARG_DICT,
@@ -39,6 +29,9 @@ from metaseq.service.utils import get_my_ip, encode_fn, build_logger
 from metaseq.service.responses import OAIResponse
 from metaseq_cli.activation_utils import ActivationPayload
 from metaseq_cli.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
+
+from .abstract_model import AbstractModel
+
 
 # global state (mutable!)
 cfg = None
@@ -55,39 +48,34 @@ def decode_str(obj_in_str):
     return pickle.loads(codecs.decode(obj_in_str.encode("utf-8"), "base64"))
 
 
-
-# Helper functions for debugging activation editing functionality
-def replace_with_ones(act: Tensor) -> Tensor:
-    """Replace an activation with an activation filled with ones."""
-    out = torch.ones_like(act, dtype=act.dtype).cuda()
-    return out
-
-
 class OPT(AbstractModel):
+    """Class to represent OPT ML model"""
+
     def __init__(self):
         self.device = None
 
-    def load(self, device, model_path):
+    def load(self, device):
+        """Load model into memory"""
         self.device = device
         thread = threading.Thread(target=self.load_async, daemon=True)
         thread.start()
 
-        # Glorious hack: loop until the model has loaded, then return while the thread is still active
+        # Glorious hack: loop until the model has loaded, then
+        # return while the thread is still active
         global is_model_loaded
         while is_model_loaded is False:
             time.sleep(1)
-            pass
 
     def load_async(self):
-
+        """Load model asynchronously"""
         global MODE, cfg
 
         # dumb defaults overriding
         parser = options.get_generation_parser()
         parser.set_defaults(lr_scheduler=None, criterion=None)
         flat_launch_args = []
-        for s in LAUNCH_ARGS:
-            flat_launch_args += s.split()
+        for args in LAUNCH_ARGS:
+            flat_launch_args += args.split()
 
         args = options.parse_args_and_arch(parser, input_args=flat_launch_args)
         args.data = os.path.dirname(args.path)  # hardcode the data arg
@@ -98,13 +86,11 @@ class OPT(AbstractModel):
         distributed_utils.call_main(cfg, self.worker_main, namespace_args=args)
 
     def module_names(self):
-        return {
-            "module_names": tuple(
-                n for n, _ in generator.models[0].named_modules() if n != ""
-            )
-        }
+        """Retrieve module names"""
+        return {"module_names": tuple(n for n, _ in generator.models[0].named_modules() if n != "")}
 
     def generate(self, request):
+        """Generate text using prompt argument"""
         prompts = request.json["prompt"]
         del request.json["prompt"]
         generation_args = request.json
@@ -142,9 +128,7 @@ class OPT(AbstractModel):
             generation_args["stop"] = stop
 
         if "temperature" in generation_args:
-            generation_args["temperature"] = round(
-                float(generation_args["temperature"]), 1
-            )
+            generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
         else:
             generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
 
@@ -237,6 +221,7 @@ class OPT(AbstractModel):
         return response
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
+        """Create model generator worker"""
         # disable multithreading in tokenizers and torch, as different Flask threads
         # may then fight for resources.
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -256,7 +241,7 @@ class OPT(AbstractModel):
 
         if torch.distributed.get_rank() == 0:
             print(models[0])  # Cleaner to print
-            logger.info("Model training: {}".format(models[0].training))
+            logger.info(f"Model training: {models[0].training}")
 
         assert len(models) == 1
 
@@ -274,14 +259,15 @@ class OPT(AbstractModel):
             # Now block, and wait
             while True:
                 time.sleep(1)
-                pass
         else:
             # useful in FSDP setting
             logger.info(f"Looping engaged! {get_my_ip()}")
             while True:
                 try:
                     request_object = distributed_utils.broadcast_object(
-                        None, src_rank=0, group=distributed_utils.get_global_group()
+                        None,
+                        src_rank=0,
+                        group=distributed_utils.get_global_group(),
                     )
 
                     encoded_activation_payload = request_object.pop(
@@ -301,10 +287,9 @@ class OPT(AbstractModel):
                     else:
                         _ = generator.generate(**request_object)
 
-                except Exception as e:
+                except Exception as err:
                     # continue looping for the next generation so we don't lock up
-                    print(f"Caught exception: {str(e)}")
-                    pass
+                    print(f"Caught exception: {str(err)}")
 
     def batching_loop(self, timeout=100, max_tokens=MAX_BATCH_TOKENS):
         """
@@ -335,9 +320,7 @@ class OPT(AbstractModel):
             try:
                 assert len(batch_dict) <= 1
 
-                b_key, bs_list = (
-                    next(iter(batch_dict.items())) if batch_dict else (None, [])
-                )
+                b_key, bs_list = next(iter(batch_dict.items())) if batch_dict else (None, [])
                 # for now, we only have 1 worker, so can always index to shard 0
                 if target_queue is None:
                     # TODO: try to process a request with the same arg
@@ -370,8 +353,7 @@ class OPT(AbstractModel):
                     # we're over budget, put it back in the queue
                     target_queue.put(item)
                     raise queue.Empty
-                else:
-                    batch_dict[item.queue_key()].append(item)
+                batch_dict[item.queue_key()].append(item)
 
             except queue.Empty:
                 target_queue = None
@@ -391,25 +373,20 @@ class OPT(AbstractModel):
                     # use this to check for correctness
                     unique_dict = {}
 
-                    logger.info("length of batch is {}".format(len(batch)))
+                    logger.info(f"length of batch is {len(batch)}")
                     for work_item in batch:
                         ro = work_item.data
                         request_object["inputs"].append(ro["input"])
                         request_object["min_tokens"].append(ro.get("min_tokens", 0))
-                        request_object["max_tokens"].append(
-                            ro.get("max_tokens", MAX_SEQ_LEN)
-                        )
+                        request_object["max_tokens"].append(ro.get("max_tokens", MAX_SEQ_LEN))
 
                         for key in UNBATCHED_ARG_DICT:
                             if key in unique_dict and unique_dict[key] != ro.get(
                                 key, unique_dict[key]
                             ):
                                 raise ValueError(
-                                    "the remaining args are not the same, currently {}, but want {} with key {}".format(
-                                        unique_dict,
-                                        ro[key],
-                                        key,
-                                    )
+                                    f"the remaining args are not the same, currently \
+                                    {unique_dict}, but want {ro[key]} with key {key}"
                                 )
 
                             if key in ro:
@@ -421,7 +398,8 @@ class OPT(AbstractModel):
                                 unique_dict[key] = UNBATCHED_ARG_DICT[key]
 
                     # WARNING: seed will not be deterministic when we batch
-                    # TODO: do we include the seed or not? we can't guarantee the correctness of this parameter anyway
+                    # TODO: do we include the seed or not? we can't guarantee the
+                    #   correctness of this parameter anyway
                     # if "seed" not in request_object:
                     request_object["seed"] = random.randint(0, 20000)
 
@@ -432,7 +410,7 @@ class OPT(AbstractModel):
                     request_object["_aux"] = (len(batch),)
 
                     if torch.distributed.get_rank() == 0:
-                        logger.info("request object {}".format(request_object))
+                        logger.info(f"request object {request_object}")
 
                     if torch.distributed.is_initialized():
                         distributed_utils.broadcast_object(
@@ -450,10 +428,7 @@ class OPT(AbstractModel):
                         act_retrieval_aux = request_object.pop("_aux", None)
 
                         if encoded_activation_payload:
-                            (
-                                hook_dict,
-                                activation_dict,
-                            ) = get_activation_capture_hook_dict(
+                            (hook_dict, activation_dict,) = get_activation_capture_hook_dict(
                                 generator.models[0],
                                 encoded_activation_payload,
                                 aux=act_retrieval_aux,
@@ -469,9 +444,9 @@ class OPT(AbstractModel):
                         # Probably cuda died. Unfortunately, we need to hard crash
                         # here to kick in our self-healing mechanisms.
                         raise
-                    except BaseException as e:
+                    except BaseException as err:
                         # propagate any exceptions to the response so we can report it
-                        generations = [e] * len(batch)
+                        generations = [err] * len(batch)
 
                     # broadcast them back
                     for i, (work_item, gen) in enumerate(zip(batch, generations)):
@@ -501,7 +476,6 @@ class OPT(AbstractModel):
                                     # cut off the starting token because metaseq
                                     # adds. It should take out the pad to reduce bandwidth
                                     val = v[i, 1 : num_real_tokens + 1].clone()
-
                                 ret_dict[k] = codecs.encode(
                                     pickle.dumps(val),
                                     "base64",
