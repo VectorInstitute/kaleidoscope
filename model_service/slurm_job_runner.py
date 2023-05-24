@@ -58,6 +58,13 @@ def main():
                     scheduler_cmd, shell=True
                 ).decode("utf-8")
                 print(f"{scheduler_output}")
+            elif args.model_type == "GPT-J":
+                scheduler_cmd = f"sbatch --job-name={args.model_instance_id} {cwd}/models/GPT-J/GPT-J_service.sh {cwd} {args.gateway_host} {args.gateway_port}"
+                print(f"Scheduler command: {scheduler_cmd}")
+                scheduler_output = subprocess.check_output(
+                    scheduler_cmd, shell=True
+                ).decode("utf-8")
+                print(f"{scheduler_output}") 
             else:
                 print(f"Job scheduler does not support model type {args.model_type}")
         except Exception as err:

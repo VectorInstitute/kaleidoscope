@@ -9,9 +9,9 @@ import torch
 import subprocess
 import pathlib
 
-# from pytriton.decorators import batch
-# from pytriton.model_config import ModelConfig, Tensor
-# from pytriton.triton import Triton, TritonConfig
+from pytriton.decorators import batch
+from pytriton.model_config import ModelConfig, Tensor
+from pytriton.triton import Triton, TritonConfig
 
 
 # Globals
@@ -144,7 +144,7 @@ def main():
     # model_port = sock.getsockname()[1]
     # sock.close()
 
-    model_port = TRITON_HTTP_PORT
+    model_port = TRITON_HTTP_PORT # Port used by triton for HTTP requests
     model_host = f"{master_addr}:{model_port}"
 
     # Models that only run on a single node should advertise their IP address instead of "localhost"
@@ -155,6 +155,11 @@ def main():
     
     if rank == 0:
         logger.info(model_host)
+
+    model_instance_id = args.model_instance_id
+    # register model
+    if rank == 0:
+        register_model_instance(model_instance_id, model_host, gateway_host)
 
     if args.model_type == "GPT-J":
         # If directly loading model in triton
@@ -167,12 +172,9 @@ def main():
 
     else:
         # If using pytriton
-
         # Setup a global model instance
         global model, model_type
-
         model = initialize_model(args.model_type)
-        model_instance_id = args.model_instance_id
         model_type = args.model_type
 
         # set master port
@@ -182,39 +184,31 @@ def main():
         logger.info(f"Loading model into device {args.device}")
         logger.info(f"Loading model from model path {args.model_path}")
         model.load(args.device, args.model_path)
-        assert 1 == 0, "Model loaded" # TEMP - REMOVE LATER
-
-    # load first and then register
-    if rank == 0:
-        #register_model_instance(model_instance_id, model_host, gateway_host)
-        pass
 
     # Register signal handlers
     #signal.signal(signal.SIGINT, signal_handler)
     #signal.signal(signal.SIGTERM, signal_handler)
 
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
-
-    #activate_model_instance(model_instance_id, gateway_host)
     
-    # if args.model_type != "GPT-J":
-    #     triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
-    #     with Triton(config=triton_config) as triton:
-    #         triton.bind(
-    #             model_name=model_type,
-    #             infer_func=model.generate,
-    #             inputs=[
-    #                 Tensor(name="prompts", dtype=bytes, shape=(1,))
-    #             ],
-    #             outputs=[
-    #                 Tensor(name="sequences", dtype=bytes, shape=(-1,)),
-    #             ],
-    #             config=ModelConfig(max_batch_size=128),
-    #         )
-    #         logger.info("Starting model service, press Ctrl+C to exit")
-    #         triton.serve()
+    if args.model_type != "GPT-J":
+        triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
+        with Triton(config=triton_config) as triton:
+            triton.bind(
+                model_name=model_type,
+                infer_func=model.generate,
+                inputs=[
+                    Tensor(name="prompts", dtype=bytes, shape=(1,))
+                ],
+                outputs=[
+                    Tensor(name="sequences", dtype=bytes, shape=(-1,)),
+                ],
+                config=ModelConfig(max_batch_size=128),
+            )
+            logger.info("Starting model service, press Ctrl+C to exit")
+            triton.serve()
 
-
+    # activate_model_instance(model_instance_id, gateway_host)
 
 
 if __name__ == "__main__":
