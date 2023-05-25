@@ -85,9 +85,6 @@ class ModelInstanceState(ABC):
     def is_timed_out(self, timeout):
         raise InvalidStateError(self)
     
-    def is_timed_out(self, timeout):
-        raise InvalidStateError(self)
-
 
 class PendingState(ModelInstanceState):
     """Class for model pending state"""
@@ -115,6 +112,7 @@ class PendingState(ModelInstanceState):
             )
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
+
     def is_timed_out(self, timeout):
         return False
 
@@ -136,6 +134,7 @@ class LaunchingState(ModelInstanceState):
             )
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
+
     def is_timed_out(self, timeout):
         return False
 
@@ -161,9 +160,6 @@ class LoadingState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
     
-    def is_timed_out(self, timeout):
-        return False
-
     def is_timed_out(self, timeout):
         return False
 
@@ -239,12 +235,6 @@ class ActiveState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
     
-    def is_timed_out(self, timeout):
-        last_event_datetime = self._model_instance.updated_at
-        last_generation = self._model_instance.last_generation()
-        if last_generation:
-            last_event_datetime = last_generation.created_at
-
     def is_timed_out(self, timeout):
         last_event_datetime = self._model_instance.updated_at
         last_generation = self._model_instance.last_generation()

@@ -134,15 +134,6 @@ async def get_activations(model_instance_id: str):
             ),
             400,
         )
-    else:
-        model_instance = ModelInstance.find_by_id(model_instance_id)
-        activations = model_instance.generate_activations(
-            username, prompts, module_names, generation_config
-        )
-    model_instance = ModelInstance.find_by_id(model_instance_id)
-    activations = model_instance.generate_activations(
-        username, prompts, module_names, generation_config
-    )
 
     try:
         model_instance = ModelInstance.find_by_id(model_instance_id)
