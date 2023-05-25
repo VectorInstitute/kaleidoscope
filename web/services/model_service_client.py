@@ -43,6 +43,16 @@ def shutdown(model_instance_id: str) -> None:
         current_app.logger.error(f"Failed to issue SSH command to job runner: {err}")
     return
 
+def shutdown(model_instance_id: str) -> None:
+    try:
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action shutdown --model_instance_id {model_instance_id}"
+        current_app.logger.info(f"Shutdown SSH command: {ssh_command}")
+        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
+        current_app.logger.info(f"SSH shutdown job output: [{ssh_output}]")
+    except Exception as err:
+        current_app.logger.error(f"Failed to issue SSH command to job runner: {err}")
+    return
+
 
 def generate(host: str, generation_id: int, prompts: List[str], generation_config: Dict) -> Dict:
     """Generate into JSON format"""
@@ -79,6 +89,20 @@ def generate_activations(
 
     response = requests.post(f"http://{host}/get_activations", json=body)
 
+    response_body = response.json()
+    return response_body
+
+
+def edit_activations(
+    host: str,
+    generation_id: int,
+    prompts: List[str],
+    modules: Dict[str, Optional[Callable]],
+    generation_config: Dict,
+) -> Dict:
+    body = {"prompt": prompts, "modules": modules, **generation_config}
+    current_app.logger.info(f"Sending edit activations request, body: {body}")
+    response = requests.post(f"http://{host}/edit_activations", json=body)
     response_body = response.json()
     return response_body
 

@@ -49,6 +49,14 @@ def get_activations():
     return result
 
 
+@service.route("/edit_activations", methods=["POST"])
+def edit_activations():
+    print(request)
+    print(request.json)
+    result = model.edit_activations(request)
+    return result
+    
+
 # We only want to load the model library that's being requested, not all of them
 # TODO: Is there a way to make this happen automatically, without separate entries?
 

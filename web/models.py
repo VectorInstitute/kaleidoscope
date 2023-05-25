@@ -84,7 +84,7 @@ class ModelInstanceState(ABC):
 
     def is_timed_out(self, timeout):
         raise InvalidStateError(self)
-
+    
 
 class PendingState(ModelInstanceState):
     """Class for model pending state"""
@@ -159,7 +159,7 @@ class LoadingState(ModelInstanceState):
             )
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
-
+    
     def is_timed_out(self, timeout):
         return False
 
@@ -205,6 +205,24 @@ class ActiveState(ModelInstanceState):
             module_names,
             generation_args,
         )
+        return activations_response
+
+    def edit_activations(self, username, prompts, modules, generation_config):
+
+        model_instance_generation = ModelInstanceGeneration.create(
+            model_instance_id=self._model_instance.id,
+            username=username,
+        )
+
+        current_app.logger.info(model_instance_generation)
+
+        activations_response = model_service_client.edit_activations(
+            self._model_instance.host,
+            model_instance_generation.id,
+            prompts,
+            modules,
+            generation_config,
+        )
 
         return activations_response
 
@@ -216,7 +234,7 @@ class ActiveState(ModelInstanceState):
             )
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
-
+    
     def is_timed_out(self, timeout):
         last_event_datetime = self._model_instance.updated_at
         last_generation = self._model_instance.last_generation()
@@ -368,6 +386,17 @@ class ModelInstance(BaseMixin, db.Model):
         if generation_args is None:
             generation_args = {}
         return self._state.generate_activations(username, prompts, module_names, generation_args)
+
+    def edit_activations(
+        self,
+        username: str,
+        prompts: List[str],
+        modules: Dict[str, Optional[Callable]],
+        generation_config: Dict = {},
+    ) -> Dict:
+        return self._state.edit_activations(
+            username, prompts, modules, generation_config
+        )
 
     def is_healthy(self) -> bool:
         """Retrieve health status"""

@@ -85,11 +85,12 @@ def main():
         try:
             scheduler_cmd = f"scancel --jobname={args.model_instance_id}"
             print(f"Scheduler command: {scheduler_cmd}")
-            scheduler_output = subprocess.check_output(scheduler_cmd, shell=True).decode("utf-8")
+            scheduler_output = subprocess.check_output(
+                scheduler_cmd, shell=True
+            ).decode("utf-8")
             print(f"{scheduler_output}")
         except Exception as err:
             print(f"Job scheduler failed: {err}")
-
 
 if __name__ == "__main__":
     main()
