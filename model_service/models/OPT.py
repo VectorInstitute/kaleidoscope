@@ -214,9 +214,8 @@ class OPT(AbstractModel):
         request.json["encoded_activation_payload"] = encode_obj(activation_payload)
         request.json["echo"] = True
         request.json["max_tokens"] = 0
-        logger.info(f"Send activation edit request: {request}")
+        logger.info(f"Sending activation edit request: {request}")
         response = self.generate(request)
-        logger.info(f"Get activation edit response: {response}")
 
         return response
 
