@@ -54,7 +54,7 @@ class OPT(AbstractModel):
     def __init__(self):
         self.device = None
 
-    def load(self, device):
+    def load(self, device, model_path):
         """Load model into memory"""
         self.device = device
         thread = threading.Thread(target=self.load_async, daemon=True)
