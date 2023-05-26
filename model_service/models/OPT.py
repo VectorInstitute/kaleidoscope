@@ -51,6 +51,7 @@ class OPT(AbstractModel):
         self.device = None
 
     def load(self, device, model_path):
+
         self.device = device
         thread = threading.Thread(target=self.load_async, daemon=True)
         thread.start()
@@ -64,7 +65,6 @@ class OPT(AbstractModel):
     def load_async(self):
 
         global MODE, cfg
-
         # dumb defaults overriding
         parser = options.get_generation_parser()
         parser.set_defaults(lr_scheduler=None, criterion=None)
