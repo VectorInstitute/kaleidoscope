@@ -2,6 +2,7 @@ from __future__ import annotations
 # from flask import current_app
 import subprocess
 from typing import Dict, List
+import json
 
 import requests
 
@@ -43,6 +44,44 @@ def shutdown(model_instance_id: str) -> None:
     return
 
 
+DTYPE_MAP = {
+        "uint": np.uint32,
+        "int": np.int32,
+        "float": np.float32,
+        "bool": bool,
+        "object": object
+    }
+
+def prepare_tensor(name, input):
+    tensor = httpclient.InferInput(
+        name, input.shape, np_to_triton_dtype(input.dtype))
+    tensor.set_data_from_numpy(input)
+    return tensor
+
+def prepare_inputs(input_data, cfg):
+    input_data = np.array(input_data).astype(object)
+    inputs = [prepare_tensor(cfg["input_alias"], input_data)]
+    params = cfg["parameters"]
+    for _, p_dict in params.items():
+        if isinstance(p_dict["value"], list):
+            p_input = np.array([p_dict["value"]] * input_data.shape[0], dtype=DTYPE_MAP[p_dict["type"]])
+        elif isinstance(p_dict["value"], str):
+            raise NotImplementedError
+        else:
+            p_input = (p_dict["value"] * np.ones([input_data.shape[0], 1])).astype(DTYPE_MAP[p_dict["type"]])
+        inputs.append(
+            prepare_tensor(p_dict["alias"], p_input)
+        )
+    return inputs
+
+def update_param_cfg(param_cfg, input_gen_cfg):
+    new_param_cfg = param_cfg.copy()
+    for p_name, p_dict in new_param_cfg["parameters"].items():
+        p_dict.update({
+            "value": input_gen_cfg.get(p_name, p_dict["default"])
+            })
+    return new_param_cfg
+
 def generate(
     host: str, generation_id: int, prompts: List[str], generation_config: Dict
 ) -> Dict:
@@ -60,64 +99,17 @@ def generate(
 
     # Only for GPT-J
     MODEl_GPTJ_FASTERTRANSFORMER = "ensemble" 
-    OUTPUT_LEN = 128
-    BATCH_SIZE = 2
-    BEAM_WIDTH = 1
-    TOP_K = 1
-    TOP_P = 0.0
-    start_id = 220
-    end_id = 50256
-
-    # Inference hyperparameters
-    def prepare_tensor(name, input):
-        tensor = httpclient.InferInput(
-            name, input.shape, np_to_triton_dtype(input.dtype))
-        tensor.set_data_from_numpy(input)
-        return tensor
-
-    # explanation
-    def prepare_inputs(input0):
-        bad_words_list = np.array([[""]]*(len(input0)), dtype=object)
-        stop_words_list = np.array([[""]]*(len(input0)), dtype=object)
-        input0_data = np.array(input0).astype(object)
-        output0_len = np.ones_like(input0).astype(np.uint32) * OUTPUT_LEN
-        runtime_top_k = (TOP_K * np.ones([input0_data.shape[0], 1])).astype(np.uint32)
-        runtime_top_p = TOP_P * np.ones([input0_data.shape[0], 1]).astype(np.float32)
-        beam_search_diversity_rate = 0.0 * np.ones([input0_data.shape[0], 1]).astype(np.float32)
-        temperature = 1.0 * np.ones([input0_data.shape[0], 1]).astype(np.float32)
-        len_penalty = 1.0 * np.ones([input0_data.shape[0], 1]).astype(np.float32)
-        repetition_penalty = 1.0 * np.ones([input0_data.shape[0], 1]).astype(np.float32)
-        random_seed = 0 * np.ones([input0_data.shape[0], 1]).astype(np.int32)
-        is_return_log_probs = True * np.ones([input0_data.shape[0], 1]).astype(bool)
-        beam_width = (BEAM_WIDTH * np.ones([input0_data.shape[0], 1])).astype(np.uint32)
-        start_ids = start_id * np.ones([input0_data.shape[0], 1]).astype(np.uint32)
-        end_ids = end_id * np.ones([input0_data.shape[0], 1]).astype(np.uint32)
-
-        inputs = [
-            prepare_tensor("INPUT_0", input0_data),
-            prepare_tensor("INPUT_1", output0_len),
-            prepare_tensor("INPUT_2", bad_words_list),
-            prepare_tensor("INPUT_3", stop_words_list),
-            prepare_tensor("runtime_top_k", runtime_top_k),
-            prepare_tensor("runtime_top_p", runtime_top_p),
-            prepare_tensor("beam_search_diversity_rate", beam_search_diversity_rate),
-            prepare_tensor("temperature", temperature),
-            prepare_tensor("len_penalty", len_penalty),
-            prepare_tensor("repetition_penalty", repetition_penalty),
-            prepare_tensor("random_seed", random_seed),
-            prepare_tensor("is_return_log_probs", is_return_log_probs),
-            prepare_tensor("beam_width", beam_width),
-            prepare_tensor("start_id", start_ids),
-            prepare_tensor("end_id", end_ids),
-        ]
-        return inputs
     
     client = httpclient.InferenceServerClient(host,
                                               concurrency=1,
                                               verbose=False)
     
-    input0 = [[elm] for elm in prompts]
-    inputs = prepare_inputs(input0)
+    inputs = [[elm] for elm in prompts]
+    param_config = json.load(open("../../models/GPT-J/config.json", "r")) # TODO - Query model service to fetch param config
+    param_config = update_param_cfg(param_config, generation_config)
+    from pprint import pprint
+    pprint(param_config)
+    inputs = prepare_inputs(inputs, param_config)
 
     result = client.infer(MODEl_GPTJ_FASTERTRANSFORMER, inputs)
     output0 = result.as_numpy("OUTPUT_0")
