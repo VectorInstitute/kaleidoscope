@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 import argparse
+import os
 import pathlib
 import subprocess
-import sys
 
 
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--action", required=True, type=str, help="Action for job runner to perform")
+    parser.add_argument("--action", required=True, type=str, help="Action for job manager to perform")
     parser.add_argument("--model_instance_id", required=True, type=str, help="Model type not supported")
     parser.add_argument("--model_type", type=str, help="Type of model requested")
     parser.add_argument("--model_path", type=str, help="Model type not supported")
@@ -58,6 +58,19 @@ def main():
             # If the command fails, don't send any response, this will indicate failure
             pass
 
+    elif args.action == "get_model_metadata":
+        # Look at every subdirectory under the /models directory, and grab their config.json files
+        print("Retrieving model metadata")
+        metadata = []
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        for subdir in os.listdir(f"{cwd}/models"):
+            if os.path.isdir(os.path.join(f"{cwd}/models", subdir)):
+                try:
+                    with open(f"{cwd}/models/{subdir}/config.json", "r") as f:
+                        metadata.append(f.read())
+                except Exception as err:
+                    print(f"Failed to read config.json for model {subdir}: {err}")
+        print(metadata)
 
 if __name__ == "__main__":
     main()

@@ -13,6 +13,7 @@ from auth import auth
 from db import db
 from home.routes import home_bp
 from model_instances.routes import model_instances_bp
+from services import model_service_client
 
 
 def create_app():
@@ -61,6 +62,10 @@ def make_celery(app):
 
 app = create_app()
 celery = make_celery(app)
+
+model_metadata = model_service_client.get_model_metadata()
+print(model_metadata)
+
 
 if __name__ == "__main__":
     app.run(host=Config.GATEWAY_BIND_HOST, port=Config.GATEWAY_PORT)

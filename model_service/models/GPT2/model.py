@@ -4,7 +4,7 @@ import random
 import re
 import torch
 
-from .abstract_model import AbstractModel
+from ..abstract_model import AbstractModel
 
 from pytriton.decorators import batch
 from transformers import GPT2LMHeadModel, GPT2Tokenizer

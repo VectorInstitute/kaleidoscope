@@ -1,12 +1,12 @@
 from __future__ import annotations
-# from flask import current_app
+from flask import current_app
 import subprocess
 from typing import Dict, List
 
 import requests
 
 # import models
-# from config import Config
+from config import Config
 
 import numpy as np
 import tritonclient.http as httpclient
@@ -29,7 +29,7 @@ def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
             current_app.logger.info(f"SSH launch job output: [{ssh_output}]")
 
     except Exception as err:
-        current_app.logger.error(f"Failed to issue SSH command to job runner: {err}")
+        current_app.logger.error(f"Failed to issue SSH command to job manager: {err}")
     return
 
 def shutdown(model_instance_id: str) -> None:
@@ -39,7 +39,7 @@ def shutdown(model_instance_id: str) -> None:
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
         current_app.logger.info(f"SSH shutdown job output: [{ssh_output}]")
     except Exception as err:
-        current_app.logger.error(f"Failed to issue SSH command to job runner: {err}")
+        current_app.logger.error(f"Failed to issue SSH command to job manager: {err}")
     return
 
 
@@ -183,6 +183,16 @@ def verify_job_health(model_instance_id: str) -> bool:
         print("The model is healthy")
         return True
     except Exception as err:
-        print(f"Failed to issue SSH command to job runner: {err}")
+        print(f"Failed to issue SSH command to job manager: {err}")
         return False
 
+
+def get_model_metadata() -> None:
+    try:
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_model_metadata --model_instance_id 0"
+        print(f"Get model metadata SSH command: {ssh_command}")
+        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
+        print(f"Get model metadata SSH output: [{ssh_output}]")
+    except Exception as err:
+        print(f"Failed to issue SSH command to job manager: {err}")
+    return

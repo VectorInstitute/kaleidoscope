@@ -9,7 +9,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--action", required=True, type=str, help="Action for job runner to perform"
+        "--action", required=True, type=str, help="Action for job manager to perform"
     )
     parser.add_argument(
         "--model_instance_id", required=True, type=str, help="Model type not supported"

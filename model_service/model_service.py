@@ -29,7 +29,7 @@ def initialize_model(model_type):
         from models import OPT
         return OPT.OPT()
     elif model_type == "GPT2":
-        from models import GPT2
+        from models.GPT2.model import GPT2
         return GPT2.GPT2()
 
 
@@ -190,7 +190,7 @@ def main():
     #signal.signal(signal.SIGTERM, signal_handler)
 
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
-    
+    print("Starting Triton service...")
     if args.model_type != "GPT-J":
         triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
         with Triton(config=triton_config) as triton:
@@ -208,7 +208,9 @@ def main():
             logger.info("Starting model service, press Ctrl+C to exit")
             triton.serve()
 
-    # activate_model_instance(model_instance_id, gateway_host)
+
+    print("Activating model instance...")
+    activate_model_instance(model_instance_id, gateway_host)
 
 
 if __name__ == "__main__":
