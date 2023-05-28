@@ -43,7 +43,7 @@ from utils.hook_utils import get_activation_capture_hook_dict, apply_forward_hoo
 cfg = None
 is_model_loaded = False
 logger = build_logger()
-# BATCH_QUEUE = PriorityQueueRingShard()
+BATCH_QUEUE = PriorityQueueRingShard()
 
 
 class OPT(AbstractModel):
