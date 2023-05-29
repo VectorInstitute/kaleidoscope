@@ -11,10 +11,10 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %
 
 
 def initialize_model(model_type):
-    try:
-        return importlib.import_module(f"models.{model_type}.model").Model()
-    except:
-        logger.error(f"Could not import model {model_type}")
+    #try:
+    return importlib.import_module(f"models.{model_type}.model").Model()
+    # except:
+    #     logger.error(f"Could not import model {model_type}")
 
 class ModelService():
 
