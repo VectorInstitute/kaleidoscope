@@ -1,0 +1,91 @@
+{
+    "name": "GPT-J",
+    "path": "/scratch/models/gptj",
+    "input_alias": "INPUT_0",
+    "parameters": {
+        "temperature": {
+            "alias": "temperature",
+            "type": "float",
+            "default": 1.0,
+            "description": "Temperature of the sampling distribution."
+        },
+        "top_k": {
+            "alias": "runtime_top_k",
+            "type": "uint",
+            "default": 1,
+            "description": "Number of top tokens to consider for sampling."
+        },
+        "top_p": {
+            "alias": "runtime_top_p",
+            "type": "float",
+            "default": 0.0,
+            "description": "Cumulative probability of top tokens to consider for sampling."
+        },
+        "max_length": {
+            "alias": "INPUT_1",
+            "type": "uint",
+            "default": 128,
+            "description": "Maximum length of the generated text."
+        },
+        "repetition_penalty": {
+            "alias": "repetition_penalty",
+            "type": "float",
+            "default": 1.0,
+            "description": "Penalty for repeating tokens."
+        },
+        "length_penalty": {
+            "alias": "len_penalty",
+            "type": "float",
+            "default": 1.0,
+            "description": "Penalty for length of the generated text."
+        },
+        "beam_width": {
+            "alias": "beam_width",
+            "type": "uint",
+            "default": 1,
+            "description": "Beam width for beam search decoding."
+        },
+        "beam_search_diversity_rate": {
+            "alias": "beam_search_diversity_rate",
+            "type": "float",
+            "default": 0.0,
+            "description": "TO BE ADDED"
+        },
+        "is_return_log_probs": {
+            "alias": "is_return_log_probs",
+            "type": "bool",
+            "default": true,
+            "description": "Whether to return log probabilities."
+        },
+        "start_id": {
+            "alias": "start_id",
+            "type": "uint",
+            "default": 220,
+            "description": "Token ID of start token."
+        },
+        "end_id": {
+            "alias": "end_id",
+            "type": "uint",
+            "default": 50256,
+            "description": "Token ID of end token."
+        },
+        "bad_words_list": {
+            "alias": "INPUT_2",
+            "type": "object",
+            "default": [""],
+            "description": "List of bad words."
+        },
+        "stop_words_list": {
+            "alias": "INPUT_3",
+            "type": "object",
+            "default": [""],
+            "description": "List of stop words."
+        },
+        "random_seed": {
+            "alias": "random_seed",
+            "type": "int",
+            "default": 0,
+            "description": "Random seed for sampling."
+        }
+    }
+}

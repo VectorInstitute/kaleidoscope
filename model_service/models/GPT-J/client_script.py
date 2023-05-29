@@ -2,7 +2,10 @@ from web.services import model_service_client
 
 prompts = ["The current progress in Generative AI is", "The drawbacks of Generative AI are"]
 model_service_client.generate(
-    host="172.17.8.161:8000", generation_id=0, prompts=prompts, generation_config={})
+    host="172.17.8.177:8000", generation_id=0, prompts=prompts, generation_config={"max_length": 10})
+
+# health check
+# curl -v 172.17.8.174:8000/v2/health/ready
 
 # import numpy as np
 # import tritonclient.http as httpclient
