@@ -1,15 +1,15 @@
 from __future__ import annotations
+import ast
 from flask import current_app
+import json
+import numpy as np
+import requests
 import subprocess
 from typing import Dict, List
-import json
-
-import requests
 
 # import models
 from config import Config
 
-import numpy as np
 import tritonclient.http as httpclient
 from tritonclient.utils import np_to_triton_dtype
 
@@ -179,12 +179,14 @@ def verify_job_health(model_instance_id: str) -> bool:
         return False
 
 
-def get_model_metadata() -> None:
+def get_model_config() -> None:
+    config = []
     try:
         ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_model_metadata --model_instance_id 0"
-        print(f"Get model metadata SSH command: {ssh_command}")
+        #print(f"Get model metadata SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        print(f"Get model metadata SSH output: [{ssh_output}]")
+        #print(f"Get model metadata SSH output: {ssh_output}")
+        config = ast.literal_eval(ssh_output)
     except Exception as err:
         print(f"Failed to issue SSH command to job manager: {err}")
-    return
+    return config

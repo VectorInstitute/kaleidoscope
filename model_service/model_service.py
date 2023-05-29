@@ -29,7 +29,7 @@ def initialize_model(model_type):
         from models import OPT
         return OPT.OPT()
     elif model_type == "GPT2":
-        from models.GPT2.model import GPT2
+        from models.GPT2 import model as GPT2
         return GPT2.GPT2()
 
 

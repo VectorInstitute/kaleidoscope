@@ -12,7 +12,8 @@ model_instances_bp = Blueprint("models", __name__)
 
 @model_instances_bp.route("/", methods=["GET"])
 async def get_models():
-    return list(MODEL_CONFIG.keys()), 200
+    current_app.logger.info(f"Received model list request: {request}")
+    return [model['name'] for model in MODEL_CONFIG], 200
 
 
 @model_instances_bp.route("/instances", methods=["GET"])
@@ -30,7 +31,6 @@ async def get_current_model_instances():
 async def create_model_instance():
     current_app.logger.info(f"Received model instance creation request: {request}")
     model_name = request.json["name"]
-
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
     if model_instance is None:
         model_instance = ModelInstance.create(name=model_name)
