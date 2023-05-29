@@ -1,0 +1,2 @@
+FROM vector-pytriton:latest
+

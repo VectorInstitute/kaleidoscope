@@ -47,10 +47,11 @@ BATCH_QUEUE = PriorityQueueRingShard()
 
 
 class OPT(AbstractModel):
-    def __init__(self):
+    def __init__(self, model_type):
         self.device = None
+        self.model_type = model_type
 
-    def load(self, device, model_path):
+    def load(self, model_path):
 
         self.device = device
         thread = threading.Thread(target=self.load_async, daemon=True)
