@@ -1,9 +1,11 @@
 import argparse
 import logging
 import importlib
-import requests
 
 from pytriton.triton import Triton, TritonConfig
+
+from services.gateway_service import GatewayServiceClient
+
 
 
 logger = logging.getLogger("kaleidoscope.model_service")
@@ -27,9 +29,10 @@ class ModelService():
 
     def run(self):
 
-        # Register model with gateway
-        #logger.info(f"Registering model {self.model_type} with gateway")
-        #gateway_service = GatewayService(self.gateway_host, self.gateway_port)
+        # Register model with gateway -> note how to run this only on rank 0
+        logger.info(f"Registering model {self.model_type} with gateway")
+        gateway_service = GatewayServiceClient(self.gateway_host, self.gateway_port)
+        gateway_service.register_model_instance(self.model_type, self.master_host, self.master_port)
         #gateway_service.register_model(self.model_type, self.master_host, self.master_port)
 
         model = initialize_model(self.model_type)
