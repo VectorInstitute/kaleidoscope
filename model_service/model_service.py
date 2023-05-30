@@ -51,7 +51,7 @@ class ModelService():
         # self.register_model_instance()
 
         model = initialize_model(self.model_type)
-        logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
+        # logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
         model.load(self.model_path) # Must be a blocking call
 
         logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")

@@ -95,7 +95,7 @@ class Model(AbstractModel):
 
     @property
     def rank(self):
-        return distributed_utils.get_rank()
+        return torch.distributed.get_rank()
     
     @batch
     def generate(self, **inputs):
