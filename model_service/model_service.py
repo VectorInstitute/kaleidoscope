@@ -25,6 +25,8 @@ class ModelService():
         self.master_port = master_port
         self.model_path = model_path
 
+    # Move registration into into a gateway client class
+    
     # def register_model_instance(self, model_instance_id):
     #     register_url = f"http://{self.gateway_host}/models/instances"
     #     print(f"Sending model registration request to {register_url}")
@@ -47,16 +49,16 @@ class ModelService():
 
     def run(self):
 
-        # How do we know rank here?
+        # How do we know rank here? 
         # self.register_model_instance()
 
         model = initialize_model(self.model_type)
-        # logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
-        model.load(self.model_path) # Must be a blocking call
+        model.load(self.model_path)
 
-        logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
         if model.rank == 0:
             logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
+
+            #Placeholder static triton config for now
             triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
             with Triton(config=triton_config) as triton:
                 triton = model.bind(triton)
