@@ -25,32 +25,12 @@ class ModelService():
         self.master_port = master_port
         self.model_path = model_path
 
-    # Move registration into into a gateway client class
-    
-    # def register_model_instance(self, model_instance_id):
-    #     register_url = f"http://{self.gateway_host}/models/instances"
-    #     print(f"Sending model registration request to {register_url}")
-    #     try:
-    #         response = requests.post(
-    #             register_url,
-    #             json={
-    #                 "model_instance_id": model_instance_id,
-    #                 "model_type": self.model_type,
-    #                 "model_host": model_host,
-    #             },
-    #         )
-    #         response.raise_for_status()
-    #     except requests.HTTPError as e:
-    #         print(e)
-    #     except requests.ConnectionError as e:
-    #         print(f"Connection error: {e}")
-    #     except:
-    #         print(f"Unknown error contacting gateway service at {self.gateway_host}")
-
     def run(self):
 
-        # How do we know rank here? 
-        # self.register_model_instance()
+        # Register model with gateway
+        #logger.info(f"Registering model {self.model_type} with gateway")
+        #gateway_service = GatewayService(self.gateway_host, self.gateway_port)
+        #gateway_service.register_model(self.model_type, self.master_host, self.master_port)
 
         model = initialize_model(self.model_type)
         model.load(self.model_path)
