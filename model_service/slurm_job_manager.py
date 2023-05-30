@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import argparse
+import json
+import os
 import pathlib
 import subprocess
-import torch
 
 
 def main():
@@ -89,6 +90,19 @@ def main():
             print(f"{scheduler_output}")
         except Exception as err:
             print(f"Job scheduler failed: {err}")
+
+    elif args.action == "get_model_metadata":
+        # Look at every subdirectory under the /models directory, and grab config.json files
+        metadata = []
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        for subdir in os.listdir(f"{cwd}/models"):
+            if os.path.isdir(os.path.join(f"{cwd}/models", subdir)):
+                try:
+                    with open(f"{cwd}/models/{subdir}/config.json", "r") as config:
+                        metadata.append(json.load(config))
+                except:
+                    pass
+        print(metadata)
 
 if __name__ == "__main__":
     main()
