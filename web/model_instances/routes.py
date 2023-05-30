@@ -71,7 +71,9 @@ async def register_model_instance(model_instance_id: str):
 
 @model_instances_bp.route("/instances/<model_instance_id>/activate", methods=["POST"])
 async def activate_model_instance(model_instance_id: str):
-
+    current_app.logger.info(
+        f"Received model activation for ID {model_instance_id}"
+    )
     model_instance = ModelInstance.find_by_id(model_instance_id)
     model_instance.activate()
 

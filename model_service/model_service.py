@@ -45,19 +45,19 @@ def send_remove_request(model_type, gateway_host):
     try:
         response = requests.delete(remove_url)
     except requests.ConnectionError as e:
-        print(f"Connection error: {e}")
+        logger.info(f"Connection error: {e}")
     except:
-        print(f"Unknown error contacting gateway service at {gateway_host}")
+        logger.info(f"Unknown error contacting gateway service at {gateway_host}")
 
 
 def register_model_instance(model_instance_id, model_host, gateway_host):
 
-    print(f"Preparing model registration request")
+    logger.info(f"Preparing model registration request")
     register_url = (
         f"http://{gateway_host}/models/instances/{model_instance_id}/register"
     )
     register_data = {"host": model_host}
-    print(
+    logger.info(
         f"Sending model registration request to {register_url} with data: {register_data}"
     )
     try:
@@ -68,23 +68,24 @@ def register_model_instance(model_instance_id, model_host, gateway_host):
     # If we fail to contact the gateway service, print an error but continue running anyway
     # TODO: HTTPError probably isn't the best way to catch custom errors
     except requests.HTTPError as e:
-        print(e)
+        logger.info(e)
     except requests.ConnectionError as e:
-        print(f"Connection error: {e}")
+        logger.info(f"Connection error: {e}")
     except:
-        print(f"Unknown error contacting gateway service at {gateway_host}")
+        logger.info(f"Unknown error contacting gateway service at {gateway_host}")
 
 
 def activate_model_instance(model_instance_id, gateway_host):
     activation_url = (
         f"http://{gateway_host}/models/instances/{model_instance_id}/activate"
     )
-    print(f"Sending model activation request to {activation_url}")
+    logger.info(f"Sending model activation request to {activation_url}")
     try:
         response = requests.post(activation_url)
+        logger.info(f"Model activation response: {response.text}")
     except Exception as err:
-        print(f"Model instance activation failed with error: {err}")
-        print(f"Continuing to load model anyway, but it will not be accessible to any gateway services")
+        logger.info(f"Model instance activation failed with error: {err}")
+        logger.info(f"Continuing to load model anyway, but it will not be accessible to any gateway services")
 
 
 def main():
@@ -129,7 +130,7 @@ def main():
         except:
             pass
 
-    print(f"Loading model service with rank {rank}")
+    logger.info(f"Loading model service with rank {rank}")
 
     # Determine the IP address for the head node of this model
     try:
@@ -144,7 +145,7 @@ def main():
     # model_port = sock.getsockname()[1]
     # sock.close()
 
-    model_port = TRITON_HTTP_PORT # Port used by triton for HTTP requests
+    model_port = 8003 #TRITON_HTTP_PORT # Port used by triton for HTTP requests
     model_host = f"{master_addr}:{model_port}"
 
     # Models that only run on a single node should advertise their IP address instead of "localhost"
@@ -189,6 +190,11 @@ def main():
     #signal.signal(signal.SIGINT, signal_handler)
     #signal.signal(signal.SIGTERM, signal_handler)
 
+    # Activate the model.
+    # TODO: Is there any way we can do this after starting the Triton service?
+    logger.info(f"Calling model activation function...")
+    activate_model_instance(model_instance_id, gateway_host)
+
     # Now start the service. This will block until user hits Ctrl+C or the process gets killed by the system
     print("Starting Triton service...")
     if args.model_type != "GPT-J":
@@ -207,10 +213,6 @@ def main():
             )
             logger.info("Starting model service, press Ctrl+C to exit")
             triton.serve()
-
-
-    print("Activating model instance...")
-    activate_model_instance(model_instance_id, gateway_host)
 
 
 if __name__ == "__main__":

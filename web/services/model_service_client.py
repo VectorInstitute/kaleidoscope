@@ -151,8 +151,10 @@ def get_module_names(host: str) -> Dict:
 
 
 def verify_model_health(host: str) -> bool:
+    print(f"Verifying model health...")
     try:
-        response = requests.get(f"http://{host}/health")
+        response = requests.get(f"http://{host}/v2/models/GPT2/ready")
+        print(f"Health check response: {response}")
         return response.status_code == 200
     except Exception as err:
         print(f"Model health verification error:: {err}")
