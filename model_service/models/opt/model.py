@@ -91,6 +91,7 @@ class Model(AbstractModel):
             ],
             config=ModelConfig(max_batch_size=128),
         )
+        return triton
 
     @property
     def rank(self):

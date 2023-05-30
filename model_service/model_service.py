@@ -56,7 +56,7 @@ class ModelService():
         if model.rank == 0:
             triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
             with Triton(config=triton_config) as triton:
-                model.bind(triton)
+                triton = model.bind(triton)
                 triton.serve()
 
 
