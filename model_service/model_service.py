@@ -53,6 +53,7 @@ class ModelService():
         model = initialize_model(self.model_type)
         model.load(self.model_path) # Must be a blocking call
 
+        logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
         if model.rank == 0:
             logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
             triton_config = TritonConfig(http_address="0.0.0.0", http_port=8003, log_verbose=4)
