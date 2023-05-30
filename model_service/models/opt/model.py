@@ -23,7 +23,7 @@ from metaseq.service.constants import (
     UNBATCHED_ARG_DICT,
 )
 from metaseq.service.utils import get_my_ip, encode_fn, build_logger
-from utils.hook_utils import (
+from .utils import ( 
     get_activation_capture_hook_dict,
     apply_forward_hook,
 )
