@@ -88,7 +88,7 @@ def main():
     args = parser.parse_args()
 
     # ToDo: Better init of model service
-    model_service = ModelService(**args)
+    model_service = ModelService(**args.__dict__)
     model_service.run()
 
 
