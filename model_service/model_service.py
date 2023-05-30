@@ -46,13 +46,14 @@ class ModelService():
         """
 
         gateway_service = GatewayServiceClient(self.gateway_host, self.gateway_port)
-        gateway_service.register_model_instance(self.model_type, self.master_host, self.master_port)
+
 
         model = initialize_model(self.model_type)
         model.load(self.model_path)
 
         if model.rank == 0:
             logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
+            gateway_service.register_model_instance(self.model_type, self.master_host, self.master_port)
             gateway_service.activate_model_instance(self.model_instance_id)
 
             #Placeholder static triton config for now
