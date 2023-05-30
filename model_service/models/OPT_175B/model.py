@@ -12,7 +12,7 @@ import time
 import torch
 import traceback
 
-from .abstract_model import AbstractModel
+from ..abstract_model import AbstractModel
 from collections import defaultdict
 from werkzeug.exceptions import HTTPException
 

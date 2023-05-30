@@ -25,8 +25,11 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %
 
 
 def initialize_model(model_type):
-    if model_type == "OPT-175B" or model_type == "OPT-6.7B":
-        from models import OPT
+    if model_type == "OPT-6.7B":
+        from models.OPT_6_7B import model as OPT
+        return OPT.OPT()
+    elif model_type == "OPT-175B":
+        from models.OPT_175B import model as OPT
         return OPT.OPT()
     elif model_type == "GPT2":
         from models.GPT2 import model as GPT2
