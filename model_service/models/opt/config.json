@@ -1,5 +1,5 @@
 {
-    "name": "OPT",
+    "name": "opt",
     "path": "/hardcoded/in/docker/container",
     "parameters": {
         "temperature": {
@@ -19,7 +19,7 @@
         }
     },
     "variants": {
-        "6.7B": {},
-        "175B": {}
+        "6.7b": {},
+        "175b": {}
     }
 }
