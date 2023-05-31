@@ -8,9 +8,9 @@ class AbstractModel(abc.ABC):
     def load(self, device, model_path):
         pass
 
-    @abc.abstractmethod
-    def module_names(self):
-        pass
+    # @abc.abstractmethod
+    # def module_names(self):
+    #     pass
 
     @abc.abstractmethod
     @batch
