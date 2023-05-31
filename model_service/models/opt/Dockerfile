@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.3.1-devel-ubuntu20.04
+FROM marshw/pytriton_base_image:0.1.4
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -50,11 +50,3 @@ ADD . .
 WORKDIR /build/metaseq
 RUN pip3 install -e .
 RUN python3 setup.py install
-
-# Install transformers
-RUN pip install transformers==4.29.2
-
-# Install PyTriton
-RUN pip install --upgrade pip
-RUN pip install -U https://github.com/triton-inference-server/pytriton/releases/download/v0.1.4/pytriton-0.1.4-py3-none-manylinux_2_31_x86_64.whl
-RUN python3 -m pip install datasets==2.10.1 pandas==1.5.3 requests==2.28.2
