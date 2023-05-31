@@ -52,15 +52,27 @@ class ModelInstanceState(ABC):
 
 class PendingState(ModelInstanceState):
     def launch(self):
+        # Derive the model type and variant from the MODEL_CONFIG data
+        model_variant = "None"
         for model in MODEL_CONFIG:
-            if model["name"] == self._model_instance.name:
+            if model["type"] in self._model_instance.name:
+                model_type = model["type"]
                 model_path = model["path"]
+                if "variants" in model:
+                    for variant in model["variants"].keys():
+                        if variant in self._model_instance.name:
+                            model_variant = variant
+                            try:
+                                model_path = model["variants"][variant]["path"]
+                            except:
+                                pass
+                            break
 
-        current_app.logger.info(f"Launching model at path {model_path}")
+        current_app.logger.info(f"Issuing launch command for model type {model_type} with optional variant {model_variant}")
         try:
             # ToDo: set job id params here
             model_service_client.launch(
-                self._model_instance.id, self._model_instance.name, model_path
+                self._model_instance.id, model_type, model_variant, model_path
             )
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:

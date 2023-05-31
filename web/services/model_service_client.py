@@ -14,10 +14,14 @@ import tritonclient.http as httpclient
 from tritonclient.utils import np_to_triton_dtype
 
 
-def launch(model_instance_id: str, model_name: str, model_path: str) -> None:
-    current_app.logger.info(f"Preparing to launch model: {model_name}")
+def launch(model_instance_id: str, model_type: str, model_variant: str, model_path: str) -> None:
+    current_app.logger.info(f"Preparing to launch model type {model_type} with optional variant {model_variant}")
     try:
-        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_name} --model_path {model_path} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
+        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_type} --model_variant {model_variant} --model_path {model_path} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
+        # If a model has variants, add them to the ssh command
+        if model_variant:
+            ssh_command += f" --model_variant {model_variant}"
+
         current_app.logger.info(f"Launch SSH command: {ssh_command}")
 
         # System job scheduler needs ssh to keep running in the background
@@ -184,10 +188,10 @@ def verify_job_health(model_instance_id: str) -> bool:
 def get_model_config() -> None:
     config = []
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_model_metadata --model_instance_id 0"
-        #print(f"Get model metadata SSH command: {ssh_command}")
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_model_config --model_instance_id 0"
+        #print(f"Get model config SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        #print(f"Get model metadata SSH output: {ssh_output}")
+        #print(f"Get model config SSH output: {ssh_output}")
         config = ast.literal_eval(ssh_output)
     except Exception as err:
         print(f"Failed to issue SSH command to job manager: {err}")
