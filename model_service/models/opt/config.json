@@ -1,5 +1,5 @@
 {
-    "name": "opt",
+    "type": "opt",
     "path": "/hardcoded/in/docker/container",
     "parameters": {
         "temperature": {

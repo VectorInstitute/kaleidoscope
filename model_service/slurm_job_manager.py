@@ -13,8 +13,9 @@ def launch_job(args):
         
     # ToDo: No validation of model_type, model_variant
     try:
+        model_variant = args.model_variant if args.model_variant != "None" else ""
         cwd = pathlib.Path(__file__).parent.resolve()
-        scheduler_cmd = f'sbatch --job_name={args.model_instance_id} {cwd}/models/launch_{args.model_type}{args.model_variant}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
+        scheduler_cmd = f'sbatch --job_name={args.model_instance_id} {cwd}/models/launch_{args.model_type}{model_variant}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
         print(f"Scheduler command: {scheduler_cmd}")
         scheduler_output = subprocess.check_output(
             scheduler_cmd, shell=True

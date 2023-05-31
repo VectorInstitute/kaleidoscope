@@ -20,7 +20,7 @@ class ModelService():
     ''' Model service is responsible for loading and serving a model.
     '''
 
-    def __init__(self, model_instance_id: str, model_type: str, model_path: str, gateway_host: str, gateway_port: int, master_host: str, master_port: int) -> None:
+    def __init__(self, model_instance_id: str, model_type: str, model_variant: str, model_path: str, gateway_host: str, gateway_port: int, master_host: str, master_port: int) -> None:
         """
         Args:
             model_instance_id (str): Unique identifier for model instance
@@ -33,6 +33,7 @@ class ModelService():
         """
         self.model_instance_id = model_instance_id
         self.model_type = model_type
+        self.model_variant = model_variant
         self.model_path = model_path
 
         self.gateway_host = gateway_host
@@ -66,7 +67,10 @@ class ModelService():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model_type", required=True, type=str,
+        "--model_type", required=True, type=str, help="Type of model to load (ie. opt, gpt2)"
+    )
+    parser.add_argument(
+        "--model_type", required=True, type=str, help="Variant of model to load (ie. 6.7b)"
     )
     parser.add_argument(
         "--model_path", required=True, type=str, help="Path to pre-trained model"

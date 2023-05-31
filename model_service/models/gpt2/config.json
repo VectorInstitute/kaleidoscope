@@ -1,5 +1,5 @@
 {
-    "name": "GPT2",
+    "type": "gpt2",
     "path": "/scratch/models/gpt2",
     "parameters": {
         "temperature": {

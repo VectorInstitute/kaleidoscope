@@ -10,8 +10,9 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--action", required=True, type=str, help="Action for job manager to perform")
-    parser.add_argument("--model_instance_id", required=True, type=str, help="Model type not supported")
+    parser.add_argument("--model_instance_id", required=True, type=str, help="Gateway model instance ID")
     parser.add_argument("--model_type", type=str, help="Type of model requested")
+    parser.add_argument("--model_variant", type=str, help="Variant of model requested")
     parser.add_argument("--model_path", type=str, help="Model type not supported")
     parser.add_argument("--gateway_host", type=str, help="Hostname of gateway service")
     parser.add_argument("--gateway_port", type=int, help="Port of gateway service")
@@ -22,6 +23,9 @@ def main():
     if args.action == "launch":
         if not args.model_type:
             print("Argument --model_type must be specified to launch a job")
+            return
+        if not args.model_variant:
+            print("Argument --model_variant must be specified to launch a job")
             return
         elif not args.model_path:
             print("Argument --model_path must be specified to launch a job")
@@ -39,10 +43,13 @@ def main():
                     'python3',
                     f'{cwd}/model_service.py',
                     '--model_type', f'{args.model_type}',
+                    '--model_variant', f'{args.model_variant}',
                     '--model_path', f'{args.model_path}',
                     '--model_instance_id', f'{args.model_instance_id}',
                     '--gateway_host', f'{args.gateway_host}',
-                    '--gateway_port', f'{args.gateway_port}'
+                    '--gateway_port', f'{args.gateway_port}',
+                    '--master_host', 'localhost',
+                    '--master_port', '8080'
                 ],
                 start_new_session=True
             )

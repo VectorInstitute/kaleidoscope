@@ -1,5 +1,5 @@
 {
-    "name": "GPT-J",
+    "type": "gptj",
     "path": "/scratch/models/gptj",
     "input_alias": "INPUT_0",
     "parameters": {

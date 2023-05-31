@@ -18,10 +18,6 @@ def launch(model_instance_id: str, model_type: str, model_variant: str, model_pa
     current_app.logger.info(f"Preparing to launch model type {model_type} with optional variant {model_variant}")
     try:
         ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_type} --model_variant {model_variant} --model_path {model_path} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
-        # If a model has variants, add them to the ssh command
-        if model_variant:
-            ssh_command += f" --model_variant {model_variant}"
-
         current_app.logger.info(f"Launch SSH command: {ssh_command}")
 
         # System job scheduler needs ssh to keep running in the background
