@@ -91,7 +91,7 @@ def main():
         except Exception as err:
             print(f"Job scheduler failed: {err}")
 
-    elif args.action == "get_model_metadata":
+    elif args.action == "get_model_config":
         # Look at every subdirectory under the /models directory, and grab config.json files
         metadata = []
         cwd = os.path.dirname(os.path.realpath(__file__))

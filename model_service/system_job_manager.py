@@ -59,7 +59,7 @@ def main():
             # If the command fails, don't send any response, this will indicate failure
             pass
 
-    elif args.action == "get_model_metadata":
+    elif args.action == "get_model_config":
         # Look at every subdirectory under the /models directory, and grab config.json files
         metadata = []
         cwd = os.path.dirname(os.path.realpath(__file__))

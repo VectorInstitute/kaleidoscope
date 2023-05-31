@@ -1,5 +1,5 @@
 {
-    "name": "OPT-6.7B",
+    "name": "OPT",
     "path": "/hardcoded/in/docker/container",
     "parameters": {
         "temperature": {
@@ -17,5 +17,9 @@
             "default": 0.9,
             "description": "Cumulative probability of top tokens to consider for sampling."
         }
+    },
+    "variants": {
+        "6.7B": {},
+        "175B": {}
     }
 }
