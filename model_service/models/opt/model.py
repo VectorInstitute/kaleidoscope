@@ -86,11 +86,11 @@ class Model(AbstractModel):
             infer_func=self.infer,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=int, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=int, shape=(1,), optional=True),
-                Tensor(name='temperature', dtype=float, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=float, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=int, shape=(1,), optional=True),
+                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
+            #    Tensor(name='top_p', dtype=float, shape=(1,), optional=True),
+            #    Tensor(name='top_k', dtype=int, shape=(1,), optional=True),
             ],
             outputs=[
                 Tensor(name="sequences", dtype=bytes, shape=(-1,)),
@@ -109,7 +109,7 @@ class Model(AbstractModel):
     @batch
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
-        self.generate(inputs)
+        return self.generate(inputs)
 
     def generate(self, inputs):
 
@@ -269,7 +269,7 @@ class Model(AbstractModel):
         idx = 0
         generated_sequences = []
         for result in results:
-            generated_sequences.append(result["text"])
+            generated_sequences.append(np.char.encode(result['text'], "utf-8"))
 
         return {"sequences": np.array(generated_sequences)}
     
