@@ -36,18 +36,10 @@ class Model(AbstractModel):
             model_name=f"{self.model_type}{self.model_variant}",
             infer_func=self.infer,
             inputs=[
-                Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=int, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=int, shape=(1,), optional=True),
-                Tensor(name='temperature', dtype=float, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=float, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=int, shape=(1,), optional=True),
+                Tensor(name="prompts", dtype=bytes, shape=(1,))
             ],
             outputs=[
-                Tensor(name="sequences", dtype=bytes, shape=(-1,)),
-                # Tensor(name="text", dtype=bytes, shape=(-1,)),
-                # Tensor(name="tokens", dtype=bytes, shape=(-1,)),
-                # Tensor(name="logprobs", dtype=bytes, shape=(-1,)),
+                Tensor(name="sequences", dtype=bytes, shape=(-1,))
             ],
             config=ModelConfig(max_batch_size=128),
         )
