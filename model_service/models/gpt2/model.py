@@ -7,6 +7,7 @@ import torch
 from ..abstract_model import AbstractModel
 
 from pytriton.decorators import batch
+from pytriton.model_config import ModelConfig, Tensor
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 
@@ -14,28 +15,52 @@ logger = logging.getLogger("kaleidoscope.model_service.gpt2")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
 
-class GPT2(AbstractModel):
-    def __init__(self):
+class Model(AbstractModel):
+    def __init__(self, model_type, model_variant):
         self.model_class = GPT2LMHeadModel
         self.model_path = None
+        self.model_type = model_type
+        self.model_variant = model_variant
         self.tokenizer_class = GPT2Tokenizer
         self.model = None
         self.device = None
 
-    def load(self, device, model_path):
-        self.device = device
+    def load(self, model_path):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self.model_class.from_pretrained(model_path)
         self.model_path = model_path
-        self.model.to(device)
+        self.model.to(self.device)
 
-    def module_names(self):
-        return {
-            "module_names": tuple(
-                module[0]
-                for module in self.model.base_model.named_modules()
-                if module[0] != ""
-            )
-        }
+    def bind(self, triton):
+        triton.bind(
+            model_name=f"{self.model_type}{self.model_variant}",
+            infer_func=self.infer,
+            inputs=[
+                Tensor(name="prompts", dtype=bytes, shape=(1,)),
+                Tensor(name='max_tokens', dtype=int, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=int, shape=(1,), optional=True),
+                Tensor(name='temperature', dtype=float, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=float, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=int, shape=(1,), optional=True),
+            ],
+            outputs=[
+                Tensor(name="sequences", dtype=bytes, shape=(-1,)),
+                # Tensor(name="text", dtype=bytes, shape=(-1,)),
+                # Tensor(name="tokens", dtype=bytes, shape=(-1,)),
+                # Tensor(name="logprobs", dtype=bytes, shape=(-1,)),
+            ],
+            config=ModelConfig(max_batch_size=128),
+        )
+        return triton
+
+    @property
+    def rank(self):
+        return 0
+
+    @batch
+    def infer(self, **inputs):
+        """Generate sequences from a prompt"""
+        self.generate(inputs)
 
     @batch
     def generate(self, **inputs):
