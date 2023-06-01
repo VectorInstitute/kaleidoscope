@@ -7,15 +7,20 @@
             "default": 0.7,
             "description": "Temperature of the sampling distribution."
         },
-        "top_k": {
-            "type": "int",
-            "default": 40,
-            "description": "Number of top tokens to consider for sampling."
-        },
         "top_p": {
             "type": "float",
             "default": 0.9,
             "description": "Cumulative probability of top tokens to consider for sampling."
+        },
+        "min_tokens": {
+            "type": "int",
+            "default": null,
+            "description": "Minimum number of tokens to generate."
+        },
+        "max_tokens": {
+            "type": "int",
+            "default": 32,
+            "description": "Maximum number of tokens to generate."
         }
     },
     "variants": {

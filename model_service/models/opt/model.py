@@ -6,6 +6,7 @@ import queue
 import random
 import threading
 import time
+import json
 from collections import defaultdict
 from metaseq import options
 from metaseq.dataclass.configs import MetaseqConfig
@@ -48,6 +49,7 @@ class Model(AbstractModel):
         self.device = None
         self.model_type = model_type
         self.model_variant = model_variant
+        self.load_default_args("config.json")
 
     def load(self, model_path):
         """Load model into memory"""
@@ -80,17 +82,41 @@ class Model(AbstractModel):
 
         distributed_utils.call_main(cfg, self.worker_main, namespace_args=args)
 
+    def load_default_args(self, config_file):
+        """Load model config"""
+        with json.loads(config_file) as config:
+            default_args = config["parameters"]
+        self.default_args = {k: v["default"] for k, v in default_args.items() if v}
+        
     def bind(self, triton):
         triton.bind(
-            model_name=f"{self.model_type}{self.model_variant}",
+            model_name=f"{self.model_type}{self.model_variant}_inference",
             infer_func=self.infer,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
                 Tensor(name='max_tokens', dtype=int, shape=(1,), optional=True),
                 Tensor(name='min_tokens', dtype=int, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=float, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=float, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=int, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=int, shape=(1,), optional=True),
+            ],
+            outputs=[
+                Tensor(name="sequences", dtype=bytes, shape=(-1,)),
+                # Tensor(name="text", dtype=bytes, shape=(-1,)),
+                # Tensor(name="tokens", dtype=bytes, shape=(-1,)),
+                # Tensor(name="logprobs", dtype=bytes, shape=(-1,)),
+            ],
+            config=ModelConfig(max_batch_size=128),
+        )
+        triton.bind(
+            model_name=f"{self.model_type}{self.model_variant}_activations",
+            infer_func=self.get_activations,
+            inputs=[
+                Tensor(name="prompts", dtype=bytes, shape=(1,)),
+                Tensor(name='max_tokens', dtype=int, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=int, shape=(1,), optional=True),
+                Tensor(name='temperature', dtype=float, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=int, shape=(1,), optional=True),
+                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,)),
             ],
             outputs=[
                 Tensor(name="sequences", dtype=bytes, shape=(-1,)),
