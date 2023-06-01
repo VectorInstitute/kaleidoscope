@@ -9,12 +9,12 @@ from services.gateway_service import GatewayServiceClient
 logger = logging.getLogger("kaleidoscope.model_service")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
-def initialize_model(model_type):
+def initialize_model(model_type, model_variant):
     """Initializes model based on model type
     Args:
         model_type (str): Type of model to load
     """
-    return importlib.import_module(f"models.{model_type}.model").Model(model_type)
+    return importlib.import_module(f"models.{model_type}.model").Model(model_type, model_variant)
 
 class ModelService():
     ''' Model service is responsible for loading and serving a model.
@@ -49,7 +49,7 @@ class ModelService():
         gateway_service = GatewayServiceClient(self.gateway_host, self.gateway_port)
 
 
-        model = initialize_model(self.model_type)
+        model = initialize_model(self.model_type, self.model_variant)
         model.load(self.model_path)
 
         if model.rank == 0:
