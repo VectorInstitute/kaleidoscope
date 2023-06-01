@@ -12,7 +12,19 @@ model_instances_bp = Blueprint("models", __name__)
 
 @model_instances_bp.route("/", methods=["GET"])
 async def get_models():
-    return list(MODEL_CONFIG.keys()), 200
+    current_app.logger.info(f"Received model list request: {request}")
+    models = []
+    for model in MODEL_CONFIG:
+        try:
+            if not "variants" in model:
+                models.append(model["type"])
+            else:
+                for variant in model["variants"].keys():
+                    models.append(f"{model['type']}-{variant}")
+        except Exception as err:
+            current_app.logger.error(f"Error while processing model {model}: {err}")
+            continue
+    return models, 200
 
 
 @model_instances_bp.route("/instances", methods=["GET"])
@@ -30,7 +42,6 @@ async def get_current_model_instances():
 async def create_model_instance():
     current_app.logger.info(f"Received model instance creation request: {request}")
     model_name = request.json["name"]
-
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
     if model_instance is None:
         model_instance = ModelInstance.create(name=model_name)
@@ -71,7 +82,9 @@ async def register_model_instance(model_instance_id: str):
 
 @model_instances_bp.route("/instances/<model_instance_id>/activate", methods=["POST"])
 async def activate_model_instance(model_instance_id: str):
-
+    current_app.logger.info(
+        f"Received model activation for ID {model_instance_id}"
+    )
     model_instance = ModelInstance.find_by_id(model_instance_id)
     model_instance.activate()
 

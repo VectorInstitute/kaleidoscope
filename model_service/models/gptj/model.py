@@ -1,32 +1,81 @@
+import argparse
+import configparser
 import logging
 import numpy as np
+from pathlib import Path
 import random
 import re
 import torch
+import os
 
 from .abstract_model import AbstractModel
 
+from .gpt import GptInitModelParameters
+from .parallel_gpt import ParallelGPT
 from pytriton.decorators import batch
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from .utils import patch_gpt_model_if_needed
 
 
-logger = logging.getLogger("kaleidoscope.model_service.gpt2")
+logger = logging.getLogger("kaleidoscope.model_service.GPT_J")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
 
-class GPT2(AbstractModel):
+class Model(AbstractModel):
+
     def __init__(self):
-        self.model_class = GPT2LMHeadModel
         self.model_path = None
-        self.tokenizer_class = GPT2Tokenizer
         self.model = None
         self.device = None
 
+
     def load(self, device, model_path):
         self.device = device
-        self.model = self.model_class.from_pretrained(model_path)
-        self.model_path = model_path
+
+        args = argparse.Namespace(
+            model_name="gptj",
+            pipeline_para_size=2,
+            int8_mode=False,
+            data_type="fp32",
+            sparse=False,
+        )
+
+        config_path = Path(model_path) / "config.ini"
+        config_reader = configparser.ConfigParser()
+        config_reader.read(config_path)
+        init_parameters = GptInitModelParameters.from_args(args, config_reader)
+
+        lib_path = Path("/workspace/FasterTransformer/build/lib/libth_transformer.so")
+        gpt_params = init_parameters.gpt_init_kwargs()
+
+        # set RANK and WORLD_SIZE for nccl backend - TODO: configure them later
+        os.environ['RANK'] = os.environ['SLURM_PROCID']
+        os.environ['WORLD_SIZE'] = str(torch.cuda.device_count())
+        print(os.environ["MASTER_ADDR"])
+        print(os.environ["MASTER_PORT"])
+        # print(os.environ["NCCL_SOCKET_IFNAME"])
+        # print(os.environ["NCCL_IB_DISABLE"])
+        # print(os.environ["NCCL_IBEXT_DISABLE"])
+        
+        self.model = ParallelGPT(**gpt_params, lib_path=lib_path)
+
+        # TODO - patch model required?
+        patch_gpt_model_if_needed(self.model, config_reader.getint("gptj", "inter_size"), 
+                                  tp=config_reader.getint("gptj", "tensor_para_size"))
+
+        if not self.model.load(ckpt_path=Path(model_path).as_posix()):
+            raise RuntimeError(f"Could not load {model_path} checkpoint")
+        assert 1 == 0 # REMOVE
+
+        if init_parameters.sparse:
+            self.model.sparse()
+
+        # eval model
+        self.model.eval()
+        # set to device
         self.model.to(device)
+        
+        self.model_path = model_path
+
 
     def module_names(self):
         return {
@@ -36,10 +85,14 @@ class GPT2(AbstractModel):
                 if module[0] != ""
             )
         }
+    
+    def bind(self, triton):
+        
+
 
     @batch
     def generate(self, **inputs):
-        logger.info(f"Starting generation on GPT2 model")
+        logger.info(f"Starting generation on GPT_J model")
         logger.info(f"inputs = {inputs}")
         """
         prompt = request.json["prompt"]
@@ -142,5 +195,5 @@ class GPT2(AbstractModel):
     def get_activations(self, request):
         response = self.generate(request)
         response["activations"] = torch.empty(0)
-        response["error"] = "Activation retrival not implemented for GPT2 model."
+        response["error"] = "Activation retrival not implemented for GPT_J model."
         return response

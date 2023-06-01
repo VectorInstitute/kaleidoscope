@@ -13,32 +13,8 @@ from errors import InvalidStateError
 from db import db, BaseMixin
 from services import model_service_client
 
-MODEL_CONFIG = {
-    "OPT-175B": {
-        "name": "OPT-175B",
-        "description": "175B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
-        "url": "https://huggingface.co/meta/opt-175B",
-        "path": "/ssd005/projects/llm/OPT-175B-mp32"
-    },
-    "OPT-6.7B": {
-        "name": "OPT-6.7B",
-        "description": "6.7B parameter version of the Open Pre-trained Transformer (OPT) model trained by Meta",
-        "url": "https://huggingface.co/facebook/opt-6.7b",
-        "path": "/ssd005/projects/llm/opt-6.7b"
-    },
-    "GPT2": {
-        "name": "GPT2",
-        "description": "GPT2 model trained by OpenAI, available only for testing and development",
-        "url": "https://huggingface.co/gpt2",
-        # For HuggingFace models, just passing the name will download them on demand
-        "path": "gpt2"
-    },
-    # "Galactica-120B": {
-    #     "name": "Galactica-120B",
-    #     "description": "120B parameter version of the Galactica model trained by Meta",
-    #     "url": "https://huggingface.co/meta/galactica-120B",
-    # }q
-}
+
+MODEL_CONFIG = model_service_client.get_model_config()
 
 
 class ModelInstanceState(ABC):
@@ -76,10 +52,27 @@ class ModelInstanceState(ABC):
 
 class PendingState(ModelInstanceState):
     def launch(self):
+        # Derive the model type and variant from the MODEL_CONFIG data
+        model_variant = "None"
+        for model in MODEL_CONFIG:
+            if model["type"] in self._model_instance.name:
+                model_type = model["type"]
+                model_path = model["path"]
+                if "variants" in model:
+                    for variant in model["variants"].keys():
+                        if variant in self._model_instance.name:
+                            model_variant = variant
+                            try:
+                                model_path = model["variants"][variant]["path"]
+                            except:
+                                pass
+                            break
+
+        current_app.logger.info(f"Issuing launch command for model type {model_type} with optional variant {model_variant}")
         try:
             # ToDo: set job id params here
             model_service_client.launch(
-                self._model_instance.id, self._model_instance.name, MODEL_CONFIG[self._model_instance.name]["path"]
+                self._model_instance.id, model_type, model_variant, model_path
             )
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:
