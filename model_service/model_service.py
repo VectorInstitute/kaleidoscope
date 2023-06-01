@@ -1,6 +1,7 @@
 import argparse
 import logging
 import importlib
+import os
 
 from pytriton.triton import Triton, TritonConfig
 
@@ -33,7 +34,7 @@ class ModelService():
         """
         self.model_instance_id = model_instance_id
         self.model_type = model_type
-        self.model_variant = model_variant
+        self.model_variant = model_variant if model_variant != "None" else ""
         self.model_path = model_path
 
         self.gateway_host = gateway_host
@@ -48,13 +49,12 @@ class ModelService():
 
         gateway_service = GatewayServiceClient(self.gateway_host, self.gateway_port)
 
-
         model = initialize_model(self.model_type, self.model_variant)
         model.load(self.model_path)
 
         if model.rank == 0:
             logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
-            gateway_service.register_model_instance(self.model_type, self.master_host, self.master_port)
+            gateway_service.register_model_instance(self.model_instance_id, self.master_host, self.master_port)
             gateway_service.activate_model_instance(self.model_instance_id)
 
             #Placeholder static triton config for now

@@ -170,7 +170,7 @@ class ActiveState(ModelInstanceState):
         return activations_response
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_model_health(self._model_instance.host)
+        is_healthy = model_service_client.verify_model_health(self._model_instance.name, self._model_instance.host)
         if not is_healthy:
             current_app.logger.error(f"Health check for active model {self._model_instance.name} failed")
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
