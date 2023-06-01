@@ -70,7 +70,7 @@ def main():
         "--model_type", required=True, type=str, help="Type of model to load (ie. opt, gpt2)"
     )
     parser.add_argument(
-        "--model_type", required=True, type=str, help="Variant of model to load (ie. 6.7b)"
+        "--model_variant", required=True, type=str, help="Variant of model to load (ie. 6.7b)"
     )
     parser.add_argument(
         "--model_path", required=True, type=str, help="Path to pre-trained model"

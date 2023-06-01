@@ -44,7 +44,7 @@ def get_job_status(args):
     except Exception as err:
         print(f"Job status failed: {err}")
 
-def get_model_config(args):
+def get_model_config():
     # Look at every subdirectory under the /models directory, and grab config.json files
     metadata = []
     cwd = os.path.dirname(os.path.realpath(__file__))

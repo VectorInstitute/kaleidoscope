@@ -83,12 +83,20 @@ class Model(AbstractModel):
     def bind(self, triton):
         triton.bind(
             model_name=f"{self.model_type}{self.model_variant}",
-            infer_func=self.generate,
+            infer_func=self.infer,
             inputs=[
-                Tensor(name="prompts", dtype=bytes, shape=(1,))
+                Tensor(name="prompts", dtype=bytes, shape=(1,)),
+                Tensor(name='max_tokens', dtype=int, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=int, shape=(1,), optional=True),
+                Tensor(name='temperature', dtype=float, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=float, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=int, shape=(1,), optional=True),
             ],
             outputs=[
                 Tensor(name="sequences", dtype=bytes, shape=(-1,)),
+                # Tensor(name="text", dtype=bytes, shape=(-1,)),
+                # Tensor(name="tokens", dtype=bytes, shape=(-1,)),
+                # Tensor(name="logprobs", dtype=bytes, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -99,18 +107,17 @@ class Model(AbstractModel):
         return torch.distributed.get_rank()
     
     @batch
-    def generate(self, **inputs):
+    def infer(self, **inputs):
+        """Generate sequences from a prompt"""
+        self.generate(inputs)
 
+    def generate(self, inputs):
+
+        logger.info(inputs)
+        
         prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
         prompts = np.squeeze(prompts, axis=-1).tolist()
-        logger.info(f"Prompts: {prompts}")
 
-        """
-        prompts = request.json["prompt"]
-        del request.json["prompt"]
-        generation_args = request.json
-        """
-        
         if isinstance(prompts, str):
             # single string. tokenize and turn it to the single pre-tokenized case
             prompts = [encode_fn(generator, prompts)]
@@ -125,6 +132,65 @@ class Model(AbstractModel):
         assert isinstance(prompts[0], list)
         # final case: multi pre-tokenized
         assert len(prompts[0]) > 0
+
+
+
+    #     if isinstance(prompts, str):
+    #         # single string. tokenize and turn it to the single pre-tokenized case
+    #         prompts = [encode_fn(generator, prompts)]
+    #     assert isinstance(prompts, list)
+    #     assert len(prompts) > 0
+    #     if isinstance(prompts[0], str):
+    #         # multi string
+    #         prompts = [encode_fn(generator, p) for p in prompts]
+    #     elif isinstance(prompts[0], int):
+    #         # single pre-tokenized
+    #         prompts = [prompts]
+    #     assert isinstance(prompts[0], list)
+    #     # final case: multi pre-tokenized
+    #     assert len(prompts[0]) > 0
+
+    #     if "min_tokens" in generation_args:
+    #         generation_args["min_tokens"] = int(generation_args["min_tokens"])
+    #     if "max_tokens" in generation_args:
+    #         generation_args["max_tokens"] = int(generation_args["max_tokens"])
+    #     else:
+    #         generation_args["max_tokens"] = 32
+
+    #     if "stop" in generation_args:
+    #         stop = generation_args["stop"]
+    #         if stop is None:
+    #             pass
+    #         elif isinstance(stop, str):
+    #             stop = [encode_fn(generator, stop)[0]]
+    #         else:
+    #             stop = [encode_fn(generator, s)[0] for s in stop]
+    #         generation_args["stop"] = stop
+
+    #     if "temperature" in generation_args:
+    #         generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
+    #     else:
+    #         generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
+
+    #     if "top-p" in generation_args:
+    #         generation_args["top_p"] = round(float(generation_args["top-p"]), 1)
+    #     else:
+    #         generation_args["top_p"] = UNBATCHED_ARG_DICT["top_p"]
+
+    #     # beam search top n
+    #     if "n" in generation_args:
+    #         generation_args["n"] = min(MAX_BEAM, max(1, int(generation_args["n"])))
+    #     else:
+    #         generation_args["n"] = UNBATCHED_ARG_DICT["n"]
+
+
+        """
+        prompts = request.json["prompt"]
+        del request.json["prompt"]
+        generation_args = request.json
+        """
+        
+
 
         """
         if "min_tokens" in generation_args:
