@@ -8,9 +8,19 @@ class AbstractModel(abc.ABC):
     def load(self, device, model_path):
         pass
 
-    # @abc.abstractmethod
-    # def module_names(self):
-    #     pass
+    @abc.abstractmethod
+    def bind(self, triton):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def rank(self):
+        pass
+
+    @abc.abstractmethod
+    @batch
+    def infer(self, **inputs):
+        pass
 
     @abc.abstractmethod
     @batch
