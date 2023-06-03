@@ -208,6 +208,19 @@ class ModelInstance(BaseMixin, db.Model):
         return db.session.execute(current_instance_query).scalars().all()
 
     @classmethod
+    def find_launching_instances(cls) -> List[ModelInstance]:
+        """Find the current instances of all models"""
+        current_instance_query = db.select(cls).filter(
+            cls.state_name.in_(
+                (
+                    ModelInstanceStates.LAUNCHING,
+                )
+            )
+        )
+
+        return db.session.execute(current_instance_query).scalars().all()
+
+    @classmethod
     def find_current_instance_by_name(cls, name: str) -> Optional[ModelInstance]:
         """Find the current instance of a model by name"""
         current_instance_query = (
