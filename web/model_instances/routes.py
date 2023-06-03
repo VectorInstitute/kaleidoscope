@@ -4,8 +4,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from config import Config
 from db import db
+from gateway_service import MODEL_CONFIG
 import tasks
-from models import MODEL_CONFIG, ModelInstance
+from models import ModelInstance
 
 model_instances_bp = Blueprint("models", __name__)
 

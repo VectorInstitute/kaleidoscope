@@ -12,7 +12,7 @@ from config import Config
 
 from utils.triton import TritonClient
 
-def get_model_config() -> None:
+def get_model_config() -> List:
     config = []
     try:
         ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_model_config --model_instance_id 0"
