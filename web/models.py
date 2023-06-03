@@ -14,7 +14,7 @@ from db import db, BaseMixin
 from services import model_service_client
 
 
-MODEL_CONFIG = model_service_client.get_model_config()
+MODEL_CONFIG = model_service_client.get_model_config() 
 
 
 class ModelInstanceState(ABC):
@@ -27,10 +27,10 @@ class ModelInstanceState(ABC):
     def register(self, host: str):
         raise InvalidStateError(self)
 
-    def activate(self):
+    def verify_activation(self):
         raise InvalidStateError(self)
 
-    def generate(self, username, prompts, generation_args):
+    def generate(self, username, inputs):
         raise InvalidStateError(self)
 
     def generate_activations(self, username, prompts, module_names, generation_args):
@@ -46,47 +46,27 @@ class ModelInstanceState(ABC):
     def is_healthy(self):
         raise InvalidStateError(self)
     
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         raise InvalidStateError(self)
 
 
 class PendingState(ModelInstanceState):
     def launch(self):
-        # Derive the model type and variant from the MODEL_CONFIG data
-        model_variant = "None"
-        for model in MODEL_CONFIG:
-            if model["type"] in self._model_instance.name:
-                model_type = model["type"]
-                model_path = model["path"]
-                if "variants" in model:
-                    for variant in model["variants"].keys():
-                        if variant in self._model_instance.name:
-                            model_variant = variant
-                            try:
-                                model_path = model["variants"][variant]["path"]
-                            except:
-                                pass
-                            break
-
-        current_app.logger.info(f"Issuing launch command for model type {model_type} with optional variant {model_variant}")
         try:
             # ToDo: set job id params here
             model_service_client.launch(
-                self._model_instance.id, model_type, model_variant, model_path
+                self._model_instance.id, self._model_instance.name
             )
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:
             current_app.logger.error(f"Job launch for {self._model_instance.name} failed: {err}")
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
+            self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
     def is_healthy(self):
         is_healthy = model_service_client.verify_job_health(self._model_instance.id)
-        if not is_healthy:
-            current_app.logger.error(f"Health check for pending model {self._model_instance.name} failed")
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
     
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         return False
 
 
@@ -96,39 +76,28 @@ class LaunchingState(ModelInstanceState):
         self._model_instance.transition_to_state(ModelInstanceStates.LOADING)
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
-        if not is_healthy:
-            current_app.logger.error(f"Health check for launching model {self._model_instance.name} failed")
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        return is_healthy
+        return model_service_client.verify_job_health(self._model_instance.id)
     
-    def is_timed_out(self, timeout):
-        return False
+    def is_timed_out(self):
+        False
 
 
 class LoadingState(ModelInstanceState):
-    def activate(self):
-        self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
-
-    # If we receive multiple registration requests for the same model, just ignore them
-    # This will happen whenever a model is loaded onto multiple nodes
-    def register(self, host: str):
-        pass
+    def verify_activation(self):
+        is_active = model_service_client.verify_model_instance_activation(self._model_instance.host, self._model_instance.name)
+        if is_active:
+            self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
-        if not is_healthy:
-            current_app.logger.error(f"Health check for loading model {self._model_instance.name} failed")
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        return is_healthy
+        return  model_service_client.verify_job_health(self._model_instance.id)
     
-    def is_timed_out(self, timeout):
-        return False
-
-
+    def is_timed_out(self):
+        last_event_datetime = self._model_instance.updated_at
+        return (datetime.now() - last_event_datetime) > Config.MODEL_INSTANCE_ACTIVATION_TIMEOUT
+    
 
 class ActiveState(ModelInstanceState):
-    def generate(self, username, prompts, generation_config):
+    def generate(self, username, inputs):
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
@@ -171,32 +140,23 @@ class ActiveState(ModelInstanceState):
 
     def is_healthy(self):
         is_healthy = model_service_client.verify_model_health(self._model_instance.name, self._model_instance.host)
-        if not is_healthy:
-            current_app.logger.error(f"Health check for active model {self._model_instance.name} failed")
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
     
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         last_event_datetime = self._model_instance.updated_at
         last_generation = self._model_instance.last_generation()
         if last_generation:
             last_event_datetime = last_generation.created_at
 
-        return (datetime.now() - last_event_datetime) > timeout
+        return (datetime.now() - last_event_datetime) > Config.MODEL_INSTANCE_TIMEOUT
 
 
 class FailedState(ModelInstanceState):
-    def is_healthy(self):
-        return False
-
     def shutdown(self):
         raise InvalidStateError(self)
 
 
 class CompletedState(ModelInstanceState):
-    def is_healthy(self):
-        return True
-
     def shutdown(self):
         raise InvalidStateError(self)
 
@@ -288,16 +248,16 @@ class ModelInstance(BaseMixin, db.Model):
         current_app.logger.info(f"Received registration request from host {host}")
         self._state.register(host)
 
-    def activate(self) -> None:
-        self._state.activate()
+    def verify_activation(self) -> None:
+        self._state.verify_activation()
 
     def shutdown(self) -> None:
         self._state.shutdown()
 
     def generate(
-        self, username: str, prompts: List[str], generation_config: Dict = {}
+        self, username: str, inputs: Dict = {}
     ) -> Dict:
-        return self._state.generate(username, prompts, generation_config)
+        return self._state.generate(username, inputs)
 
     def get_module_names(self):
         return self._state.get_module_names()
@@ -316,8 +276,8 @@ class ModelInstance(BaseMixin, db.Model):
     def is_healthy(self) -> bool:
         return self._state.is_healthy()
 
-    def is_timed_out(self, timeout):
-        return self._state.is_timed_out(timeout)
+    def is_timed_out(self) -> bool:
+        return self._state.is_timed_out()
     
     def last_generation(self):
         last_generation_query = db.select(ModelInstanceGeneration).where(ModelInstanceGeneration.model_instance_id == self.id).order_by(ModelInstanceGeneration.created_at.desc())
@@ -350,14 +310,3 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
             "prompts": self.prompts,
             "generation": self.generation,
         }
-
-
-# ToDo: Should generalize generation and activation? This needs a design decision.
-# class Activation():
-
-#     def serialize(self):
-#         return {
-#             "model_instance_id": str(self.model_instance_generation_id),
-#             "prompt": self.prompt,
-#             "generation": self.model_generation
-#         }

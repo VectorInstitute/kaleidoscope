@@ -45,10 +45,9 @@ BATCH_QUEUE = PriorityQueueRingShard()
 class Model(AbstractModel):
     """Class to represent OPT ML model"""
 
-    def __init__(self, model_type, model_variant):
+    def __init__(self, model_name):
         self.device = None
-        self.model_type = model_type
-        self.model_variant = model_variant
+        self.model_name = model_name 
         self.load_default_args("config.json")
 
     def load(self, model_path):
@@ -90,7 +89,7 @@ class Model(AbstractModel):
         
     def bind(self, triton):
         triton.bind(
-            model_name=f"{self.model_type}{self.model_variant}_inference",
+            model_name=f"{self.model_name}_inference",
             infer_func=self.infer,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
@@ -108,7 +107,7 @@ class Model(AbstractModel):
             config=ModelConfig(max_batch_size=128),
         )
         triton.bind(
-            model_name=f"{self.model_type}{self.model_variant}_activations",
+            model_name=f"{self.model_name}_activations",
             infer_func=self.get_activations,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),

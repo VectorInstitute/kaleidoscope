@@ -7,8 +7,14 @@ from config import Config
 def verify_model_instance_health():
     current_model_instances = ModelInstance.find_current_instances()
     for model_instance in current_model_instances:
-        if not model_instance.is_healthy() or model_instance.is_timed_out(Config.MODEL_INSTANCE_TIMEOUT):
+        if not model_instance.is_healthy() or model_instance.is_timed_out():
             model_instance.shutdown()
+
+@shared_task
+def verify_model_instance_activation():
+    launching_model_instances = ModelInstance.find_launching_instances()
+    for model_instance in launching_model_instances:
+        model_instance.verify_activation()
 
 @shared_task
 def launch_model_instance(model_instance_id):

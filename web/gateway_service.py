@@ -46,6 +46,10 @@ def make_celery(app):
         "verify_health": {
             "task": "tasks.verify_model_instance_health",
             "schedule": 30.0,
+        },
+        "verify_activation": {
+            "task": "tasks.verify_model_instance_activation",
+            "schedule": 30.0,
         }
     }
 
@@ -58,10 +62,8 @@ def make_celery(app):
     app.celery = celery
     return celery
 
-
 app = create_app()
 celery = make_celery(app)
-
 
 if __name__ == "__main__":
     app.run(host=Config.GATEWAY_BIND_HOST, port=Config.GATEWAY_PORT)

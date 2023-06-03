@@ -15,7 +15,7 @@ def initialize_model(model_type, model_variant):
     Args:
         model_type (str): Type of model to load
     """
-    return importlib.import_module(f"models.{model_type}.model").Model(model_type, model_variant)
+    return importlib.import_module(f"models.{model_type}.model").Model(model_name)
 
 class ModelService():
     ''' Model service is responsible for loading and serving a model.

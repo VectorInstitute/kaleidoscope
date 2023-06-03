@@ -9,21 +9,10 @@ from models import MODEL_CONFIG, ModelInstance
 
 model_instances_bp = Blueprint("models", __name__)
 
-
 @model_instances_bp.route("/", methods=["GET"])
 async def get_models():
     current_app.logger.info(f"Received model list request: {request}")
-    models = []
-    for model in MODEL_CONFIG:
-        try:
-            if not "variants" in model:
-                models.append(model["type"])
-            else:
-                for variant in model["variants"].keys():
-                    models.append(f"{model['type']}-{variant}")
-        except Exception as err:
-            current_app.logger.error(f"Error while processing model {model}: {err}")
-            continue
+    models = [key for key in MODEL_CONFIG.keys()]
     return models, 200
 
 
@@ -105,7 +94,11 @@ async def model_instance_generate(model_instance_id: str):
         return jsonify(msg=f"Request batch size of {len(prompts)} exceeds prescribed limit of {Config.BATCH_REQUEST_LIMIT}"), 400
     else:
         model_instance = ModelInstance.find_by_id(model_instance_id)
-        generation = model_instance.generate(username, prompts, generation_config)
+        inputs = {
+            "prompts": prompts,
+            **generation_config
+        }
+        generation = model_instance.generate(username, inputs)
 
         return jsonify(generation.serialize()), 200
 
@@ -128,11 +121,8 @@ async def get_activations(model_instance_id: str):
 
     username = get_jwt_identity()
     prompts = request.json["prompts"]
-    current_app.logger.info(f"prompts {prompts}")
     module_names = request.json["module_names"]
-    current_app.logger.info(f"module_names {module_names}")
     generation_config = request.json["generation_config"]
-    current_app.logger.info(f"generation_config {generation_config}")
 
     if len(prompts) > Config.BATCH_REQUEST_LIMIT:
         return jsonify(msg=f"Request batch size of {len(prompts)} exceeds prescribed limit of {Config.BATCH_REQUEST_LIMIT}"), 400
