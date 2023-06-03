@@ -12,8 +12,8 @@ def verify_model_instance_health():
 
 @shared_task
 def verify_model_instance_activation():
-    launching_model_instances = ModelInstance.find_launching_instances()
-    for model_instance in launching_model_instances:
+    loading_model_instances = ModelInstance.find_loading_instances()
+    for model_instance in loading_model_instances:
         model_instance.verify_activation()
 
 @shared_task
