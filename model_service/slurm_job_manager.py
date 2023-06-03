@@ -5,6 +5,11 @@ import os
 import pathlib
 import subprocess
 
+# def load_model_config():
+#     with open("config.json") as f:
+#         return json.load(f)
+
+# MODEL_CONFIG = load_model_config()
 
 def launch_job(args):
     for arg in ["model_name", "gateway_host", "gateway_port"]:
@@ -13,9 +18,8 @@ def launch_job(args):
         
     # ToDo: No validation of model_type, model_variant
     try:
-        model_variant = args.model_variant if args.model_variant != "None" else ""
         cwd = pathlib.Path(__file__).parent.resolve()
-        scheduler_cmd = f'sbatch --job_name={args.model_instance_id} {cwd}/models/launch_{args.model_type}{model_variant}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
+        scheduler_cmd = f'sbatch --job_name={args.model_instance_id} {cwd}/models/launch_{args.model_name}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
         print(f"Scheduler command: {scheduler_cmd}")
         scheduler_output = subprocess.check_output(
             scheduler_cmd, shell=True
@@ -45,18 +49,12 @@ def get_job_status(args):
         print(f"Job status failed: {err}")
 
 def get_model_config():
-    # Look at every subdirectory under the /models directory, and grab config.json files
     metadata = []
     cwd = os.path.dirname(os.path.realpath(__file__))
-    for subdir in os.listdir(f"{cwd}/models"):
-        if os.path.isdir(os.path.join(f"{cwd}/models", subdir)):
-            try:
-                with open(f"{cwd}/models/{subdir}/config.json", "r") as config:
-                    metadata.append(json.load(config))
-            except:
-                pass
-    print(metadata)
 
+    with open(f"{cwd}/config.json", "r") as config:
+         metadata.append(json.load(config))
+    print(metadata)
 
 job_manager_actions = {
     'launch': launch_job,

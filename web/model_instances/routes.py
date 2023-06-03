@@ -12,7 +12,7 @@ model_instances_bp = Blueprint("models", __name__)
 @model_instances_bp.route("/", methods=["GET"])
 async def get_models():
     current_app.logger.info(f"Received model list request: {request}")
-    models = [key for key in MODEL_CONFIG.keys()]
+    models = [model['name'] for model in MODEL_CONFIG['models']]
     return models, 200
 
 
