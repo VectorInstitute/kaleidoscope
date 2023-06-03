@@ -48,7 +48,7 @@ class Model(AbstractModel):
     def __init__(self, model_name):
         self.device = None
         self.model_name = model_name 
-        self.load_default_args("config.json")
+        # self.load_default_args("config.json")
 
     def load(self, model_path):
         """Load model into memory"""
@@ -81,11 +81,11 @@ class Model(AbstractModel):
 
         distributed_utils.call_main(cfg, self.worker_main, namespace_args=args)
 
-    def load_default_args(self, config_file):
-        """Load model config"""
-        with json.loads(config_file) as config:
-            default_args = config["parameters"]
-        self.default_args = {k: v["default"] for k, v in default_args.items() if v}
+    # def load_default_args(self, config_file):
+    #     """Load model config"""
+    #     with json.loads(config_file) as config:
+    #         default_args = config["parameters"]
+    #     self.default_args = {k: v["default"] for k, v in default_args.items() if v}
         
     def bind(self, triton):
         triton.bind(
