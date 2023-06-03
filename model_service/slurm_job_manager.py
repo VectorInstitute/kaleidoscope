@@ -66,7 +66,7 @@ def get_job_status(args):
     except Exception as err:
         print(f"Job status failed: {err}")
 
-def get_model_config():
+def get_model_config(args):
     metadata = []
     cwd = os.path.dirname(os.path.realpath(__file__))
 
