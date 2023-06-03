@@ -133,7 +133,7 @@ class ActiveState(ModelInstanceState):
         return activations_response
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_model_health(self._model_instance.name, self._model_instance.host)
+        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
         return is_healthy
     
     def is_timed_out(self):

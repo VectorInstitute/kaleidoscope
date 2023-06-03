@@ -62,12 +62,12 @@ def verify_job_health(model_instance_id: str) -> bool:
         print(f"Failed to issue SSH command to job manager: {err}")
         return False
     
-def verify_model_instance_activation(host, model_name) -> bool:
+def verify_model_instance_activation(host: str, model_name: str) -> bool:
     
     triton_client = TritonClient(host)
     return triton_client.is_model_ready(model_name, task="generation")
 
-def verify_model_health(host: str, model_name) -> bool:
+def verify_model_health(host: str, model_name: str) -> bool:
 
     triton_client = TritonClient(host)
     return triton_client.is_model_ready(model_name, task="generation")
