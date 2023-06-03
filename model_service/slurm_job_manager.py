@@ -5,11 +5,26 @@ import os
 import pathlib
 import subprocess
 
-def load_model_config():
-    with open("config.json") as f:
-        return json.load(f)
 
-MODEL_CONFIG = load_model_config()
+MODEL_CONFIG = {
+    "models": [
+        {
+            "name": "opt6.7b",
+            "type": "opt",
+            "launch_path": "opt/launch_opt6.7b.slurm"
+        },
+        {
+            "name": "opt175b",
+            "type": "opt",
+            "launch_path": "opt/launch_opt175b.slurm"
+        },
+        {
+            "name": "gpt2",
+            "type": "gpt2",
+            "launch_path": "gpt2/launch_gpt2.slurm"
+        }
+    ] 
+}
 
 def launch_job(args):
     for arg in ["model_name", "gateway_host", "gateway_port"]:
