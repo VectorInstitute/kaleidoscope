@@ -63,9 +63,13 @@ def verify_job_health(model_instance_id: str) -> bool:
         return False
     
 def verify_model_instance_activation(host: str, model_name: str) -> bool:
-    
-    triton_client = TritonClient(host)
-    return triton_client.is_model_ready(model_name, task="generation")
+    try:
+        triton_client = TritonClient(host)
+        return triton_client.is_model_ready(model_name, task="generation")
+
+    except Exception as err:
+        current_app.logger.error(f"Model activation health check failed: {err}")
+        return False
 
 def verify_model_health(host: str, model_name: str) -> bool:
     try:
