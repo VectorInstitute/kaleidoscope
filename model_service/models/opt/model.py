@@ -93,10 +93,12 @@ class Model(AbstractModel):
             infer_func=self.infer,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                # Tensor(name='max_tokens', dtype=np.int, shape=(1,), optional=True),
-                # Tensor(name='min_tokens', dtype=int, shape=(1,), optional=True),
-                # Tensor(name='temperature', dtype=float, shape=(1,), optional=True),
-                # Tensor(name='top_p', dtype=int, shape=(1,), optional=True),
+                Tensor(name='max_tokens', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='repitition_penalty', dtype=np.float32, shape=(1,), optional=True)
             ],
             outputs=[
                 Tensor(name="sequences", dtype=bytes, shape=(-1,)),
@@ -157,6 +159,13 @@ class Model(AbstractModel):
         assert isinstance(prompts[0], list)
         # final case: multi pre-tokenized
         assert len(prompts[0]) > 0
+
+        generation_args = {}
+        generation_args['max_tokens'] = inputs["max_tokens"][0][0] if "max_tokens" in inputs else 128
+        generation_args['temperature'] = inputs["temperature"][0][0] if "temperature" in inputs else 1.0
+        generation_args['top_p'] = inputs["top_p"][0][0] if "top_p" in inputs else 0.9
+        generation_args['top_k'] = inputs["top_k"][0][0] if "top_k" in inputs else 0
+        generation_args['repetition_penalty'] = inputs["repetition_penalty"][0][0] if "repetition_penalty" in inputs else 1.0
 
 
 
@@ -254,8 +263,8 @@ class Model(AbstractModel):
             generation_args["n"] = UNBATCHED_ARG_DICT["n"]
         """
 
-        generation_args = {}
-        generation_args['max_tokens'] = 32
+        # generation_args = {}
+        # generation_args['max_tokens'] = 32
 
         ret_queue = queue.Queue()
         for i, prompt in enumerate(prompts):
