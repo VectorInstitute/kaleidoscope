@@ -57,7 +57,9 @@ class TritonClient():
 
     def is_model_ready(self, model_name, task="generation"):
         model_bind_name = f'{model_name}_{task}'
-        return self._client.is_model_ready(model_name)
+        print(model_bind_name)
+        is_model_ready = self._client.is_model_ready(model_bind_name)
+        return is_model_ready
         
 
     # Only for GPT-J
