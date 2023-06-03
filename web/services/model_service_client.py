@@ -68,10 +68,14 @@ def verify_model_instance_activation(host: str, model_name: str) -> bool:
     return triton_client.is_model_ready(model_name, task="generation")
 
 def verify_model_health(host: str, model_name: str) -> bool:
+    try:
+        triton_client = TritonClient(host)
+        return triton_client.is_model_ready(model_name, task="generation")
 
-    triton_client = TritonClient(host)
-    return triton_client.is_model_ready(model_name, task="generation")
-    
+    except Exception as err:
+        current_app.logger.error(f"Model failed health check: {err}")
+        return False
+
 def shutdown(model_instance_id: str) -> None:
     try:
         ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action shutdown --model_instance_id {model_instance_id}"
