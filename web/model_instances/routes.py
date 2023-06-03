@@ -7,7 +7,6 @@ from db import db
 import tasks
 from models import ModelInstance
 
-
 model_instances_bp = Blueprint("models", __name__)
 
 @model_instances_bp.route("/", methods=["GET"])
@@ -67,17 +66,6 @@ async def register_model_instance(model_instance_id: str):
 
     model_instance = ModelInstance.find_by_id(model_instance_id)
     model_instance.register(host=model_instance_host)
-
-    return jsonify(model_instance.serialize()), 200
-
-
-@model_instances_bp.route("/instances/<model_instance_id>/activate", methods=["POST"])
-async def activate_model_instance(model_instance_id: str):
-    current_app.logger.info(
-        f"Received model activation for ID {model_instance_id}"
-    )
-    model_instance = ModelInstance.find_by_id(model_instance_id)
-    model_instance.activate()
 
     return jsonify(model_instance.serialize()), 200
 

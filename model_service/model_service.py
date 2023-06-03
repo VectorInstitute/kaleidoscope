@@ -54,8 +54,6 @@ class ModelService():
 
         if model.rank == 0:
             logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
-            gateway_service.register_model_instance(self.model_instance_id, self.master_host, self.master_port)
-            gateway_service.activate_model_instance(self.model_instance_id)
 
             #Placeholder static triton config for now
             triton_config = TritonConfig(http_address="0.0.0.0", http_port=self.master_port, log_verbose=4)
