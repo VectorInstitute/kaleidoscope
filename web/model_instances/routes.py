@@ -2,16 +2,18 @@ import requests
 from flask import Blueprint, request, current_app, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from config import Config
+from config import Config, MODEL_CONFIG
 from db import db
 import tasks
-from models import MODEL_CONFIG, ModelInstance
+from models import ModelInstance
+
 
 model_instances_bp = Blueprint("models", __name__)
 
 @model_instances_bp.route("/", methods=["GET"])
 async def get_models():
     current_app.logger.info(f"Received model list request: {request}")
+    current_app.logger.info(MODEL_CONFIG)
     models = [model['name'] for model in MODEL_CONFIG['models']]
     return models, 200
 

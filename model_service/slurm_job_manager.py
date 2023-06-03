@@ -19,7 +19,7 @@ def launch_job(args):
     # ToDo: No validation of model_type, model_variant
     try:
         cwd = pathlib.Path(__file__).parent.resolve()
-        scheduler_cmd = f'sbatch --job_name={args.model_instance_id} {cwd}/models/launch_{args.model_name}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
+        scheduler_cmd = f'sbatch --job-name={args.model_instance_id} {cwd}/models/launch_{args.model_name}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
         print(f"Scheduler command: {scheduler_cmd}")
         scheduler_output = subprocess.check_output(
             scheduler_cmd, shell=True
@@ -28,7 +28,7 @@ def launch_job(args):
     except Exception as err:
         print(f"Job scheduler failed: {err}")
 
-def terminate_job(args):
+def shutdown_job(args):
     try:
         scheduler_cmd = f"scancel --jobname={args.model_instance_id}"
         print(f"Scheduler command: {scheduler_cmd}")
@@ -58,7 +58,7 @@ def get_model_config(args):
 
 job_manager_actions = {
     'launch': launch_job,
-    'shutdown': terminate_job,
+    'shutdown': shutdown_job,
     'get_status': get_job_status,
     'get_model_config': get_model_config,
 }

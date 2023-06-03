@@ -10,15 +10,16 @@ from typing import Dict, List
 # import models
 from config import Config
 
+
 from utils.triton import TritonClient
 
-def get_model_config() -> None:
+def get_model_config() -> List:
     config = []
     try:
         ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_model_config --model_instance_id 0"
         #print(f"Get model config SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        #print(f"Get model config SSH output: {ssh_output}")
+        current_app.logger.info(f"Get model config SSH output: {ssh_output}")
         config = ast.literal_eval(ssh_output)
     except Exception as err:
         print(f"Failed to issue SSH command to job manager: {err}")

@@ -14,7 +14,6 @@ from db import db
 from home.routes import home_bp
 from model_instances.routes import model_instances_bp
 
-
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
