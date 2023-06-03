@@ -9,7 +9,6 @@ from typing import Dict, List
 
 # import models
 from config import Config
-from models import MODEL_CONFIG
 
 from utils.triton import TritonClient
 
@@ -85,11 +84,11 @@ def shutdown(model_instance_id: str) -> None:
 def generate(host: str, model_name: str, inputs: Dict) -> Dict:
     
     triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, MODEL_CONFIG, task="generation")
+    return triton_client.infer(model_name, inputs, task="generation")
 
 def generate_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, MODEL_CONFIG, task="activations")
+    return triton_client.infer(model_name, inputs, task="activations")
 
 

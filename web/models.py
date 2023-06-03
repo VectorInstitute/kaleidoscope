@@ -13,9 +13,7 @@ from errors import InvalidStateError
 from db import db, BaseMixin
 from services import model_service_client
 
-
 MODEL_CONFIG = model_service_client.get_model_config() 
-
 
 class ModelInstanceState(ABC):
     def __init__(self, model_instance: ModelInstance):
@@ -102,7 +100,7 @@ class ActiveState(ModelInstanceState):
             model_instance_id=self._model_instance.id,
             username=username,
         )
-        model_instance_generation.prompts = prompts
+        model_instance_generation.inputs
 
         current_app.logger.info(model_instance_generation)
 
@@ -110,8 +108,7 @@ class ActiveState(ModelInstanceState):
         generation_response = model_service_client.generate(
             self._model_instance.host,
             model_instance_generation.id,
-            prompts,
-            generation_config,
+            inputs,
         )
         model_instance_generation.generation = generation_response
         return model_instance_generation
@@ -119,7 +116,7 @@ class ActiveState(ModelInstanceState):
     def get_module_names(self):
         return model_service_client.get_module_names(self._model_instance.host)
 
-    def generate_activations(self, username, prompts, module_names, generation_config):
+    def generate_activations(self, username, inputs):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
@@ -131,9 +128,7 @@ class ActiveState(ModelInstanceState):
         activations_response = model_service_client.generate_activations(
             self._model_instance.host,
             model_instance_generation.id,
-            prompts,
-            module_names,
-            generation_config,
+            inputs,
         )
 
         return activations_response

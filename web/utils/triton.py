@@ -49,13 +49,14 @@ class TritonClient():
     def infer(self, model_name, inputs, config, task="generation"):
 
         model_bind_name = f'{model_name}_{task}'
-        if config[model_name][task] is None:
-            task_config = self._client.get_model_config(model_bind_name)
+        # if config[model_name][task] is None:
+        task_config = self._client.get_model_config(model_bind_name)
 
         inputs = prepare_inputs(inputs, task_config)
         return self._client.infer(model_name, inputs)
 
-    def is_model_ready(self, model_name):
+    def is_model_ready(self, model_name, task="generation"):
+        model_bind_name = f'{model_name}_{task}'
         return self._client.is_model_ready(model_name)
         
 
