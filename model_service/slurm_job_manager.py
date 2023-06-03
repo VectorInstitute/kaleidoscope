@@ -5,21 +5,24 @@ import os
 import pathlib
 import subprocess
 
-# def load_model_config():
-#     with open("config.json") as f:
-#         return json.load(f)
+def load_model_config():
+    with open("config.json") as f:
+        return json.load(f)
 
-# MODEL_CONFIG = load_model_config()
+MODEL_CONFIG = load_model_config()
 
 def launch_job(args):
     for arg in ["model_name", "gateway_host", "gateway_port"]:
         if not getattr(args, arg):
             raise ValueError(f"Argument --{arg} must be specified to launch a job")
         
+    print(MODEL_CONFIG)
     # ToDo: No validation of model_type, model_variant
+    launch_path = [model['launch_path'] for model in MODEL_CONFIG['models'] if model['name'] == args.model_name][0]
+    print(launch_path)
     try:
         cwd = pathlib.Path(__file__).parent.resolve()
-        scheduler_cmd = f'sbatch --job-name={args.model_instance_id} {cwd}/models/launch_{args.model_name}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
+        scheduler_cmd = f'sbatch --job-name={args.model_instance_id} {cwd}/models/{launch_path} {cwd} {args.gateway_host} {args.gateway_port}'
         print(f"Scheduler command: {scheduler_cmd}")
         scheduler_output = subprocess.check_output(
             scheduler_cmd, shell=True
@@ -69,6 +72,7 @@ def main():
     parser.add_argument("--action", required=True, type=str, help="Action for job manager to perform")
     parser.add_argument( "--model_instance_id", required=True, type=str, help="Model type not supported")
     parser.add_argument("--model_name", type=str, help="Type of model requested")
+    parser.add_argument("--model_type", type=str, help="Type of model requested")
     parser.add_argument("--gateway_host", type=str, help="Hostname of gateway service")
     parser.add_argument("--gateway_port", type=int, help="Port of gateway service")
     args = parser.parse_args()
