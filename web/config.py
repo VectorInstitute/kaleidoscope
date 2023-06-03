@@ -2,6 +2,25 @@ import datetime
 import os
 from pathlib import Path
 
+MODEL_CONFIG =  {
+    "models": [
+        {
+            "name": "opt6.7b",
+            "type": "opt",
+            "launch_path": "models/opt/launch_opt6.7b.slurm"
+        },
+        {
+            "name": "opt175b",
+            "type": "opt",
+            "launch_path": "models/opt/launch_opt175b.slurm"
+        },
+        {
+            "name": "gpt2",
+            "type": "gpt2",
+            "launch_path": "models/gpt2/launch_gpt2.slurm"
+        }
+    ] 
+}
 
 class Config(object):
 

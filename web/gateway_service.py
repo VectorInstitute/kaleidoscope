@@ -13,9 +13,6 @@ from auth import auth
 from db import db
 from home.routes import home_bp
 from model_instances.routes import model_instances_bp
-from services import model_service_client
-
-MODEL_CONIFG = model_service_client.get_model_config()
 
 def create_app():
     app = Flask(__name__)

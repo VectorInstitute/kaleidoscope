@@ -2,11 +2,11 @@ import requests
 from flask import Blueprint, request, current_app, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from config import Config
+from config import Config, MODEL_CONFIG
 from db import db
-from gateway_service import MODEL_CONFIG
 import tasks
 from models import ModelInstance
+
 
 model_instances_bp = Blueprint("models", __name__)
 

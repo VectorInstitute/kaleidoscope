@@ -10,6 +10,7 @@ from typing import Dict, List
 # import models
 from config import Config
 
+
 from utils.triton import TritonClient
 
 def get_model_config() -> List:
