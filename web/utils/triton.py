@@ -17,19 +17,22 @@ def prepare_tensor(name, input):
     return tensor
 
 def prepare_inputs(input_data, cfg):
-    input_data = np.array(input_data).astype(object)
-    inputs = [prepare_tensor(cfg["input_alias"], input_data)]
-    params = cfg["parameters"]
-    for _, p_dict in params.items():
-        if isinstance(p_dict["value"], list):
-            p_input = np.array([p_dict["value"]] * input_data.shape[0], dtype=DTYPE_MAP[p_dict["type"]])
-        elif isinstance(p_dict["value"], str):
-            raise NotImplementedError
-        else:
-            p_input = (p_dict["value"] * np.ones([input_data.shape[0], 1])).astype(DTYPE_MAP[p_dict["type"]])
-        inputs.append(
-            prepare_tensor(p_dict["alias"], p_input)
-        )
+
+
+
+    # input_data = np.array(input_data).astype(object)
+    # inputs = [prepare_tensor(cfg["input_alias"], input_data)]
+    # params = cfg["parameters"]
+    # for _, p_dict in params.items():
+    #     if isinstance(p_dict["value"], list):
+    #         p_input = np.array([p_dict["value"]] * input_data.shape[0], dtype=DTYPE_MAP[p_dict["type"]])
+    #     elif isinstance(p_dict["value"], str):
+    #         raise NotImplementedError
+    #     else:
+    #         p_input = (p_dict["value"] * np.ones([input_data.shape[0], 1])).astype(DTYPE_MAP[p_dict["type"]])
+    #     inputs.append(
+    #         prepare_tensor(p_dict["alias"], p_input)
+    #     )
     return inputs
 
 def update_param_cfg(param_cfg, input_gen_cfg):
