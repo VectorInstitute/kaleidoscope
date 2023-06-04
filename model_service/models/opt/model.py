@@ -164,9 +164,12 @@ class Model(AbstractModel):
         generation_args = {}
 
         logger.info(inputs)
+        logger.info(inputs['max_tokens'])
+        logger.info(inputs['max_tokens'][0])
+        logger.info(inputs['max_tokens'][0][0])
         # print(inputs)
         # print(inputs["max_tokens"][0][0])
-        generation_args['max_tokens'] = inputs["max_tokens"][0][0] if "max_tokens" in inputs else 128
+        generation_args['max_tokens'] = int(inputs["max_tokens"][0][0]) if "max_tokens" in inputs else 128
         # generation_args['temperature'] = inputs["temperature"][0][0] if "temperature" in inputs else 1.0
         # generation_args['top_p'] = inputs["top_p"][0][0] if "top_p" in inputs else 0.9
         # generation_args['top_k'] = inputs["top_k"][0][0] if "top_k" in inputs else 0
