@@ -255,107 +255,10 @@ class Model(AbstractModel):
         for result in results:
             response["text"].append(np.char.encode(result['text'], "utf-8"))
             response["tokens"].append(np.char.encode(result['tokens'], "utf-8"))
-            response["logprobs"].append(np.char.encode(result['tokens_scores'], "utf-8"))
+            response["logprobs"].append(np.char.encode(result['token_scores'], "utf-8"))
 
         return response
     
-    # @batch
-    # def generate(self, request):
-    #     """Generate text using prompt argument"""
-    #     prompts = request.json["prompt"]
-    #     del request.json["prompt"]
-    #     generation_args = request.json
-
-    #     if isinstance(prompts, str):
-    #         # single string. tokenize and turn it to the single pre-tokenized case
-    #         prompts = [encode_fn(generator, prompts)]
-    #     assert isinstance(prompts, list)
-    #     assert len(prompts) > 0
-    #     if isinstance(prompts[0], str):
-    #         # multi string
-    #         prompts = [encode_fn(generator, p) for p in prompts]
-    #     elif isinstance(prompts[0], int):
-    #         # single pre-tokenized
-    #         prompts = [prompts]
-    #     assert isinstance(prompts[0], list)
-    #     # final case: multi pre-tokenized
-    #     assert len(prompts[0]) > 0
-
-    #     if "min_tokens" in generation_args:
-    #         generation_args["min_tokens"] = int(generation_args["min_tokens"])
-    #     if "max_tokens" in generation_args:
-    #         generation_args["max_tokens"] = int(generation_args["max_tokens"])
-    #     else:
-    #         generation_args["max_tokens"] = 32
-
-    #     if "stop" in generation_args:
-    #         stop = generation_args["stop"]
-    #         if stop is None:
-    #             pass
-    #         elif isinstance(stop, str):
-    #             stop = [encode_fn(generator, stop)[0]]
-    #         else:
-    #             stop = [encode_fn(generator, s)[0] for s in stop]
-    #         generation_args["stop"] = stop
-
-    #     if "temperature" in generation_args:
-    #         generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
-    #     else:
-    #         generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
-
-    #     if "top-p" in generation_args:
-    #         generation_args["top_p"] = round(float(generation_args["top-p"]), 1)
-    #     else:
-    #         generation_args["top_p"] = UNBATCHED_ARG_DICT["top_p"]
-
-    #     # beam search top n
-    #     if "n" in generation_args:
-    #         generation_args["n"] = min(MAX_BEAM, max(1, int(generation_args["n"])))
-    #     else:
-    #         generation_args["n"] = UNBATCHED_ARG_DICT["n"]
-
-    #     ret_queue = queue.Queue()
-    #     for i, prompt in enumerate(prompts):
-    #         gen_len = generation_args.get("max_tokens", 0)
-    #         if gen_len + len(prompt) + 1 > MAX_SEQ_LEN:
-    #             # cut off the prompt to always fit with number of generations we need
-    #             # +1 to always have the EOS token
-    #             prompt = prompt[-(MAX_SEQ_LEN - gen_len - 1) :]
-    #         request_object = {"input": prompt, **generation_args}
-    #         BATCH_QUEUE.put(
-    #             WorkItem(
-    #                 cost=len(prompt) + gen_len,
-    #                 uid=i,
-    #                 return_queue=ret_queue,
-    #                 data=request_object,
-    #                 prompt_len=len(prompt),
-    #                 gen_len=gen_len,
-    #             )
-    #         )
-    #     unordered_results = []
-    #     for _ in prompts:
-    #         unordered_results.append(ret_queue.get())
-    #     # resort results by the original ordering
-    #     # weirdly, openai returns to you a flat list if you gave multiple prompts
-    #     reordered = sorted(unordered_results, key=lambda x: x[0])
-    #     results = []
-    #     for prompt, (_, generations) in zip(prompts, reordered):
-    #         if isinstance(generations, Exception):
-    #             raise generations
-    #         results += generations
-
-    #     # Ensure output format is consistent with other kaleidoscope models
-    #     # UPDATE 01-03-23: Return all results instead of just the first one -
-    #     # DOUBT: Risk of combining separate requests?
-    #     response = {k: [] for k in ["text", "tokens", "logprobs", "activations"]}
-    #     for result in results:
-    #         response["text"].append(result["text"])
-    #         response["tokens"].append(result["tokens"])
-    #         response["logprobs"].append(result["token_scores"])
-    #         response["activations"].append(result["activations"])
-
-    #     return response
-
     def get_activations(self, request):
         """Generate intermediate activations"""
 
