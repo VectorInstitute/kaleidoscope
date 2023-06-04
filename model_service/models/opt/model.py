@@ -255,7 +255,7 @@ class Model(AbstractModel):
         for result in results:
             response["text"].append(np.char.encode(result['text'], "utf-8"))
             response["tokens"].append(np.char.encode(result['tokens'], "utf-8"))
-            response["logprobs"].append(np.char.encode(result['token_scores'], "utf-8"))
+            response["logprobs"].append(result['token_scores'])
 
         return response
     
