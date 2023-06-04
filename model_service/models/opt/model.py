@@ -164,77 +164,17 @@ class Model(AbstractModel):
         generation_args = {}
 
         logger.info(inputs)
-        logger.info(inputs['max_tokens'])
-        logger.info(inputs['max_tokens'][0])
-        logger.info(inputs['max_tokens'][0][0])
-        # print(inputs)
-        # print(inputs["max_tokens"][0][0])
         generation_args['max_tokens'] = int(inputs["max_tokens"][0][0]) if "max_tokens" in inputs else 128
-        # generation_args['temperature'] = inputs["temperature"][0][0] if "temperature" in inputs else 1.0
-        # generation_args['top_p'] = inputs["top_p"][0][0] if "top_p" in inputs else 0.9
-        # generation_args['top_k'] = inputs["top_k"][0][0] if "top_k" in inputs else 0
-        # generation_args['repetition_penalty'] = inputs["repetition_penalty"][0][0] if "repetition_penalty" in inputs else 1.0
-
-
-
-    #     if isinstance(prompts, str):
-    #         # single string. tokenize and turn it to the single pre-tokenized case
-    #         prompts = [encode_fn(generator, prompts)]
-    #     assert isinstance(prompts, list)
-    #     assert len(prompts) > 0
-    #     if isinstance(prompts[0], str):
-    #         # multi string
-    #         prompts = [encode_fn(generator, p) for p in prompts]
-    #     elif isinstance(prompts[0], int):
-    #         # single pre-tokenized
-    #         prompts = [prompts]
-    #     assert isinstance(prompts[0], list)
-    #     # final case: multi pre-tokenized
-    #     assert len(prompts[0]) > 0
-
-    #     if "min_tokens" in generation_args:
-    #         generation_args["min_tokens"] = int(generation_args["min_tokens"])
-    #     if "max_tokens" in generation_args:
-    #         generation_args["max_tokens"] = int(generation_args["max_tokens"])
-    #     else:
-    #         generation_args["max_tokens"] = 32
-
-    #     if "stop" in generation_args:
-    #         stop = generation_args["stop"]
-    #         if stop is None:
-    #             pass
-    #         elif isinstance(stop, str):
-    #             stop = [encode_fn(generator, stop)[0]]
-    #         else:
-    #             stop = [encode_fn(generator, s)[0] for s in stop]
-    #         generation_args["stop"] = stop
-
-    #     if "temperature" in generation_args:
-    #         generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
-    #     else:
-    #         generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
-
-    #     if "top-p" in generation_args:
-    #         generation_args["top_p"] = round(float(generation_args["top-p"]), 1)
-    #     else:
-    #         generation_args["top_p"] = UNBATCHED_ARG_DICT["top_p"]
-
-    #     # beam search top n
-    #     if "n" in generation_args:
-    #         generation_args["n"] = min(MAX_BEAM, max(1, int(generation_args["n"])))
-    #     else:
-    #         generation_args["n"] = UNBATCHED_ARG_DICT["n"]
-
-
-        """
-        prompts = request.json["prompt"]
-        del request.json["prompt"]
-        generation_args = request.json
-        """
+        generation_args['temperature'] = inputs["temperature"][0][0] if "temperature" in inputs else 1.0
+        generation_args['top_p'] = inputs["top_p"][0][0] if "top_p" in inputs else 0.9
+        generation_args['top_k'] = inputs["top_k"][0][0] if "top_k" in inputs else 0
+        generation_args['repetition_penalty'] = inputs["repetition_penalty"][0][0] if "repetition_penalty" in inputs else 1.0
         
 
+        generation_args = {}
+        generation_args['max_tokens'] = 32
 
-        """
+
         if "min_tokens" in generation_args:
             generation_args["min_tokens"] = int(generation_args["min_tokens"])
         if "max_tokens" in generation_args:
@@ -269,10 +209,8 @@ class Model(AbstractModel):
             generation_args["n"] = min(MAX_BEAM, max(1, int(generation_args["n"])))
         else:
             generation_args["n"] = UNBATCHED_ARG_DICT["n"]
-        """
 
-        generation_args = {}
-        generation_args['max_tokens'] = 32
+
 
         ret_queue = queue.Queue()
         for i, prompt in enumerate(prompts):
