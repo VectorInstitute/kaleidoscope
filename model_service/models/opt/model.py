@@ -268,8 +268,8 @@ class Model(AbstractModel):
             generation_args["n"] = UNBATCHED_ARG_DICT["n"]
         """
 
-        # generation_args = {}
-        # generation_args['max_tokens'] = 32
+        generation_args = {}
+        generation_args['max_tokens'] = 32
 
         ret_queue = queue.Queue()
         for i, prompt in enumerate(prompts):
