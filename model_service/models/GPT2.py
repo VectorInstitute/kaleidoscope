@@ -1,20 +1,19 @@
-import argparse
+"""Module for GPT2 LLM configurations"""
 import json
-import logging
-import numpy as np
 import random
 import re
-import time
 import torch
-
-from .abstract_model import AbstractModel
-from werkzeug.exceptions import HTTPException
 
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
+from .abstract_model import AbstractModel
+
 
 class GPT2(AbstractModel):
+    """Class to represent GPT2 ML model"""
+
     def __init__(self):
+        """Initialize GPT2 model"""
         self.model_class = GPT2LMHeadModel
         self.model_path = None
         self.tokenizer_class = GPT2Tokenizer
@@ -22,29 +21,25 @@ class GPT2(AbstractModel):
         self.device = None
 
     def load(self, device, model_path):
+        """load GPT2 model"""
         self.device = device
         self.model = self.model_class.from_pretrained(model_path)
         self.model_path = model_path
         self.model.to(device)
 
     def module_names(self):
+        """Retrieve module names for GPT2"""
         return {
             "module_names": tuple(
-                module[0]
-                for module in self.model.base_model.named_modules()
-                if module[0] != ""
+                module[0] for module in self.model.base_model.named_modules() if module[0] != ""
             )
         }
 
     def generate(self, request):
-
+        """Generate text from GPT2 model"""
         prompt = request.json["prompt"]
-        length = (
-            int(request.json["max-tokens"]) if "max-tokens" in request.json else 128
-        )
-        temperature = (
-            float(request.json["temperature"]) if "temperature" in request.json else 1.0
-        )
+        length = int(request.json["max-tokens"]) if "max-tokens" in request.json else 128
+        temperature = float(request.json["temperature"]) if "temperature" in request.json else 1.0
         top_k = int(request.json["top-k"]) if "top-k" in request.json else 0
         top_p = float(request.json["top-p"]) if "top-p" in request.json else 0.9
         num_return_sequences = (
@@ -64,9 +59,7 @@ class GPT2(AbstractModel):
                 stop_sequence = request.json["stop_token"]
 
         tokenizer = self.tokenizer_class.from_pretrained(self.model_path)
-        encoded_prompt = tokenizer.encode(
-            prompt, add_special_tokens=False, return_tensors="pt"
-        )
+        encoded_prompt = tokenizer.encode(prompt, add_special_tokens=False, return_tensors="pt")
         encoded_prompt = encoded_prompt.to(self.device)
 
         if encoded_prompt.size()[-1] == 0:
@@ -98,30 +91,25 @@ class GPT2(AbstractModel):
             generated_sequence = generated_sequence.tolist()
 
             # Decode text
-            text = tokenizer.decode(
-                generated_sequence, clean_up_tokenization_spaces=True
-            )
+            text = tokenizer.decode(generated_sequence, clean_up_tokenization_spaces=True)
 
             # Remove all text after the stop token
             text = text[: text.find(stop_sequence) if stop_sequence else None]
 
-            # Add the prompt at the beginning of the sequence. Remove the excess text that was used for pre-processing
+            # Add the prompt at the beginning of the sequence.
+            # Remove the excess text that was used for pre-processing
             total_sequence = text[
-                len(
-                    tokenizer.decode(
-                        encoded_prompt[0], clean_up_tokenization_spaces=True
-                    )
-                ) :
+                len(tokenizer.decode(encoded_prompt[0], clean_up_tokenization_spaces=True)) :
             ]
 
             generated_sequences.append(total_sequence)
             print(total_sequence)
 
             # TODO: Add the real text tokens
-            random_tokens.extend(re.split("(\s+)", total_sequence))
+            random_tokens.extend(re.split(r"(\s+)", total_sequence))
 
             # TODO: Add the real logprobs
-            for i in range(len(random_tokens)):
+            for _ in range(len(random_tokens)):
                 random_logprobs.append(random.uniform(-3, -0.001))
 
         generated_text = "".join(str(x) for x in total_sequence)
@@ -135,6 +123,7 @@ class GPT2(AbstractModel):
         return json.dumps(response)
 
     def get_activations(self, request):
+        """Retrieve intermediate activations from GPT2 model"""
         response = self.generate(request)
         response["activations"] = torch.empty(0)
         response["error"] = "Activation retrival not implemented for GPT2 model."

@@ -21,4 +21,4 @@ source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
 export MASTER_ADDR=$(hostname -I | awk '{print $1}')
 export NCCL_IB_DISABLE=1
-srun -q llm -p a40 -N 4 --gres=gpu:4 --mem=167G -c 32 singularity exec --nv --bind /checkpoint,/scratch,/ssd005,/ssd003 /ssd005/projects/llm/opt-175b-a40.sif /usr/bin/python3 -s $model_service_dir/model_service.py --model_type OPT-175B --model_path $model_path --model_instance_id $SLURM_JOB_NAME --gateway_host $gateway_host --gateway_port $gateway_port
+srun -q llm -p a40 -N 4 --gres=gpu:4 --mem=167G -c 32 singularity exec --nv --bind /checkpoint,/scratch,/ssd005,/ssd003 /ssd005/projects/llm/opt-175b-latest.sif /usr/bin/python3 -s $model_service_dir/model_service.py --model_type OPT-175B --model_path $model_path --model_instance_id $SLURM_JOB_NAME --gateway_host $gateway_host --gateway_port $gateway_port
