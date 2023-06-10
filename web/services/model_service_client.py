@@ -151,8 +151,9 @@ def get_module_names(host: str) -> Dict:
 
 
 def verify_model_health(model_name: str, host: str) -> bool:
+    # TODO - need model_name?
     try:
-        response = requests.get(f"http://{host}/v2/models/{model_name}/ready")
+        response = requests.get(f"http://{host}/v2/health/ready")
         print(f"Health check response: {response}")
         return response.status_code == 200
     except Exception as err:
