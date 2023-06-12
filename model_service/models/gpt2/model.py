@@ -160,3 +160,11 @@ class Model(AbstractModel):
         response["activations"] = torch.empty(0)
         response["error"] = "Activation retrival not implemented for GPT2 model."
         return response
+
+    @batch
+    def edit_activations(self, request):
+        """Edit intermediate activations from GPT2 model"""
+        response = self.generate(request)
+        response["activations"] = torch.empty(0)
+        response["error"] = "Activation editing not implemented for GPT2 model."
+        return response

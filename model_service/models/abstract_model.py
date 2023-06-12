@@ -10,6 +10,7 @@ class AbstractModel(abc.ABC):
     @abc.abstractmethod
     def load(self, device, model_path):
         """An abstract method for loading a model"""
+        pass
 
     @abc.abstractmethod
     def bind(self, triton):

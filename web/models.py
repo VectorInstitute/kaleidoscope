@@ -87,8 +87,9 @@ class PendingState(ModelInstanceState):
             # ToDo: set job id params here
             model_service_client.launch(
                 self._model_instance.id,
-                self._model_instance.name,
-                MODEL_CONFIG[self._model_instance.name]["path"],
+                model_type,
+                model_variant,
+                model_path,
             )
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:

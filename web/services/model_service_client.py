@@ -183,15 +183,14 @@ def verify_model_health(model_name: str, host: str) -> bool:
 def verify_job_health(model_instance_id: str) -> bool:
     """Verify if the tasks is healthy"""
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} \
-        {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
-        # print(f"Get job health SSH command: {ssh_command}")
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
+        print(f"Get job health SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        # print(f"SSH get job health output: [{ssh_output}]")
+        print(f"SSH get job health output: [{ssh_output}]")
 
         # If we didn't get any output from SSH, the job doesn't exist
-        if not ssh_output.strip(" \n"):
-            current_app.logger.info("No output from ssh, the model doesn't exist")
+        if not ssh_output.strip(" \n") or "non-zero exit" in ssh_output:
+            current_app.logger.info("No output from ssh or error, the model doesn't exist")
             return False
 
         # For now, assume that any output means the job is healthy
