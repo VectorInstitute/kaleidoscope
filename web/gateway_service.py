@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+"""Module for building and configuring the gateway service application"""
 import logging
 
 from flask import Flask
@@ -16,6 +16,7 @@ from model_instances.routes import model_instances_bp
 
 
 def create_app():
+    """Create Flask application with authentication and DB configs"""
     app = Flask(__name__)
     app.config.from_object(Config)
     app.logger.setLevel(logging.INFO)  # ToDo: move this to config
@@ -34,6 +35,7 @@ def create_app():
 
 
 def make_celery(app):
+    """Create asynchronous workers using local environment variables"""
     celery = Celery(
         app.import_name,
         backend=app.config["CELERY_BACKEND_URL"],
@@ -50,6 +52,8 @@ def make_celery(app):
     }
 
     class ContextTask(celery.Task):
+        """Class to define the contexts for celery tasks"""
+
         def __call__(self, *args, **kwargs):
             with app.app_context():
                 return self.run(*args, **kwargs)

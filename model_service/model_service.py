@@ -1,7 +1,7 @@
+"""Module for the model service API routes"""
 import argparse
 import logging
 import importlib
-import os
 
 from pytriton.triton import Triton, TritonConfig
 
@@ -73,7 +73,10 @@ def main():
         "--model_variant", required=True, type=str, help="Variant of model to load (ie. 6.7b)"
     )
     parser.add_argument(
-        "--model_path", required=True, type=str, help="Path to pre-trained model"
+        "--model_path",
+        required=True,
+        type=str,
+        help="Path to pre-trained model",
     )
     parser.add_argument(
         "--model_instance_id", required=True, type=str

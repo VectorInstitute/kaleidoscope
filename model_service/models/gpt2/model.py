@@ -1,3 +1,4 @@
+"""Module for GPT2 LLM configurations"""
 import logging
 import numpy as np
 import random
@@ -9,6 +10,8 @@ from ..abstract_model import AbstractModel
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
+
+from ..abstract_model import AbstractModel
 
 
 logger = logging.getLogger("kaleidoscope.model_service.gpt2")
@@ -124,30 +127,25 @@ class Model(AbstractModel):
             generated_sequence = generated_sequence.tolist()
 
             # Decode text
-            text = tokenizer.decode(
-                generated_sequence, clean_up_tokenization_spaces=True
-            )
+            text = tokenizer.decode(generated_sequence, clean_up_tokenization_spaces=True)
 
             # Remove all text after the stop token
             #text = text[: text.find(stop_sequence) if stop_sequence else None]
 
-            # Add the prompt at the beginning of the sequence. Remove the excess text that was used for pre-processing
+            # Add the prompt at the beginning of the sequence.
+            # Remove the excess text that was used for pre-processing
             total_sequence = text[
-                len(
-                    tokenizer.decode(
-                        encoded_prompt[0], clean_up_tokenization_spaces=True
-                    )
-                ) :
+                len(tokenizer.decode(encoded_prompt[0], clean_up_tokenization_spaces=True)) :
             ]
 
             generated_sequences.append(total_sequence)
             print(total_sequence)
 
             # TODO: Add the real text tokens
-            random_tokens.extend(re.split("(\s+)", total_sequence))
+            random_tokens.extend(re.split(r"(\s+)", total_sequence))
 
             # TODO: Add the real logprobs
-            for i in range(len(random_tokens)):
+            for _ in range(len(random_tokens)):
                 random_logprobs.append(random.uniform(-3, -0.001))
 
         generated_text = "".join(str(x) for x in total_sequence)
@@ -157,6 +155,7 @@ class Model(AbstractModel):
 
     @batch
     def get_activations(self, request):
+        """Retrieve intermediate activations from GPT2 model"""
         response = self.generate(request)
         response["activations"] = torch.empty(0)
         response["error"] = "Activation retrival not implemented for GPT2 model."

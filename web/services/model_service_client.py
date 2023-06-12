@@ -1,3 +1,4 @@
+"""Module for model service client"""
 from __future__ import annotations
 import ast
 from flask import current_app
@@ -5,9 +6,8 @@ import json
 import numpy as np
 import requests
 import subprocess
-from typing import Dict, List
+from typing import Callable, Dict, List, Optional
 
-# import models
 from config import Config
 
 import tritonclient.http as httpclient
@@ -31,6 +31,7 @@ def launch(model_instance_id: str, model_type: str, model_variant: str, model_pa
 
     except Exception as err:
         current_app.logger.error(f"Failed to issue SSH command to job manager: {err}")
+
     return
 
 def shutdown(model_instance_id: str) -> None:
@@ -85,8 +86,9 @@ def update_param_cfg(param_cfg, input_gen_cfg):
 def generate(
     host: str, generation_id: int, prompts: List[str], generation_config: Dict
 ) -> Dict:
-    
-    # current_app.logger.info(f"Sending generation request to http://{host}/generate")
+    """Generate into JSON format"""
+
+    current_app.logger.info(f"Sending generation request to http://{host}/generate")
 
     # body = {"prompt": prompts, **generation_config}
 
@@ -124,10 +126,14 @@ def generate_activations(
     module_names: List[str],
     generation_config: Dict,
 ) -> Dict:
-
+    """Generate intermediate activations"""
     current_app.logger.info("activations")
 
-    body = {"prompt": prompts, "module_names": module_names, **generation_config}
+    body = {
+        "prompt": prompts,
+        "module_names": module_names,
+        **generation_config,
+    }
 
     current_app.logger.info(f"body {body}")
 
@@ -137,8 +143,22 @@ def generate_activations(
     return response_body
 
 
-def get_module_names(host: str) -> Dict:
+def edit_activations(
+    host: str,
+    generation_id: int,
+    prompts: List[str],
+    modules: Dict[str, Optional[Callable]],
+    generation_config: Dict,
+) -> Dict:
+    body = {"prompt": prompts, "modules": modules, **generation_config}
+    current_app.logger.info(f"Sending edit activations request, body: {body}")
+    response = requests.post(f"http://{host}/edit_activations", json=body)
+    response_body = response.json()
+    return response_body
 
+
+def get_module_names(host: str) -> Dict:
+    """Retrieve module names"""
     response = requests.get(
         f"http://{host}/module_names",
     )
@@ -161,14 +181,16 @@ def verify_model_health(model_name: str, host: str) -> bool:
 
 
 def verify_job_health(model_instance_id: str) -> bool:
+    """Verify if the tasks is healthy"""
     try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
-        #print(f"Get job health SSH command: {ssh_command}")
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} \
+        {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
+        # print(f"Get job health SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        #print(f"SSH get job health output: [{ssh_output}]")
+        # print(f"SSH get job health output: [{ssh_output}]")
 
         # If we didn't get any output from SSH, the job doesn't exist
-        if not ssh_output.strip(' \n'):
+        if not ssh_output.strip(" \n"):
             current_app.logger.info("No output from ssh, the model doesn't exist")
             return False
 

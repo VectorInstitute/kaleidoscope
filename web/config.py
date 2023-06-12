@@ -1,9 +1,10 @@
+"""Module for gateway service configurations"""
 import datetime
 import os
-from pathlib import Path
 
 
-class Config(object):
+class Config:
+    """Class for the configuration object loaded by local .env file"""
 
     GATEWAY_BIND_HOST = os.environ["GATEWAY_BIND_HOST"]
     GATEWAY_ADVERTISED_HOST = os.environ["GATEWAY_ADVERTISED_HOST"]

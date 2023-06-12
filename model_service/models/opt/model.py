@@ -1,13 +1,17 @@
 """Module for OPT LLM configurations"""
+import cloudpickle
 import codecs
+from collections import defaultdict
+import json
+import numpy as np
 import os
 import pickle
 import queue
 import random
 import threading
 import time
-import json
-from collections import defaultdict
+import torch
+
 from metaseq import options
 from metaseq.dataclass.configs import MetaseqConfig
 from metaseq.dataclass.utils import convert_namespace_to_omegaconf
@@ -24,22 +28,28 @@ from metaseq.service.constants import (
     UNBATCHED_ARG_DICT,
 )
 from metaseq.service.utils import get_my_ip, encode_fn, build_logger
-from .utils import ( 
-    get_activation_capture_hook_dict,
-    apply_forward_hook,
-)
-import torch
-import numpy as np
-from ..abstract_model import AbstractModel
+from metaseq.service.responses import OAIResponse
+from metaseq_cli.activation_utils import ActivationPayload
+from metaseq_cli.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
 
+from ..abstract_model import AbstractModel
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
+
 
 # global state (mutable!)
 cfg = None
 is_model_loaded = False
 logger = build_logger()
 BATCH_QUEUE = PriorityQueueRingShard()
+
+
+def encode_obj(obj):
+    return codecs.encode(cloudpickle.dumps(obj), "base64").decode("utf-8")
+
+
+def decode_str(obj_in_str):
+    return pickle.loads(codecs.decode(obj_in_str.encode("utf-8"), "base64"))
 
 
 class Model(AbstractModel):
@@ -51,9 +61,9 @@ class Model(AbstractModel):
         self.model_variant = model_variant
         self.load_default_args("config.json")
 
-    def load(self, model_path):
+    def load(self, device, model_path):
         """Load model into memory"""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device
         thread = threading.Thread(target=self.load_async, daemon=True)
         thread.start()
 
@@ -237,9 +247,7 @@ class Model(AbstractModel):
             generation_args["stop"] = stop
 
         if "temperature" in generation_args:
-            generation_args["temperature"] = round(
-                float(generation_args["temperature"]), 1
-            )
+            generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
         else:
             generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
 
@@ -397,12 +405,37 @@ class Model(AbstractModel):
     #     return response
 
     def get_activations(self, request):
-        """Generate intermediate activations"""
-
-        request.json["encoded_activation_payload"] = request.json["module_names"]
+        activation_payload = ActivationPayload(
+            module_names_activation_retrieval = request.json["module_names"],
+        )
+        request.json["encoded_activation_payload"] = activation_payload
         request.json["echo"] = True
         request.json["max_tokens"] = 0
         response = self.generate(request)
+        return response
+
+    def edit_activations(self, request):
+        # Extract modules + editing functions from encoded request
+        decoded_modules = decode_str(request.json['modules'])
+        editing_fns: Dict[str, Callable] = {}
+        for module_name, edit_fn in decoded_modules.items():
+            if edit_fn is not None:
+                logger.info(f"Adding module name {module_name} with edit function {edit_fn}")
+                editing_fns[module_name] = edit_fn
+
+        # Define activation payload
+        activation_payload = ActivationPayload(
+            module_names_activation_retrieval=list(decoded_modules.keys()),
+            module_editing_fn_pairs=editing_fns,
+        )
+
+        logger.info(f"About to edit activations, payload: {activation_payload}")
+        request.json["encoded_activation_payload"] = encode_obj(activation_payload)
+        request.json["echo"] = True
+        request.json["max_tokens"] = 0
+        logger.info(f"Sending activation edit request: {request}")
+        response = self.generate(request)
+
         return response
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
@@ -610,7 +643,6 @@ class Model(AbstractModel):
                         encoded_activation_payload = request_object.pop(
                             "encoded_activation_payload", None
                         )
-
                         act_retrieval_aux = request_object.pop("_aux", None)
 
                         if encoded_activation_payload:

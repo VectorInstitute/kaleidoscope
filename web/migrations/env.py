@@ -1,3 +1,4 @@
+"""A module for database configuration"""
 import logging
 from logging.config import fileConfig
 
@@ -16,6 +17,7 @@ logger = logging.getLogger("alembic.env")
 
 
 def get_engine():
+    """Retrieves the database engine"""
     try:
         # this works with Flask-SQLAlchemy<3 and Alchemical
         return current_app.extensions["migrate"].db.get_engine()
@@ -25,6 +27,7 @@ def get_engine():
 
 
 def get_engine_url():
+    """Retrieves the database engine URL"""
     try:
         return get_engine().url.render_as_string(hide_password=False).replace("%", "%%")
     except AttributeError:
@@ -45,6 +48,7 @@ target_db = current_app.extensions["migrate"].db
 
 
 def get_metadata():
+    """Retrieves the database metadata"""
     if hasattr(target_db, "metadatas"):
         return target_db.metadatas[None]
     return target_db.metadata
@@ -80,7 +84,7 @@ def run_migrations_online():
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
     # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
-    def process_revision_directives(context, revision, directives):
+    def process_revision_directives(directives):
         if getattr(config.cmd_opts, "autogenerate", False):
             script = directives[0]
             if script.upgrade_ops.is_empty():

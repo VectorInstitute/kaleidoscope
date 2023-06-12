@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Module to submit system level jobs"""
 import argparse
 import json
 import os
@@ -7,10 +8,20 @@ import subprocess
 
 
 def main():
-
+    """Schedule system level jobs"""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--action", required=True, type=str, help="Action for job manager to perform")
-    parser.add_argument("--model_instance_id", required=True, type=str, help="Gateway model instance ID")
+    parser.add_argument(
+        "--action",
+        required=True,
+        type=str,
+        help="Action for job runner to perform",
+    )
+    parser.add_argument(
+        "--model_instance_id",
+        required=True,
+        type=str,
+        help="Model type not supported",
+    )
     parser.add_argument("--model_type", type=str, help="Type of model requested")
     parser.add_argument("--model_variant", type=str, help="Variant of model requested")
     parser.add_argument("--model_path", type=str, help="Model type not supported")
@@ -51,20 +62,23 @@ def main():
                     '--master_host', 'localhost',
                     '--master_port', '8080'
                 ],
-                start_new_session=True
+                start_new_session=True,
             )
             print(f"Started model service under PID {process.pid}")
         except Exception as err:
             print(f"Job scheduler failed: {err}")
 
-    elif args.action == "get_status":
+    if args.action == "get_status":
         try:
             # TODO: Find a better way to determine if the model_service process is active
-            status_output = subprocess.check_output(f"ps aux | grep {args.model_instance_id} | grep -v get_status | grep -v grep", shell=True).decode('utf-8')
+            status_output = subprocess.check_output(
+                f"ps aux | grep {args.model_instance_id} | grep -v get_status | grep -v grep",
+                shell=True,
+            ).decode("utf-8")
             print(f"{status_output}")
         except Exception as err:
             # If the command fails, don't send any response, this will indicate failure
-            pass
+            print(f"Model status error: {err}")
 
     elif args.action == "get_model_config":
         # Look at every subdirectory under the /models directory, and grab config.json files

@@ -18,6 +18,7 @@ A user toolkit for analyzing and interfacing with Large Language Models (LLMs)
 * `generate` - Returns an LLM text generation based on prompt input
 * `module_names` - Returns all modules names in the LLM neural network
 * `get_activations` - Retrieves all activations for a set of modules
+* `edit_activations` - Manipulates activations for a set of modules
 
 ``kaleidoscope`` is composed of the following components:
 
@@ -47,7 +48,7 @@ install the SDK from its own repository:
 https://github.com/VectorInstitute/kaleidoscope-sdk
 
 ## Contributing
-Contributing to kaleidoscope is welcomed. See [Contributing](CONTRIBUTING) for
+Contributing to kaleidoscope is welcomed. See [Contributing](CONTRIBUTING.md) for
 guidelines.
 
 ## License
