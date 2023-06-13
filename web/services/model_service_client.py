@@ -212,13 +212,13 @@ def verify_job_health(model_instance_id: str) -> bool:
         print(f"Failed to issue SSH command to job manager: {err}")
         return False
     
-def verify_model_instance_activation(host: str, model_name: str) -> bool:
+def verify_model_instance_active(host: str, model_name: str) -> bool:
     try:
         triton_client = TritonClient(host)
         return triton_client.is_model_ready(model_name, task="generation")
 
     except Exception as err:
-        current_app.logger.error(f"Model activation health check failed: {err}")
+        current_app.logger.error(f"Model active health check failed: {err}")
         return False
 
 def verify_model_health(host: str, model_name: str) -> bool:
