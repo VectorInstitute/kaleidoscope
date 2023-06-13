@@ -39,7 +39,7 @@ class Model(AbstractModel):
 
     def bind(self, triton):
         triton.bind(
-            model_name=f"{self.model_type}{self.model_variant}",
+            model_name=f"{self.model_type}{self.model_variant}_generation",
             infer_func=self.infer,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),

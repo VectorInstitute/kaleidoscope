@@ -57,7 +57,7 @@ class ModelService():
             logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
 
             #Placeholder static triton config for now
-            triton_config = TritonConfig(http_address=self.master_host, http_port=self.master_port, log_verbose=4)
+            triton_config = TritonConfig(http_address="0.0.0.0", http_port=self.master_port, log_verbose=1)
             with Triton(config=triton_config) as triton:
                 triton = model.bind(triton)
                 triton.serve()
