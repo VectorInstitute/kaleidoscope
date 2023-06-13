@@ -2,10 +2,10 @@
 from flask import Blueprint, request, current_app, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from config import Config, MODEL_CONFIG
+from config import Config
 from db import db
 import tasks
-from models import ModelInstance
+from models import ModelInstance, MODEL_CONFIG
 
 model_instances_bp = Blueprint("models", __name__)
 

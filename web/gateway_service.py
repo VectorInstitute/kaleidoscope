@@ -48,8 +48,8 @@ def make_celery(app):
             "task": "tasks.verify_model_instance_health",
             "schedule": 30.0,
         },
-        "verify_activation": {
-            "task": "tasks.verify_model_instance_activation",
+        "verify_active": {
+            "task": "tasks.verify_model_instance_active",
             "schedule": 30.0,
         }
     }

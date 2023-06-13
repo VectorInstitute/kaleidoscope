@@ -14,6 +14,9 @@ from db import db, BaseMixin
 from services import model_service_client
 
 
+MODEL_CONFIG = model_service_client.get_model_config()
+
+
 class ModelInstanceState(ABC):
     """Class for a model instance state"""
 
@@ -21,36 +24,36 @@ class ModelInstanceState(ABC):
         self._model_instance = model_instance
 
     def launch(self):
-        """Launch abstract"""
+        """Launch a new instance of a model"""
         raise InvalidStateError(self)
 
     def register(self, host: str):
-        """Register abstract"""
+        """Register a model instance"""
         raise InvalidStateError(self)
 
-    def activate(self):
-        """Activate abstract"""
+    def verify_active(self):
+        """Check if a model is active and ready to service requests"""
         raise InvalidStateError(self)
 
     def generate(self, username, prompts, generation_args):
-        """Generate abstract"""
+        """Send a generation request to a model"""
         raise InvalidStateError(self)
 
     def generate_activations(self, username, prompts, module_names, generation_args):
-        """Generate activations abstract"""
+        """Retrieve intermediate activations from a model"""
         raise InvalidStateError(self)
 
     def get_module_names(self):
-        """Module abstract"""
+        """Get names of layer modules"""
         raise InvalidStateError(self)
 
     def shutdown(self):
-        """Shutdown abstract"""
+        """Shutdown a model"""
         model_service_client.shutdown(self._model_instance.id)
         self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
     def is_healthy(self):
-        """Health abstract"""
+        """Check if a model is healthy"""
         raise InvalidStateError(self)
 
     def is_timed_out(self, timeout):
@@ -132,9 +135,10 @@ class LaunchingState(ModelInstanceState):
 class LoadingState(ModelInstanceState):
     """Class for model loading state"""
 
-    def activate(self):
-        """Register model as active"""
-        self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
+    def verify_active(self):
+        is_active = model_service_client.verify_model_instance_active(self._model_instance.host, self._model_instance.name)
+        if is_active:
+            self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
     # If we receive multiple registration requests for the same model, just ignore them
     # This will happen whenever a model is loaded onto multiple nodes
@@ -361,9 +365,8 @@ class ModelInstance(BaseMixin, db.Model):
         current_app.logger.info(f"Received registration request from host {host}")
         self._state.register(host)
 
-    def activate(self) -> None:
-        """Activate model"""
-        self._state.activate()
+    def verify_active(self) -> None:
+        self._state.verify_active()
 
     def shutdown(self) -> None:
         """Shutdown model"""
