@@ -8,6 +8,7 @@ flask-ldap3-login
 Flask-Migrate
 flask-sqlalchemy
 geventhttpclient==2.0.2
+gunicorn==20.1.0
 mypy==0.982
 numpy==1.24.3
 psycopg2-binary

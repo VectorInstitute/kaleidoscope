@@ -19,15 +19,16 @@ def get_model_config() -> List:
         ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_model_config --model_instance_id 0"
         #print(f"Get model config SSH command: {ssh_command}")
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        current_app.logger.info(f"Get model config SSH output: {ssh_output}")
+        #print(f"Get model config SSH output: {ssh_output}")
         config = ast.literal_eval(ssh_output)
     except Exception as err:
         print(f"Failed to issue SSH command to job manager: {err}")
     return config
 
-def launch(model_instance_id: str, model_name: str) -> None:
+def launch(model_instance_id: str, model_type: str, model_variant: str, model_path: str) -> None:
+    current_app.logger.info(f"Model service client: launching {model_type} with ID {model_instance_id}")
     try:
-        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_name {model_name} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
+        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_type} --model_variant {model_variant} --model_instance_id {model_instance_id} --model_path {model_path} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
         current_app.logger.info(f"Launch SSH command: {ssh_command}")
 
         # System job scheduler needs ssh to keep running in the background

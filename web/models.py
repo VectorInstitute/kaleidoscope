@@ -14,6 +14,9 @@ from db import db, BaseMixin
 from services import model_service_client
 
 
+MODEL_CONFIG = model_service_client.get_model_config()
+
+
 class ModelInstanceState(ABC):
     """Class for a model instance state"""
 
