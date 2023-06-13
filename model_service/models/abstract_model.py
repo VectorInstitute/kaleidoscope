@@ -8,7 +8,7 @@ class AbstractModel(abc.ABC):
     """An abstraction of a generative AI model"""
 
     @abc.abstractmethod
-    def load(self, device, model_path):
+    def load(self, model_path):
         """An abstract method for loading a model"""
         pass
 

@@ -61,14 +61,13 @@ class Model(AbstractModel):
     """Class to represent OPT ML model"""
 
     def __init__(self, model_type, model_variant):
-        self.device = None
         self.model_type = model_type
         self.model_variant = model_variant
         self.load_default_args("config.json")
 
-    def load(self, device, model_path):
+    def load(self, model_path):
         """Load model into memory"""
-        self.device = device
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         thread = threading.Thread(target=self.load_async, daemon=True)
         thread.start()
 
@@ -146,7 +145,7 @@ class Model(AbstractModel):
             ],
             config=ModelConfig(max_batch_size=128),
         )
-        return triton 
+        return triton
 
     @property
     def rank(self):
