@@ -27,8 +27,7 @@ class AbstractModel(abc.ABC):
         pass
 
     @abc.abstractmethod
-    @batch
-    def generate(self, **inputs):
+    def generate(self, inputs):
         pass
 
     @abc.abstractmethod

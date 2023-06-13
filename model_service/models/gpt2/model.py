@@ -19,6 +19,7 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %
 
 
 class Model(AbstractModel):
+
     def __init__(self, model_type, model_variant):
         self.model_class = GPT2LMHeadModel
         self.model_path = None
@@ -28,90 +29,77 @@ class Model(AbstractModel):
         self.model = None
         self.device = None
 
+
     def load(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self.model_class.from_pretrained(model_path)
         self.model_path = model_path
         self.model.to(self.device)
 
+
     def bind(self, triton):
         triton.bind(
             model_name=f"{self.model_type}{self.model_variant}",
             infer_func=self.infer,
             inputs=[
-                Tensor(name="prompts", dtype=bytes, shape=(1,))
+                Tensor(name="prompts", dtype=bytes, shape=(1,)),
+                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='repitition_penalty', dtype=np.float32, shape=(1,), optional=True)
             ],
             outputs=[
-                Tensor(name="sequences", dtype=bytes, shape=(-1,))
+                Tensor(name="sequences", dtype=object, shape=(-1,)),
+                Tensor(name="tokens", dtype=object, shape=(-1,)),
+                Tensor(name="logprobs", dtype=np.float32, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
         return triton
 
+
     @property
     def rank(self):
         return 0
 
+
     @batch
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
-        self.generate(inputs)
+        return self.generate(inputs)
 
-    @batch
-    def generate(self, **inputs):
-        logger.info(f"Starting generation on GPT2 model")
-        logger.info(f"inputs = {inputs}")
-        """
-        prompt = request.json["prompt"]
 
-        length = (
-            int(request.json["max-tokens"]) if "max-tokens" in request.json else 128
-        )
-        temperature = (
-            float(request.json["temperature"]) if "temperature" in request.json else 1.0
-        )
-        top_k = int(request.json["top-k"]) if "top-k" in request.json else 0
-        top_p = float(request.json["top-p"]) if "top-p" in request.json else 0.9
-        num_return_sequences = (
-            int(request.json["num_return_sequences"])
-            if "num_return_sequences" in request.json
-            else 1
-        )
-        repetition_penalty = (
-            float(request.json["repetition_penalty"])
-            if "repetition_penalty" in request.json
-            else 1.0
-        )
-        stop_sequence = None
-        if "stop_token" in request.json:
-            stripped_sequence = str(request.json["stop_token"]).strip()
-            if len(stripped_sequence) != 0:
-                stop_sequence = request.json["stop_token"]
-        """
+    def generate(self, inputs):
+
+        # Check the input parameters, and set default values if not present
+        max_tokens = inputs["max_tokens"][0][0] if "max_tokens" in inputs else 128
+        temperature = inputs["temperature"][0][0] if "temperature" in inputs else 1.0
+        top_p = inputs["top_p"][0][0] if "top_p" in inputs else 0.9
+        top_k = inputs["top_k"][0][0] if "top_k" in inputs else 0
+        repetition_penalty = inputs["repetition_penalty"][0][0] if "repetition_penalty" in inputs else 1.0
+
+        # Load the tokenizer and encode prompts
         tokenizer = self.tokenizer_class.from_pretrained(self.model_path)
         prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
         prompts = np.squeeze(prompts, axis=-1).tolist()
-        logger.info(f"Prompts: {prompts}")
         encoded_prompt = tokenizer.encode(
             prompts, add_special_tokens=False, return_tensors="pt"
         )
-        logger.info(f"Encoded prompt: {encoded_prompt}")
         encoded_prompt = encoded_prompt.to(self.device)
 
-        if encoded_prompt.size()[-1] == 0:
-            input_ids = None
-        else:
-            input_ids = encoded_prompt
-
+        # Run the generation
+        input_ids = encoded_prompt if encoded_prompt.size()[-1] != 0 else None
         output_sequences = self.model.generate(
             input_ids=input_ids,
-            max_length=128 + len(encoded_prompt[0]),
-            temperature=1.0,
-            top_k=0,
-            top_p=0.9,
-            repetition_penalty=1.0,
+            max_length=max_tokens + len(encoded_prompt[0]),
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
             do_sample=True,
-            num_return_sequences=1,
+            num_return_sequences=len(prompts),
         )
 
         # Remove the batch dimension when returning multiple sequences
@@ -122,8 +110,9 @@ class Model(AbstractModel):
         random_logprobs = []
         random_tokens = []
 
+        logger.info(f"About to loop over output sequences...")
         for generated_sequence_idx, generated_sequence in enumerate(output_sequences):
-            print(f"=== GENERATED SEQUENCE {generated_sequence_idx + 1} ===")
+            logger.info(f"=== GENERATED SEQUENCE {generated_sequence_idx + 1} ===")
             generated_sequence = generated_sequence.tolist()
 
             # Decode text
@@ -132,14 +121,12 @@ class Model(AbstractModel):
             # Remove all text after the stop token
             #text = text[: text.find(stop_sequence) if stop_sequence else None]
 
-            # Add the prompt at the beginning of the sequence.
+            # Add the prompt at the beginning of the sequence. 
             # Remove the excess text that was used for pre-processing
             total_sequence = text[
                 len(tokenizer.decode(encoded_prompt[0], clean_up_tokenization_spaces=True)) :
             ]
-
             generated_sequences.append(total_sequence)
-            print(total_sequence)
 
             # TODO: Add the real text tokens
             random_tokens.extend(re.split(r"(\s+)", total_sequence))
@@ -148,9 +135,11 @@ class Model(AbstractModel):
             for _ in range(len(random_tokens)):
                 random_logprobs.append(random.uniform(-3, -0.001))
 
-        generated_text = "".join(str(x) for x in total_sequence)
-
-        return {"sequences": np.array(generated_sequences)}
+        return {
+            "sequences": np.array(generated_sequences, dtype="S"),
+            "logprobs": np.array(random_logprobs, dtype="f"),
+            "tokens": np.array(random_tokens, dtype="S")
+        }
 
 
     @batch

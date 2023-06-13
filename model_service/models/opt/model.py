@@ -3,6 +3,7 @@ import cloudpickle
 import codecs
 from collections import defaultdict
 import json
+import logging
 import numpy as np
 import os
 import pickle
@@ -11,6 +12,7 @@ import random
 import threading
 import time
 import torch
+from typing import Dict, Callable
 
 from metaseq import options
 from metaseq.dataclass.configs import MetaseqConfig
@@ -42,6 +44,9 @@ cfg = None
 is_model_loaded = False
 logger = build_logger()
 BATCH_QUEUE = PriorityQueueRingShard()
+
+logger = logging.getLogger("kaleidoscope.model_service.opt")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
 
 def encode_obj(obj):
@@ -94,9 +99,13 @@ class Model(AbstractModel):
 
     def load_default_args(self, config_file):
         """Load model config"""
-        with json.loads(config_file) as config:
-            default_args = config["parameters"]
-        self.default_args = {k: v["default"] for k, v in default_args.items() if v}
+        try:
+            with json.loads(config_file) as config:
+                default_args = config["parameters"]
+            logger.info(default_args)
+            self.default_args = {k: v["default"] for k, v in default_args.items() if v}
+        except Exception as err:
+            logger.error(f"Failed to load model default configuration: {err}")
         
     def bind(self, triton):
         triton.bind(
@@ -104,16 +113,17 @@ class Model(AbstractModel):
             infer_func=self.infer,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=int, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=int, shape=(1,), optional=True),
-                Tensor(name='temperature', dtype=float, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=int, shape=(1,), optional=True),
+                Tensor(name='max_tokens', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='repitition_penalty', dtype=np.float32, shape=(1,), optional=True)
             ],
             outputs=[
-                Tensor(name="sequences", dtype=bytes, shape=(-1,)),
-                # Tensor(name="text", dtype=bytes, shape=(-1,)),
-                # Tensor(name="tokens", dtype=bytes, shape=(-1,)),
-                # Tensor(name="logprobs", dtype=bytes, shape=(-1,)),
+                Tensor(name="sequences", dtype=object, shape=(-1,)),
+                Tensor(name="tokens", dtype=object, shape=(-1,)),
+                Tensor(name="logprobs", dtype=np.float32, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -122,17 +132,17 @@ class Model(AbstractModel):
             infer_func=self.get_activations,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=int, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=int, shape=(1,), optional=True),
-                Tensor(name='temperature', dtype=float, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=int, shape=(1,), optional=True),
-                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,)),
+                Tensor(name='max_tokens', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='repitition_penalty', dtype=np.float32, shape=(1,), optional=True)
             ],
             outputs=[
-                Tensor(name="sequences", dtype=bytes, shape=(-1,)),
-                # Tensor(name="text", dtype=bytes, shape=(-1,)),
-                # Tensor(name="tokens", dtype=bytes, shape=(-1,)),
-                # Tensor(name="logprobs", dtype=bytes, shape=(-1,)),
+                Tensor(name="sequences", dtype=object, shape=(-1,)),
+                Tensor(name="tokens", dtype=object, shape=(-1,)),
+                Tensor(name="logprobs", dtype=np.float32, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -169,102 +179,13 @@ class Model(AbstractModel):
         # final case: multi pre-tokenized
         assert len(prompts[0]) > 0
 
-
-
-    #     if isinstance(prompts, str):
-    #         # single string. tokenize and turn it to the single pre-tokenized case
-    #         prompts = [encode_fn(generator, prompts)]
-    #     assert isinstance(prompts, list)
-    #     assert len(prompts) > 0
-    #     if isinstance(prompts[0], str):
-    #         # multi string
-    #         prompts = [encode_fn(generator, p) for p in prompts]
-    #     elif isinstance(prompts[0], int):
-    #         # single pre-tokenized
-    #         prompts = [prompts]
-    #     assert isinstance(prompts[0], list)
-    #     # final case: multi pre-tokenized
-    #     assert len(prompts[0]) > 0
-
-    #     if "min_tokens" in generation_args:
-    #         generation_args["min_tokens"] = int(generation_args["min_tokens"])
-    #     if "max_tokens" in generation_args:
-    #         generation_args["max_tokens"] = int(generation_args["max_tokens"])
-    #     else:
-    #         generation_args["max_tokens"] = 32
-
-    #     if "stop" in generation_args:
-    #         stop = generation_args["stop"]
-    #         if stop is None:
-    #             pass
-    #         elif isinstance(stop, str):
-    #             stop = [encode_fn(generator, stop)[0]]
-    #         else:
-    #             stop = [encode_fn(generator, s)[0] for s in stop]
-    #         generation_args["stop"] = stop
-
-    #     if "temperature" in generation_args:
-    #         generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
-    #     else:
-    #         generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
-
-    #     if "top-p" in generation_args:
-    #         generation_args["top_p"] = round(float(generation_args["top-p"]), 1)
-    #     else:
-    #         generation_args["top_p"] = UNBATCHED_ARG_DICT["top_p"]
-
-    #     # beam search top n
-    #     if "n" in generation_args:
-    #         generation_args["n"] = min(MAX_BEAM, max(1, int(generation_args["n"])))
-    #     else:
-    #         generation_args["n"] = UNBATCHED_ARG_DICT["n"]
-
-
-        """
-        prompts = request.json["prompt"]
-        del request.json["prompt"]
-        generation_args = request.json
-        """
-        
-
-
-        """
-        if "min_tokens" in generation_args:
-            generation_args["min_tokens"] = int(generation_args["min_tokens"])
-        if "max_tokens" in generation_args:
-            generation_args["max_tokens"] = int(generation_args["max_tokens"])
-        else:
-            generation_args["max_tokens"] = 32
-
-        if "stop" in generation_args:
-            stop = generation_args["stop"]
-            if stop is None:
-                pass
-            elif isinstance(stop, str):
-                stop = [encode_fn(generator, stop)[0]]
-            else:
-                stop = [encode_fn(generator, s)[0] for s in stop]
-            generation_args["stop"] = stop
-
-        if "temperature" in generation_args:
-            generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
-        else:
-            generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
-
-        if "top-p" in generation_args:
-            generation_args["top_p"] = round(float(generation_args["top-p"]), 1)
-        else:
-            generation_args["top_p"] = UNBATCHED_ARG_DICT["top_p"]
-
-        # beam search top n
-        if "n" in generation_args:
-            generation_args["n"] = min(MAX_BEAM, max(1, int(generation_args["n"])))
-        else:
-            generation_args["n"] = UNBATCHED_ARG_DICT["n"]
-        """
-
+        # Check the input parameters, and set default values if not present
         generation_args = {}
-        generation_args['max_tokens'] = 32
+        generation_args['max_tokens'] = inputs["max_tokens"][0][0] if "max_tokens" in inputs else 128
+        generation_args['temperature'] = inputs["temperature"][0][0] if "temperature" in inputs else 1.0
+        generation_args['top_p'] = inputs["top_p"][0][0] if "top_p" in inputs else 0.9
+        generation_args['top_k'] = inputs["top_k"][0][0] if "top_k" in inputs else 0
+        generation_args['repetition_penalty'] = inputs["repetition_penalty"][0][0] if "repetition_penalty" in inputs else 1.0
 
         ret_queue = queue.Queue()
         for i, prompt in enumerate(prompts):
@@ -307,102 +228,6 @@ class Model(AbstractModel):
 
         return {"sequences": np.array(generated_sequences)}
     
-    # @batch
-    # def generate(self, request):
-    #     """Generate text using prompt argument"""
-    #     prompts = request.json["prompt"]
-    #     del request.json["prompt"]
-    #     generation_args = request.json
-
-    #     if isinstance(prompts, str):
-    #         # single string. tokenize and turn it to the single pre-tokenized case
-    #         prompts = [encode_fn(generator, prompts)]
-    #     assert isinstance(prompts, list)
-    #     assert len(prompts) > 0
-    #     if isinstance(prompts[0], str):
-    #         # multi string
-    #         prompts = [encode_fn(generator, p) for p in prompts]
-    #     elif isinstance(prompts[0], int):
-    #         # single pre-tokenized
-    #         prompts = [prompts]
-    #     assert isinstance(prompts[0], list)
-    #     # final case: multi pre-tokenized
-    #     assert len(prompts[0]) > 0
-
-    #     if "min_tokens" in generation_args:
-    #         generation_args["min_tokens"] = int(generation_args["min_tokens"])
-    #     if "max_tokens" in generation_args:
-    #         generation_args["max_tokens"] = int(generation_args["max_tokens"])
-    #     else:
-    #         generation_args["max_tokens"] = 32
-
-    #     if "stop" in generation_args:
-    #         stop = generation_args["stop"]
-    #         if stop is None:
-    #             pass
-    #         elif isinstance(stop, str):
-    #             stop = [encode_fn(generator, stop)[0]]
-    #         else:
-    #             stop = [encode_fn(generator, s)[0] for s in stop]
-    #         generation_args["stop"] = stop
-
-    #     if "temperature" in generation_args:
-    #         generation_args["temperature"] = round(float(generation_args["temperature"]), 1)
-    #     else:
-    #         generation_args["temperature"] = UNBATCHED_ARG_DICT["temperature"]
-
-    #     if "top-p" in generation_args:
-    #         generation_args["top_p"] = round(float(generation_args["top-p"]), 1)
-    #     else:
-    #         generation_args["top_p"] = UNBATCHED_ARG_DICT["top_p"]
-
-    #     # beam search top n
-    #     if "n" in generation_args:
-    #         generation_args["n"] = min(MAX_BEAM, max(1, int(generation_args["n"])))
-    #     else:
-    #         generation_args["n"] = UNBATCHED_ARG_DICT["n"]
-
-    #     ret_queue = queue.Queue()
-    #     for i, prompt in enumerate(prompts):
-    #         gen_len = generation_args.get("max_tokens", 0)
-    #         if gen_len + len(prompt) + 1 > MAX_SEQ_LEN:
-    #             # cut off the prompt to always fit with number of generations we need
-    #             # +1 to always have the EOS token
-    #             prompt = prompt[-(MAX_SEQ_LEN - gen_len - 1) :]
-    #         request_object = {"input": prompt, **generation_args}
-    #         BATCH_QUEUE.put(
-    #             WorkItem(
-    #                 cost=len(prompt) + gen_len,
-    #                 uid=i,
-    #                 return_queue=ret_queue,
-    #                 data=request_object,
-    #                 prompt_len=len(prompt),
-    #                 gen_len=gen_len,
-    #             )
-    #         )
-    #     unordered_results = []
-    #     for _ in prompts:
-    #         unordered_results.append(ret_queue.get())
-    #     # resort results by the original ordering
-    #     # weirdly, openai returns to you a flat list if you gave multiple prompts
-    #     reordered = sorted(unordered_results, key=lambda x: x[0])
-    #     results = []
-    #     for prompt, (_, generations) in zip(prompts, reordered):
-    #         if isinstance(generations, Exception):
-    #             raise generations
-    #         results += generations
-
-    #     # Ensure output format is consistent with other kaleidoscope models
-    #     # UPDATE 01-03-23: Return all results instead of just the first one -
-    #     # DOUBT: Risk of combining separate requests?
-    #     response = {k: [] for k in ["text", "tokens", "logprobs", "activations"]}
-    #     for result in results:
-    #         response["text"].append(result["text"])
-    #         response["tokens"].append(result["tokens"])
-    #         response["logprobs"].append(result["token_scores"])
-    #         response["activations"].append(result["activations"])
-
-    #     return response
 
     def get_activations(self, request):
         activation_payload = ActivationPayload(
@@ -458,7 +283,7 @@ class Model(AbstractModel):
         models = generator.load_model()  # noqa: F841
 
         if torch.distributed.get_rank() == 0:
-            print(models[0])  # Cleaner to print
+            logger.info(models[0])  # Cleaner to print
             logger.info(f"Model training: {models[0].training}")
 
         assert len(models) == 1
@@ -507,7 +332,7 @@ class Model(AbstractModel):
 
                 except Exception as err:
                     # continue looping for the next generation so we don't lock up
-                    print(f"Caught exception: {str(err)}")
+                    logger.error(f"Caught exception: {str(err)}")
 
     def batching_loop(self, timeout=100, max_tokens=MAX_BATCH_TOKENS):
         """
@@ -656,6 +481,7 @@ class Model(AbstractModel):
                                 generations = generator.generate(**request_object)
 
                         else:
+                            logger.info(f"About to call generate on request_object={request_object}")
                             generations = generator.generate(**request_object)
 
                     except RuntimeError:
