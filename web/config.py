@@ -2,6 +2,25 @@
 import datetime
 import os
 
+MODEL_CONFIG =  {
+    "models": [
+        {
+            "name": "opt6.7b",
+            "type": "opt",
+            "launch_path": "models/opt/launch_opt6.7b.slurm"
+        },
+        {
+            "name": "opt175b",
+            "type": "opt",
+            "launch_path": "models/opt/launch_opt175b.slurm"
+        },
+        {
+            "name": "gpt2",
+            "type": "gpt2",
+            "launch_path": "models/gpt2/launch_gpt2.slurm"
+        }
+    ] 
+}
 
 class Config:
     """Class for the configuration object loaded by local .env file"""
@@ -39,5 +58,6 @@ class Config:
     CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]
     CELERY_BACKEND_URL = os.environ["CELERY_BACKEND_URL"]
 
+    MODEL_INSTANCE_ACTIVATION_TIMEOUT = datetime.timedelta(minutes=int(os.environ["MODEL_INSTANCE_ACTIVATION_TIMEOUT"]))
     MODEL_INSTANCE_TIMEOUT = datetime.timedelta(minutes=int(os.environ["MODEL_INSTANCE_TIMEOUT"]))
     BATCH_REQUEST_LIMIT = os.environ["BATCH_REQUEST_LIMIT"]

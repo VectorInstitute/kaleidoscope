@@ -14,9 +14,6 @@ from db import db, BaseMixin
 from services import model_service_client
 
 
-MODEL_CONFIG = model_service_client.get_model_config()
-
-
 class ModelInstanceState(ABC):
     """Class for a model instance state"""
 
@@ -94,7 +91,7 @@ class PendingState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:
             current_app.logger.error(f"Job launch for {self._model_instance.name} failed: {err}")
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
+            self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
     def is_healthy(self):
         """Determine model health status"""
@@ -165,7 +162,7 @@ class ActiveState(ModelInstanceState):
             model_instance_id=self._model_instance.id,
             username=username,
         )
-        model_instance_generation.prompts = prompts
+        model_instance_generation.inputs
 
         current_app.logger.info(model_instance_generation)
 
@@ -228,13 +225,13 @@ class ActiveState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
     
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         last_event_datetime = self._model_instance.updated_at
         last_generation = self._model_instance.last_generation()
         if last_generation:
             last_event_datetime = last_generation.created_at
 
-        return (datetime.now() - last_event_datetime) > timeout
+        return (datetime.now() - last_event_datetime) > Config.MODEL_INSTANCE_TIMEOUT
 
 
 class FailedState(ModelInstanceState):
@@ -308,6 +305,19 @@ class ModelInstance(BaseMixin, db.Model):
                     ModelInstanceStates.LAUNCHING,
                     ModelInstanceStates.LOADING,
                     ModelInstanceStates.ACTIVE,
+                )
+            )
+        )
+
+        return db.session.execute(current_instance_query).scalars().all()
+
+    @classmethod
+    def find_loading_instances(cls) -> List[ModelInstance]:
+        """Find the current instances of all models"""
+        current_instance_query = db.select(cls).filter(
+            cls.state_name.in_(
+                (
+                    ModelInstanceStates.LOADING,
                 )
             )
         )
@@ -435,14 +445,3 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
             "prompts": self.prompts,
             "generation": self.generation,
         }
-
-
-# ToDo: Should generalize generation and activation? This needs a design decision.
-# class Activation():
-
-#     def serialize(self):
-#         return {
-#             "model_instance_id": str(self.model_instance_generation_id),
-#             "prompt": self.prompt,
-#             "generation": self.model_generation
-#         }

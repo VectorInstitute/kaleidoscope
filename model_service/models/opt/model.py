@@ -108,7 +108,7 @@ class Model(AbstractModel):
         
     def bind(self, triton):
         triton.bind(
-            model_name=f"{self.model_type}{self.model_variant}_inference",
+            model_name=f"{self.model_name}_generation",
             infer_func=self.infer,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
@@ -145,7 +145,30 @@ class Model(AbstractModel):
             ],
             config=ModelConfig(max_batch_size=128),
         )
+<<<<<<< HEAD
         return triton
+=======
+        # triton.bind(
+        #     model_name=f"{self.model_name}_activations",
+        #     infer_func=self.get_activations,
+        #     inputs=[
+        #         Tensor(name="prompts", dtype=bytes, shape=(1,)),
+        #         Tensor(name='max_tokens', dtype=int, shape=(1,), optional=True),
+        #         Tensor(name='min_tokens', dtype=int, shape=(1,), optional=True),
+        #         Tensor(name='temperature', dtype=float, shape=(1,), optional=True),
+        #         Tensor(name='top_p', dtype=int, shape=(1,), optional=True),
+        #         Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,)),
+        #     ],
+        #     outputs=[
+        #         Tensor(name="sequences", dtype=bytes, shape=(-1,)),
+        #         # Tensor(name="text", dtype=bytes, shape=(-1,)),
+        #         # Tensor(name="tokens", dtype=bytes, shape=(-1,)),
+        #         # Tensor(name="logprobs", dtype=bytes, shape=(-1,)),
+        #     ],
+        #     config=ModelConfig(max_batch_size=128),
+        # )
+        return triton 
+>>>>>>> 2a2486131bcae2df700fcd5b38234aa999491b76
 
     @property
     def rank(self):
@@ -219,15 +242,21 @@ class Model(AbstractModel):
         # Ensure output format is consistent with other kaleidoscope models
         # UPDATE 01-03-23: Return all results instead of just the first one -
         # DOUBT: Risk of combining separate requests?
-        response = {k: [] for k in ["text", "tokens", "logprobs", "activations"]}
-        idx = 0
-        generated_sequences = []
+        # response = {k: [] for k in ["text", "tokens", "logprobs", "activations"]}
+        # idx = 0
+        # generated_sequences = []
+        # response = {}
+        # for result in results:
+        #     generated_sequences.append(np.char.encode(result['text'], "utf-8"))
+
+        response = {k: [] for k in ["text", "tokens", "logprobs"]}
         for result in results:
-            generated_sequences.append(np.char.encode(result['text'], "utf-8"))
+            response["text"].append(np.char.encode(result['text'], "utf-8"))
+            response["tokens"].append(np.char.encode(result['tokens'], "utf-8"))
+            response["logprobs"].append(result['token_scores'])
 
-        return {"sequences": np.array(generated_sequences)}
+        return response
     
-
     def get_activations(self, request):
         activation_payload = ActivationPayload(
             module_names_activation_retrieval = request.json["module_names"],
