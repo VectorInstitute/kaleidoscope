@@ -10,22 +10,23 @@ from services.gateway_service import GatewayServiceClient
 logger = logging.getLogger("kaleidoscope.model_service")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
-def initialize_model(model_name, model_type):
+def initialize_model(model_type, model_variant):
     """Initializes model based on model type
     Args:
         model_type (str): Type of model to load
     """
-    return importlib.import_module(f"models.{model_type}.model").Model(model_name)
+    return importlib.import_module(f"models.{model_type}.model").Model(model_type, model_variant)
 
 class ModelService():
     ''' Model service is responsible for loading and serving a model.
     '''
 
-    def __init__(self, model_instance_id: str, model_name: str, model_type: str, model_path: str, gateway_host: str, gateway_port: int, master_host: str, master_port: int) -> None:
+    def __init__(self, model_instance_id: str, model_type: str, model_variant: str, model_path: str, gateway_host: str, gateway_port: int, master_host: str, master_port: int) -> None:
         """
         Args:
             model_instance_id (str): Unique identifier for model instance
             model_type (str): Type of model to load
+            model_variant (str): Variant of model to load
             model_path (str): Path to pre-trained model
             gateway_host (str): Hostname for gateway service
             gateway_port (int): Port for gateway service
@@ -33,8 +34,8 @@ class ModelService():
             master_port (int): Port for master service
         """
         self.model_instance_id = model_instance_id
-        self.model_name= model_name
         self.model_type = model_type
+        self.model_variant = model_variant if model_variant != "None" else ""
         self.model_path = model_path
 
         self.gateway_host = gateway_host
@@ -49,7 +50,7 @@ class ModelService():
 
         gateway_service = GatewayServiceClient(self.gateway_host, self.gateway_port)
 
-        model = initialize_model(self.model_name, self.model_type)
+        model = initialize_model(self.model_type, self.model_variant)
         model.load(self.model_path)
 
         if model.rank == 0:
@@ -65,16 +66,13 @@ class ModelService():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model_name", required=True, type=str, help="Name of model to load"
+        "--model_type", required=True, type=str, help="Type of model to load (ie. opt, gpt2)"
     )
     parser.add_argument(
-        "--model_type", required=True, type=str, help="Type of model to load"
+        "--model_variant", required=True, type=str, help="Variant of model to load (ie. 6.7b)"
     )
     parser.add_argument(
-        "--model_path",
-        required=True,
-        type=str,
-        help="Path to pre-trained model",
+        "--model_path", required=True, type=str, help="Path to pre-trained model"
     )
     parser.add_argument(
         "--model_instance_id", required=True, type=str
