@@ -1,6 +1,6 @@
 {
     "type": "opt",
-    "path": "/hardcoded/in/docker/container",
+    "path": "/hardcoded/in/opt/container",
     "parameters": {
         "temperature": {
             "type": "float",

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Client for BART classifier sample server."""
+
 import argparse
 import logging
 
@@ -20,7 +20,7 @@ import numpy as np
 
 from pytriton.client import ModelClient
 
-logger = logging.getLogger("examples.huggingface_bart_pytorch.client")
+logger = logging.getLogger("triton.gpt2_client")
 
 
 def main():
@@ -60,7 +60,7 @@ def main():
 
     sequence = np.array(
         [
-            ["Show me the meaning of being lonely"],
+            ["Show me the meaning of "],
             ["I would love to learn cook the Asian street food"],
             ["Carnival in Rio de Janeiro"],
             ["William Shakespeare was a great writer"],
@@ -70,7 +70,7 @@ def main():
     logger.info(f"Sequence: {sequence}")
 
     logger.info(f"Waiting for response...")
-    with ModelClient(args.url, "OPT-6.7B", init_timeout_s=args.init_timeout_s) as client:
+    with ModelClient(args.url, "gpt2_generation", init_timeout_s=args.init_timeout_s) as client:
         for req_idx in range(1, args.iterations + 1):
             logger.info(f"Sending request ({req_idx}).")
             result_dict = client.infer_batch(sequence)
