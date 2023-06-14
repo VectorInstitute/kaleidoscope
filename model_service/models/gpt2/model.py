@@ -48,7 +48,7 @@ class Model(AbstractModel):
                 Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repitition_penalty', dtype=np.float32, shape=(1,), optional=True)
+                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True)
             ],
             outputs=[
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
@@ -136,9 +136,9 @@ class Model(AbstractModel):
                 random_logprobs.append(random.uniform(-3, -0.001))
 
         return {
-            "sequences": np.array(generated_sequences, dtype="S"),
-            "logprobs": np.array(random_logprobs, dtype="f"),
-            "tokens": np.array(random_tokens, dtype="S")
+            "sequences": np.array(generated_sequences, dtype=object),
+            "tokens": np.array(random_tokens, dtype=object),
+            "logprobs": np.array(random_logprobs, dtype=object)
         }
 
 
