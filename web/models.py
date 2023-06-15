@@ -4,13 +4,13 @@ from enum import Enum
 from typing import List, Optional, Dict
 from abc import ABC
 from datetime import datetime
-import uuid
-
+from db import db, BaseMixin
 from flask import current_app
 from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
+from config import Config
 from errors import InvalidStateError
-from db import db, BaseMixin
 from services import model_service_client
 
 
@@ -35,7 +35,7 @@ class ModelInstanceState(ABC):
         """Check if a model is active and ready to service requests"""
         raise InvalidStateError(self)
 
-    def generate(self, username, prompts, generation_args):
+    def generate(self, username, inputs):
         """Send a generation request to a model"""
         raise InvalidStateError(self)
 
@@ -98,7 +98,7 @@ class PendingState(ModelInstanceState):
 
     def is_healthy(self):
         """Determine model health status"""
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
+        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
         if not is_healthy:
             current_app.logger.error(
                 f"Health check for pending model {self._model_instance.name} failed"
@@ -120,7 +120,7 @@ class LaunchingState(ModelInstanceState):
 
     def is_healthy(self):
         """Retrieve model health status"""
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
+        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
         if not is_healthy:
             current_app.logger.error(
                 f"Health check for launching model {self._model_instance.name} failed"
@@ -146,7 +146,7 @@ class LoadingState(ModelInstanceState):
         pass
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
+        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
         if not is_healthy:
             current_app.logger.error(
                 f"Health check for loading model {self._model_instance.name} failed"
@@ -161,21 +161,19 @@ class LoadingState(ModelInstanceState):
 class ActiveState(ModelInstanceState):
     """Class for model active state"""
 
-    def generate(self, username, prompts, generation_args):
+    def generate(self, username, inputs):
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
         )
-        model_instance_generation.inputs
 
         current_app.logger.info(model_instance_generation)
 
         # ToDo - add and save response to generation object in db
         generation_response = model_service_client.generate(
             self._model_instance.host,
-            model_instance_generation.id,
-            prompts,
-            generation_args,
+            self._model_instance.name,
+            inputs
         )
         model_instance_generation.generation = generation_response
         return model_instance_generation
@@ -195,6 +193,7 @@ class ActiveState(ModelInstanceState):
         activations_response = model_service_client.generate_activations(
             self._model_instance.host,
             model_instance_generation.id,
+            self._model_instance.name,
             prompts,
             module_names,
             generation_args,
@@ -221,7 +220,7 @@ class ActiveState(ModelInstanceState):
         return activations_response
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_model_health(self._model_instance.name, self._model_instance.host)
+        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
         if not is_healthy:
             current_app.logger.error(
                 f"Health check for active model {self._model_instance.name} failed"
@@ -229,7 +228,7 @@ class ActiveState(ModelInstanceState):
             self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
         return is_healthy
     
-    def is_timed_out(self):
+    def is_timed_out(self, timeout):
         last_event_datetime = self._model_instance.updated_at
         last_generation = self._model_instance.last_generation()
         if last_generation:
@@ -372,10 +371,8 @@ class ModelInstance(BaseMixin, db.Model):
         """Shutdown model"""
         self._state.shutdown()
 
-    def generate(self, username: str, prompts: List[str], generation_args: Dict) -> Dict:
-        if generation_args is None:
-            generation_args = {}
-        return self._state.generate(username, prompts, generation_args)
+    def generate(self, username: str, inputs: Dict) -> Dict:
+        return self._state.generate(username, inputs)
 
     def get_module_names(self):
         """Retrieve module names"""

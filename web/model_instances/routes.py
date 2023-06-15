@@ -11,9 +11,18 @@ model_instances_bp = Blueprint("models", __name__)
 
 @model_instances_bp.route("/", methods=["GET"])
 async def get_models():
-    current_app.logger.info(f"Received model list request: {request}")
-    current_app.logger.info(MODEL_CONFIG)
-    models = [model['name'] for model in MODEL_CONFIG['models']]
+    current_app.logger.info(f"Model config: {MODEL_CONFIG}")
+    models = []
+    for model in MODEL_CONFIG:
+        try:
+            if not "variants" in model:
+                models.append(model["type"])
+            else:
+                for variant in model["variants"].keys():
+                    models.append(f"{model['type']}-{variant}")
+        except Exception as err:
+            current_app.logger.error(f"Error while processing model {model}: {err}")
+            continue
     return models, 200
 
 
