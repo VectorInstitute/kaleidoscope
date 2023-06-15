@@ -13,7 +13,8 @@ from config import Config
 
 from utils.triton import TritonClient
 
-def get_model_config() -> List:
+# UPDATE (1406): Inserted model_type arg to fetch config for specific model. Set default as None to preserve original function.
+def get_model_config(model_type: str=None) -> List:
     config = []
     try:
         ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_model_config --model_instance_id 0"
@@ -21,6 +22,11 @@ def get_model_config() -> List:
         ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
         #print(f"Get model config SSH output: {ssh_output}")
         config = ast.literal_eval(ssh_output)
+
+        if model_type is not None:
+            for model_cfg in config:
+                if model_cfg["type"] == model_type:
+                    config = [model_cfg]
     except Exception as err:
         print(f"Failed to issue SSH command to job manager: {err}")
     return config
@@ -56,78 +62,82 @@ def shutdown(model_instance_id: str) -> None:
     return
 
 
-DTYPE_MAP = {
-        "uint": np.uint32,
-        "int": np.int32,
-        "float": np.float32,
-        "bool": bool,
-        "object": object
-    }
+# DTYPE_MAP = {
+#         "uint": np.uint32,
+#         "int": np.int32,
+#         "float": np.float32,
+#         "bool": bool,
+#         "object": object
+#     }
 
-def prepare_tensor(name, input):
-    tensor = httpclient.InferInput(
-        name, input.shape, np_to_triton_dtype(input.dtype))
-    tensor.set_data_from_numpy(input)
-    return tensor
+# def prepare_tensor(name, input):
+#     tensor = httpclient.InferInput(
+#         name, input.shape, np_to_triton_dtype(input.dtype))
+#     tensor.set_data_from_numpy(input)
+#     return tensor
 
-def prepare_inputs(input_data, cfg):
-    input_data = np.array(input_data).astype(object)
-    inputs = [prepare_tensor(cfg["input_alias"], input_data)]
-    params = cfg["parameters"]
-    for _, p_dict in params.items():
-        if isinstance(p_dict["value"], list):
-            p_input = np.array([p_dict["value"]] * input_data.shape[0], dtype=DTYPE_MAP[p_dict["type"]])
-        elif isinstance(p_dict["value"], str):
-            raise NotImplementedError
-        else:
-            p_input = (p_dict["value"] * np.ones([input_data.shape[0], 1])).astype(DTYPE_MAP[p_dict["type"]])
-        inputs.append(
-            prepare_tensor(p_dict["alias"], p_input)
-        )
-    return inputs
+# def prepare_inputs(input_data, cfg):
+#     input_data = np.array(input_data).astype(object)
+#     inputs = [prepare_tensor(cfg["input_alias"], input_data)]
+#     params = cfg["parameters"]
+#     for _, p_dict in params.items():
+#         if isinstance(p_dict["value"], list):
+#             p_input = np.array([p_dict["value"]] * input_data.shape[0], dtype=DTYPE_MAP[p_dict["type"]])
+#         elif isinstance(p_dict["value"], str):
+#             raise NotImplementedError
+#         else:
+#             p_input = (p_dict["value"] * np.ones([input_data.shape[0], 1])).astype(DTYPE_MAP[p_dict["type"]])
+#         inputs.append(
+#             prepare_tensor(p_dict["alias"], p_input)
+#         )
+#     return inputs
 
-def update_param_cfg(param_cfg, input_gen_cfg):
-    new_param_cfg = param_cfg.copy()
-    for p_name, p_dict in new_param_cfg["parameters"].items():
-        p_dict.update({
-            "value": input_gen_cfg.get(p_name, p_dict["default"])
-            })
-    return new_param_cfg
+# def update_param_cfg(param_cfg, input_gen_cfg):
+#     new_param_cfg = param_cfg.copy()
+#     for p_name, p_dict in new_param_cfg["parameters"].items():
+#         p_dict.update({
+#             "value": input_gen_cfg.get(p_name, p_dict["default"])
+#             })
+#     return new_param_cfg
+
 
 def generate(
     host: str, generation_id: int, prompts: List[str], generation_config: Dict
 ) -> Dict:
     """Generate into JSON format"""
 
-    current_app.logger.info(f"Sending generation request to http://{host}/generate")
+    client = TritonClient(host)
 
-    # body = {"prompt": prompts, **generation_config}
+    inputs = {"prompts": prompts, **generation_config}
+    print(f"Generation request body: {inputs}")
+    model_name = "gpt2" # TODO: How to pass model_name? Hardcoding gpt2 for time being.
 
-    # current_app.logger.info(f"Generation request body: {body}")
+    # call infer if model is ready
+    # TODO: Error handling if model is not ready?
+    if client.is_model_ready(model_name, task="generation"):
+        response = client.infer(model_name, inputs, task="generation")
 
-    # response = requests.post(f"http://{host}/generate", json=body)
+    # TODO: Verify response type and return dict accordingly
+    return response
 
-    # response_body = response.json()
-    # return response_body
-
-    # Only for GPT-J
-    MODEl_GPTJ_FASTERTRANSFORMER = "ensemble" 
+    # # Only for GPT-J
+    # MODEl_GPTJ_FASTERTRANSFORMER = "ensemble" 
     
-    client = httpclient.InferenceServerClient(host,
-                                              concurrency=1,
-                                              verbose=False)
+    # client = httpclient.InferenceServerClient(host,
+    #                                           concurrency=1,
+    #                                           verbose=False)
     
-    inputs = [[elm] for elm in prompts]
-    param_config = json.load(open("../../models/GPT-J/config.json", "r")) # TODO - Query model service to fetch param config
-    param_config = update_param_cfg(param_config, generation_config)
-    from pprint import pprint
-    pprint(param_config)
-    inputs = prepare_inputs(inputs, param_config)
+    # inputs = [[elm] for elm in prompts]
+    # param_config = json.load(open("../../models/GPT-J/config.json", "r")) # TODO - Query model service to fetch param config
+    # param_config = update_param_cfg(param_config, generation_config)
+    # from pprint import pprint
+    # pprint(param_config)
+    # inputs = prepare_inputs(inputs, param_config)
 
-    result = client.infer(MODEl_GPTJ_FASTERTRANSFORMER, inputs)
-    output0 = result.as_numpy("OUTPUT_0")
-    print(output0.shape)
-    print(output0)
+    # result = client.infer(MODEl_GPTJ_FASTERTRANSFORMER, inputs)
+    # output0 = result.as_numpy("OUTPUT_0")
+    # print(output0.shape)
+    # print(output0)
 
 
 def generate_activations(
