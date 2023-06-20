@@ -117,9 +117,12 @@ class Model(AbstractModel):
                 Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.int16, shape=(1,), optional=True),
                 Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True)
+                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
+                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
+                Tensor(name='echo', dtype=np.bool, shape=(1,), optional=True)
             ],
             outputs=[
+                Tensor(name="activations", dtype=np.float32, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
                 Tensor(name="logprobs", dtype=np.float32, shape=(-1,)),
@@ -136,9 +139,12 @@ class Model(AbstractModel):
                 Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.int16, shape=(1,), optional=True),
                 Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True)
+                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
+                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
+                Tensor(name='echo', dtype=np.bool, shape=(1,), optional=True)
             ],
             outputs=[
+                Tensor(name="activations", dtype=np.float32, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
                 Tensor(name="logprobs", dtype=np.float32, shape=(-1,)),
@@ -155,6 +161,17 @@ class Model(AbstractModel):
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
         return self.generate(inputs)
+    
+    @batch
+    def get_activations(self, **inputs):
+        activation_payload = ActivationPayload(
+            module_names_activation_retrieval = inputs["module_names"][0][0],
+        )
+        inputs["encoded_activation_payload"][:] = activation_payload
+        inputs["echo"][:] = True
+        inputs["max_tokens"][:] = 0
+        response = self.generate(inputs)
+        return response
 
     def generate(self, inputs):
 
@@ -183,6 +200,9 @@ class Model(AbstractModel):
         generation_args['top_p'] = float(inputs["top_p"][0][0]) if "top_p" in inputs else 0.9
         generation_args['top_k'] = int(inputs["top_k"][0][0]) if "top_k" in inputs else 0
         generation_args['repetition_penalty'] = float(inputs["repetition_penalty"][0][0]) if "repetition_penalty" in inputs else 1.0
+
+        generation_args['encoded_activation_payload'] = inputs["encoded_activation_payload"][0][0] if "encoded_activation_payload" in inputs else None
+        generation_args['echo'] = bool(inputs["echo"][0][0]) if "echo" in inputs else False
 
         ret_queue = queue.Queue()
         for i, prompt in enumerate(prompts):
@@ -215,31 +235,24 @@ class Model(AbstractModel):
             results += generations
 
         # Compile the results into a structure consistent with other kaleidoscope models
+        activations = []
         generated_sequences = []
         tokens = []
         logprobs = []
         for result in results:
+            activations.append(result["activations"])
             generated_sequences.append(result["text"])
             tokens.append(result["tokens"])
             logprobs.append(result["token_scores"])
 
         return_val = {
+            "activations": np.array(activations, dtype=object),
             "sequences": np.array(generated_sequences, dtype=object),
             "tokens": np.array(tokens, dtype=object),
             "logprobs": np.array(logprobs, dtype=object)
         }
 
         return return_val
-
-    def get_activations(self, request):
-        activation_payload = ActivationPayload(
-            module_names_activation_retrieval = request.json["module_names"],
-        )
-        request.json["encoded_activation_payload"] = activation_payload
-        request.json["echo"] = True
-        request.json["max_tokens"] = 0
-        response = self.generate(request)
-        return response
 
     def edit_activations(self, request):
         # Extract modules + editing functions from encoded request
