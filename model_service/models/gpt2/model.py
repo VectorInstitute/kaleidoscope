@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import random
 import re
+import sys
 import torch
 
 from ..abstract_model import AbstractModel
@@ -10,8 +11,6 @@ from ..abstract_model import AbstractModel
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
-
-from ..abstract_model import AbstractModel
 
 
 logger = logging.getLogger("kaleidoscope.model_service.gpt2")
@@ -126,7 +125,7 @@ class Model(AbstractModel):
             total_sequence = text[
                 len(tokenizer.decode(encoded_prompt[0], clean_up_tokenization_spaces=True)) :
             ]
-            generated_sequences.append(total_sequence)
+            generated_sequences.append(total_sequence.encode('utf-8').strip())
 
             # TODO: Add the real text tokens
             random_tokens.extend(re.split(r"(\s+)", total_sequence))
@@ -137,8 +136,8 @@ class Model(AbstractModel):
 
         return {
             "sequences": np.array(generated_sequences, dtype="S"),
-            "logprobs": np.array(random_logprobs, dtype="f"),
-            "tokens": np.array(random_tokens, dtype="S")
+            "logprobs": np.array(random_logprobs, dtype="f")
+            #"tokens": np.array(random_tokens, dtype="S")
         }
 
 
