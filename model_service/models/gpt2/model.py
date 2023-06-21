@@ -47,7 +47,7 @@ class Model(AbstractModel):
                 Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repitition_penalty', dtype=np.float32, shape=(1,), optional=True)
+                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True)
             ],
             outputs=[
                 Tensor(name="sequences", dtype=object, shape=(-1,)),

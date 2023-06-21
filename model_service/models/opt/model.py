@@ -108,7 +108,7 @@ class Model(AbstractModel):
         
     def bind(self, triton):
         triton.bind(
-            model_name=f"{self.model_name}_generation",
+            model_name=f"{self.model_type}{self.model_variant}_generation",
             infer_func=self.infer,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
@@ -117,7 +117,7 @@ class Model(AbstractModel):
                 Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.int16, shape=(1,), optional=True),
                 Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
-                Tensor(name='repitition_penalty', dtype=np.float32, shape=(1,), optional=True)
+                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True)
             ],
             outputs=[
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
@@ -136,7 +136,7 @@ class Model(AbstractModel):
                 Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.int16, shape=(1,), optional=True),
                 Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
-                Tensor(name='repitition_penalty', dtype=np.float32, shape=(1,), optional=True)
+                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True)
             ],
             outputs=[
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
@@ -158,8 +158,6 @@ class Model(AbstractModel):
 
     def generate(self, inputs):
 
-        logger.info(inputs)
-        
         prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
         prompts = np.squeeze(prompts, axis=-1).tolist()
 
@@ -180,11 +178,11 @@ class Model(AbstractModel):
 
         # Check the input parameters, and set default values if not present
         generation_args = {}
-        generation_args['max_tokens'] = inputs["max_tokens"][0][0] if "max_tokens" in inputs else 128
-        generation_args['temperature'] = inputs["temperature"][0][0] if "temperature" in inputs else 1.0
-        generation_args['top_p'] = inputs["top_p"][0][0] if "top_p" in inputs else 0.9
-        generation_args['top_k'] = inputs["top_k"][0][0] if "top_k" in inputs else 0
-        generation_args['repetition_penalty'] = inputs["repetition_penalty"][0][0] if "repetition_penalty" in inputs else 1.0
+        generation_args['max_tokens'] = int(inputs["max_tokens"][0][0]) if "max_tokens" in inputs else 128
+        generation_args['temperature'] = float(inputs["temperature"][0][0]) if "temperature" in inputs else 1.0
+        generation_args['top_p'] = float(inputs["top_p"][0][0]) if "top_p" in inputs else 0.9
+        generation_args['top_k'] = int(inputs["top_k"][0][0]) if "top_k" in inputs else 0
+        generation_args['repetition_penalty'] = float(inputs["repetition_penalty"][0][0]) if "repetition_penalty" in inputs else 1.0
 
         ret_queue = queue.Queue()
         for i, prompt in enumerate(prompts):
@@ -216,24 +214,23 @@ class Model(AbstractModel):
                 raise generations
             results += generations
 
-        # Ensure output format is consistent with other kaleidoscope models
-        # UPDATE 01-03-23: Return all results instead of just the first one -
-        # DOUBT: Risk of combining separate requests?
-        # response = {k: [] for k in ["text", "tokens", "logprobs", "activations"]}
-        # idx = 0
-        # generated_sequences = []
-        # response = {}
-        # for result in results:
-        #     generated_sequences.append(np.char.encode(result['text'], "utf-8"))
-
-        response = {k: [] for k in ["text", "tokens", "logprobs"]}
+        # Compile the results into a structure consistent with other kaleidoscope models
+        generated_sequences = []
+        tokens = []
+        logprobs = []
         for result in results:
-            response["text"].append(np.char.encode(result['text'], "utf-8"))
-            response["tokens"].append(np.char.encode(result['tokens'], "utf-8"))
-            response["logprobs"].append(result['token_scores'])
+            generated_sequences.append(result["text"])
+            tokens.append(result["tokens"])
+            logprobs.append(result["token_scores"])
 
-        return response
-    
+        return_val = {
+            "sequences": np.array(generated_sequences, dtype=object),
+            "tokens": np.array(tokens, dtype=object),
+            "logprobs": np.array(logprobs, dtype=object)
+        }
+
+        return return_val
+
     def get_activations(self, request):
         activation_payload = ActivationPayload(
             module_names_activation_retrieval = request.json["module_names"],
@@ -259,11 +256,10 @@ class Model(AbstractModel):
             module_editing_fn_pairs=editing_fns,
         )
 
-        logger.info(f"About to edit activations, payload: {activation_payload}")
         request.json["encoded_activation_payload"] = encode_obj(activation_payload)
         request.json["echo"] = True
         request.json["max_tokens"] = 0
-        logger.info(f"Sending activation edit request: {request}")
+
         response = self.generate(request)
 
         return response
@@ -421,7 +417,6 @@ class Model(AbstractModel):
                     # use this to check for correctness
                     unique_dict = {}
 
-                    logger.info(f"length of batch is {len(batch)}")
                     for work_item in batch:
                         ro = work_item.data
                         request_object["inputs"].append(ro["input"])
@@ -499,7 +494,6 @@ class Model(AbstractModel):
 
                     # broadcast them back
                     for i, (work_item, gen) in enumerate(zip(batch, generations)):
-
                         if not isinstance(gen, Exception):
                             assert len(gen) == 1
                             assert "activations" not in gen

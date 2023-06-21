@@ -27,7 +27,7 @@ def prepare_prompts_tensor(prompts, inputs_config):
     return tensor
     
 def prepare_param_tensor(input, inputs_config, batch_size):
-    name, value = input
+    name, value = input # DOUBT: What about those params which were not passed by the user, will default values be picked?
     input_config = [input_config for input_config in inputs_config if input_config['name'] == name][0]
 
     triton_dtype = input_config['data_type'].split('_')[1]
@@ -62,7 +62,7 @@ class TritonClient():
 
     def infer(self, model_name, inputs, task="generation"):
         model_bind_name = f'{model_name}_{task}'
-        task_config = self._client.get_model_config(model_bind_name)
+        task_config = self._client.get_model_config(model_bind_name) # DOUBT: What does this task config contain?
 
         inputs_wrapped = prepare_inputs(inputs, task_config['input'])
 

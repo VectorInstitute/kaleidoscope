@@ -125,13 +125,10 @@ RUN pip install -r requirements.txt
 
 # Now clone and build FasterTransformer
 # NOTE: This will take 1-2 hours and your computer will be completely useless while compiling. Save all your work first!
-RUN git clone https://github.com/NVIDIA/FasterTransformer.git
-RUN mkdir -p FasterTransformer/build
-WORKDIR /workspace/FasterTransformer/build
-RUN git submodule init && git submodule update
-RUN cmake -DSM=xx -DCMAKE_BUILD_TYPE=Release -DBUILD_PYT=ON -DBUILD_MULTI_GPU=ON ..
-RUN make -j4
-
-
-
+#RUN git clone https://github.com/NVIDIA/FasterTransformer.git
+#RUN mkdir -p FasterTransformer/build
+#WORKDIR /workspace/FasterTransformer/build
+#RUN git submodule init && git submodule update
+#RUN cmake -DSM=xx -DCMAKE_BUILD_TYPE=Release -DBUILD_PYT=ON -DBUILD_MULTI_GPU=ON ..
+#RUN make -j4
 
