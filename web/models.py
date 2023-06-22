@@ -166,8 +166,7 @@ class ActiveState(ModelInstanceState):
             model_instance_id=self._model_instance.id,
             username=username,
         )
-
-        current_app.logger.info(model_instance_generation)
+        model_instance_generation.prompts = inputs["prompts"]
 
         # ToDo - add and save response to generation object in db
         generation_response = model_service_client.generate(
