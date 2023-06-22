@@ -108,7 +108,7 @@ class Model(AbstractModel):
         
     def bind(self, triton):
         triton.bind(
-            model_name=f"{self.model_type}{self.model_variant}_generation",
+            model_name=f"{self.model_type}-{self.model_variant}_generation",
             infer_func=self.infer,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
@@ -127,7 +127,7 @@ class Model(AbstractModel):
             config=ModelConfig(max_batch_size=128),
         )
         triton.bind(
-            model_name=f"{self.model_type}{self.model_variant}_activations",
+            model_name=f"{self.model_type}-{self.model_variant}_activations",
             infer_func=self.get_activations,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
@@ -145,16 +145,27 @@ class Model(AbstractModel):
             ],
             config=ModelConfig(max_batch_size=128),
         )
-        return triton 
+        return triton
 
     @property
     def rank(self):
         return torch.distributed.get_rank()
-    
+
     @batch
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
         return self.generate(inputs)
+    
+    @batch
+    def get_activations(self, **inputs):
+        activation_payload = ActivationPayload(
+            module_names_activation_retrieval = inputs["module_names"][0][0],
+        )
+        inputs["encoded_activation_payload"][:] = activation_payload
+        inputs["echo"][:] = True
+        inputs["max_tokens"][:] = 0
+        response = self.generate(inputs)
+        return response
 
     def generate(self, inputs):
 
@@ -183,6 +194,9 @@ class Model(AbstractModel):
         generation_args['top_p'] = float(inputs["top_p"][0][0]) if "top_p" in inputs else 0.9
         generation_args['top_k'] = int(inputs["top_k"][0][0]) if "top_k" in inputs else 0
         generation_args['repetition_penalty'] = float(inputs["repetition_penalty"][0][0]) if "repetition_penalty" in inputs else 1.0
+
+        generation_args['encoded_activation_payload'] = inputs["encoded_activation_payload"][0][0] if "encoded_activation_payload" in inputs else None
+        generation_args['echo'] = bool(inputs["echo"][0][0]) if "echo" in inputs else False
 
         ret_queue = queue.Queue()
         for i, prompt in enumerate(prompts):
@@ -215,6 +229,7 @@ class Model(AbstractModel):
             results += generations
 
         # Compile the results into a structure consistent with other kaleidoscope models
+        activations = []
         generated_sequences = []
         tokens = []
         logprobs = []
@@ -230,16 +245,6 @@ class Model(AbstractModel):
         }
 
         return return_val
-
-    def get_activations(self, request):
-        activation_payload = ActivationPayload(
-            module_names_activation_retrieval = request.json["module_names"],
-        )
-        request.json["encoded_activation_payload"] = activation_payload
-        request.json["echo"] = True
-        request.json["max_tokens"] = 0
-        response = self.generate(request)
-        return response
 
     def edit_activations(self, request):
         # Extract modules + editing functions from encoded request
