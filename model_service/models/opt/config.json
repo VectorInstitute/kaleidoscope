@@ -21,6 +21,16 @@
             "type": "int",
             "default": 32,
             "description": "Maximum number of tokens to generate."
+        },
+        "encoded_activation_payload": {
+            "type": "str",
+            "default": null,
+            "description": "Encoded activation payload."
+        },
+        "echo": {
+            "type": "bool",
+            "default": false,
+            "description": "Echo input text."
         }
     },
     "variants": {
