@@ -89,15 +89,23 @@ def get_module_names(host: str) -> Dict:
     current_app.logger.info(response_body)
     return response_body
 
-
-def verify_model_health(model_name: str, host: str) -> bool:
-    # TODO - need model_name?
+def verify_job_health(model_instance_id: str) -> bool:
     try:
-        response = requests.get(f"http://{host}/v2/health/ready")
-        print(f"Health check response: {response}")
-        return response.status_code == 200
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
+        #print(f"Get job health SSH command: {ssh_command}")
+        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
+        #print(f"SSH get job health output: [{ssh_output}]")
+
+        # If we didn't get any output from SSH, the job doesn't exist
+        if not ssh_output.strip(' \n'):
+            current_app.logger.info("No output from ssh, the job doesn't exist")
+            return False
+
+        # For now, assume that any output means the job is healthy
+        print("The job is healthy")
+        return True
     except Exception as err:
-        print(f"Model health verification error:: {err}")
+        print(f"Failed to issue SSH command to job manager: {err}")
         return False
 
 def verify_model_instance_active(host: str, model_name: str) -> bool:
@@ -106,7 +114,7 @@ def verify_model_instance_active(host: str, model_name: str) -> bool:
         return triton_client.is_model_ready(model_name, task="generation")
 
     except Exception as err:
-        current_app.logger.error(f"Model active health check failed: {err}")
+        current_app.logger.error(f"Model active check failed: {err}")
         return False
 
 def verify_model_health(host: str, model_name: str) -> bool:
@@ -115,7 +123,7 @@ def verify_model_health(host: str, model_name: str) -> bool:
         return triton_client.is_model_ready(model_name, task="generation")
 
     except Exception as err:
-        current_app.logger.error(f"Model failed health check: {err}")
+        current_app.logger.error(f"Model health failed check: {err}")
         return False
 
 def shutdown(model_instance_id: str) -> None:
@@ -130,7 +138,6 @@ def shutdown(model_instance_id: str) -> None:
 
 def generate(host: str, model_name: str, inputs: Dict) -> Dict:
 
-    current_app.logger.info(f"Model service client sending generation request to {model_name} on host {host} with inputs: {inputs}")
     triton_client = TritonClient(host)
     return triton_client.infer(model_name, inputs, task="generation")
 

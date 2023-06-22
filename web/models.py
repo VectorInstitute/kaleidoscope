@@ -98,7 +98,7 @@ class PendingState(ModelInstanceState):
 
     def is_healthy(self):
         """Determine model health status"""
-        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
+        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
             current_app.logger.error(
                 f"Health check for pending model {self._model_instance.name} failed"
@@ -120,7 +120,7 @@ class LaunchingState(ModelInstanceState):
 
     def is_healthy(self):
         """Retrieve model health status"""
-        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
+        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
             current_app.logger.error(
                 f"Health check for launching model {self._model_instance.name} failed"
@@ -146,7 +146,7 @@ class LoadingState(ModelInstanceState):
         pass
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
+        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
         if not is_healthy:
             current_app.logger.error(
                 f"Health check for loading model {self._model_instance.name} failed"
