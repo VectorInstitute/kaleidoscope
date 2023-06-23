@@ -24,4 +24,4 @@ module load singularity-ce/3.8.2
 # Send registration request to gateway 
 curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_HOST"':8080"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
 
-singularity exec --nv --bind /checkpoint,/ssd003,/ssd005 /ssd005/projects/llm/triton/pytriton_base.sif python3 $model_service_dir/model_service.py --model_type gpt2 --model_variant None --model_path /checkpoint/opt_test/gpt2 --model_instance_id $SLURM_JOB_NAME --gateway_host $gateway_host --gateway_port $gateway_port --master_host $MASTER_HOST --master_port $MASTER_PORT
+singularity exec --nv --bind /checkpoint,/ssd003,/ssd005 /ssd005/projects/llm/triton/pytriton_base.sif python3 $model_service_dir/model_service.py --model_type gpt2 --model_variant None --model_path /ssd005/projects/llm/gpt2 --model_instance_id $SLURM_JOB_NAME --gateway_host $gateway_host --gateway_port $gateway_port --master_host $MASTER_HOST --master_port $MASTER_PORT
