@@ -112,20 +112,20 @@ class Model(AbstractModel):
             infer_func=self.infer,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=np.int16, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int16, shape=(1,), optional=True),
-                Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
                 # Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
                 # Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
-                Tensor(name="activations", dtype=np.float32, shape=(-1,)),
+                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=np.float32, shape=(-1,)),
+                Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -134,20 +134,20 @@ class Model(AbstractModel):
             infer_func=self.get_activations,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=np.int16, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int16, shape=(1,), optional=True),
-                Tensor(name='temperature', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
                 # Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
                 # Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
-                Tensor(name="activations", dtype=np.float32, shape=(-1,)),
+                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=np.float32, shape=(-1,)),
+                Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
