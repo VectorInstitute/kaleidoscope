@@ -1,0 +1,8 @@
+{
+    "type": "llama",
+    "path": "/ssd005/projects/llm/llama/LLaMA/30B",
+    "parameters": {},
+    "variants": {
+        "30b": {}
+    }
+}
