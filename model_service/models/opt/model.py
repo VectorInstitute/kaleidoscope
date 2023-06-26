@@ -122,7 +122,7 @@ class Model(AbstractModel):
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
-                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
+#                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
                 Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
@@ -204,9 +204,6 @@ class Model(AbstractModel):
         generation_args['encoded_activation_payload'] = inputs["encoded_activation_payload"][0][0] if "encoded_activation_payload" in inputs else None
         generation_args['echo'] = bool(inputs["echo"][0][0]) if "echo" in inputs else False
 
-        generation_args['encoded_activation_payload'] = inputs["encoded_activation_payload"][0][0] if "encoded_activation_payload" in inputs else None
-        generation_args['echo'] = bool(inputs["echo"][0][0]) if "echo" in inputs else False
-
         ret_queue = queue.Queue()
         for i, prompt in enumerate(prompts):
             gen_len = generation_args.get("max_tokens", 0)
@@ -249,10 +246,10 @@ class Model(AbstractModel):
             logprobs.append(result["token_scores"])
 
         return_val = {
-            "activations": np.array(activations, dtype=object),
+ #           "activations": np.array(activations, dtype=object),
             "sequences": np.array(generated_sequences, dtype=object),
             "tokens": np.array(tokens, dtype=object),
-            "logprobs": np.array(logprobs, dtype=object)
+            "logprobs": np.array(logprobs, dtype=np.float64)
         }
 
         return return_val
