@@ -118,7 +118,7 @@ class Model(AbstractModel):
                 Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
             ],
             outputs=[
-               Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
+                Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
                 Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
@@ -138,7 +138,7 @@ class Model(AbstractModel):
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
-                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
+                Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
                 Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
