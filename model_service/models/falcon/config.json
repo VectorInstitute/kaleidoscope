@@ -1,0 +1,36 @@
+{
+    "type": "falcon",
+    "path": "/hardcoded/in/launch/file",
+    "parameters": {
+        "max_tokens": {
+            "type": "int",
+            "default": 32,
+            "description": "Maximum number of tokens to generate."
+        },
+        "min_tokens": {
+            "type": "int",
+            "default": 1,
+            "description": "Minimum number of tokens to generate."
+        },
+        "temperature": {
+            "type": "float",
+            "default": 1.0,
+            "description": "Temperature of the sampling distribution."
+        },
+        "top_p": {
+            "type": "float",
+            "default": 0.0,
+            "description": "Cumulative probability of top tokens to consider for sampling."
+        },
+        "top_k": {
+            "type": "int",
+            "default": 1,
+            "description": "Number of top tokens to consider for sampling."
+        },
+        "repetition_penalty": {
+            "type": "float",
+            "default": 1.0,
+            "description": "Penalty for repeating tokens."
+        }
+    }
+}
