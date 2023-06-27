@@ -115,14 +115,10 @@ class Model(AbstractModel):
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
-                # Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
-                # Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
-                Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
+                Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
             ],
             outputs=[
-#                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
+               Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
                 Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
@@ -137,9 +133,7 @@ class Model(AbstractModel):
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
-                # Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
-                # Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
@@ -164,10 +158,9 @@ class Model(AbstractModel):
     
     @batch
     def get_activations(self, **inputs):
-        activation_payload = ActivationPayload(
-            module_names_activation_retrieval = inputs["module_names"][0][0],
+        inputs["encoded_activation_payload"][:] = ActivationPayload(
+            module_names_activation_retrieval = inputs["encoded_activation_payload"][0][0],
         )
-        inputs["encoded_activation_payload"][:] = activation_payload
         inputs["echo"][:] = True
         inputs["max_tokens"][:] = 0
         response = self.generate(inputs)
@@ -198,8 +191,6 @@ class Model(AbstractModel):
         generation_args['max_tokens'] = int(inputs["max_tokens"][0][0]) if "max_tokens" in inputs else 128
         generation_args['temperature'] = float(inputs["temperature"][0][0]) if "temperature" in inputs else 1.0
         generation_args['top_p'] = float(inputs["top_p"][0][0]) if "top_p" in inputs else 0.9
-        # generation_args['top_k'] = int(inputs["top_k"][0][0]) if "top_k" in inputs else 0
-        # generation_args['repetition_penalty'] = float(inputs["repetition_penalty"][0][0]) if "repetition_penalty" in inputs else 1.0
 
         generation_args['encoded_activation_payload'] = inputs["encoded_activation_payload"][0][0] if "encoded_activation_payload" in inputs else None
         generation_args['echo'] = bool(inputs["echo"][0][0]) if "echo" in inputs else False
@@ -246,7 +237,7 @@ class Model(AbstractModel):
             logprobs.append(result["token_scores"])
 
         return_val = {
- #           "activations": np.array(activations, dtype=object),
+           "activations": np.array(activations, dtype=np.bytes_),
             "sequences": np.array(generated_sequences, dtype=object),
             "tokens": np.array(tokens, dtype=object),
             "logprobs": np.array(logprobs, dtype=np.float64)
