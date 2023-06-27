@@ -1,14 +1,15 @@
-"""Module for OPT LLM configurations"""
+"""Module for llama LLM configurations"""
 import cloudpickle
 import codecs
 from collections import defaultdict
 import json
 import logging
 import numpy as np
-import os
+import pathlib
 import pickle
 import queue
-import random
+import socket
+import sys
 import threading
 import time
 import torch
@@ -17,6 +18,10 @@ from typing import Dict, Callable
 from ..abstract_model import AbstractModel
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
+
+# Need to add the models/llama directory to Python system path
+cwd = str(pathlib.Path(__file__).parent.resolve())
+sys.path.append(cwd)
 
 from llama import ModelArgs, Transformer, Tokenizer, LLaMA
 import distributed_utils
@@ -36,7 +41,7 @@ MAX_REQUESTS = None
 GENERATOR = None
 LOGGER = build_host_logger()
 
-logger = logging.getLogger("kaleidoscope.model_service.opt")
+logger = logging.getLogger("kaleidoscope.model_service.llama")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
 
@@ -48,8 +53,15 @@ def decode_str(obj_in_str):
     return pickle.loads(codecs.decode(obj_in_str.encode("utf-8"), "base64"))
 
 
+def get_my_ip():
+    """
+    returns ip / hostname of current host
+    """
+    return socket.gethostbyname(socket.gethostname())
+
+
 class Model(AbstractModel):
-    """Class to represent OPT ML model"""
+    """Class to represent llama ML model"""
 
     def __init__(self, model_type, model_variant):
         self.model_type = model_type
@@ -61,7 +73,8 @@ class Model(AbstractModel):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self.model_class.from_pretrained(model_path)
         self.model_path = model_path
-        self.model.to(self.device)
+        self.worker_main()
+        #self.model.to(self.device)
 
 
     def load_default_args(self, config_file):
@@ -218,7 +231,7 @@ class Model(AbstractModel):
         return response
 
 
-    def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
+    def worker_main(self, args):
         """
         Hosted version of the web UI for generation.
         """
@@ -265,7 +278,7 @@ class Model(AbstractModel):
                 target=batching_loop, args=(GENERATOR,), daemon=True,
             )
             thread.start()
-            app.run(host="0.0.0.0", port=PORT, threaded=True)
+            #app.run(host="0.0.0.0", port=PORT, threaded=True)
 
         # Other ranks continuously wait for work
         else:
