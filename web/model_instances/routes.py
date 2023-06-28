@@ -148,7 +148,7 @@ async def get_activations(model_instance_id: str):
             username, inputs
         )
     except Exception as err:
-        current_app.logger.info(f"Activations request failed with error: {err}")
+        current_app.logger.info(f"Activations retrieval request failed with error: {err}")
 
     return jsonify(activations)
 
@@ -163,11 +163,18 @@ async def edit_activations(model_instance_id: str):
     prompts = request.json["prompts"]
     modules = request.json["modules"]
     generation_config = request.json["generation_config"]
-    current_app.logger.info(f"Editing activations for model {model_instance_id} with prompts {prompts} and modules {modules}")
 
-    model_instance = ModelInstance.find_by_id(model_instance_id)
-    activations = model_instance.edit_activations(
-        username, prompts, modules, generation_config
-    )
+    try:
+        model_instance = ModelInstance.find_by_id(model_instance_id)
+        inputs = {
+            "prompts": prompts,
+            "modules": modules,
+            **generation_config
+        }
+        activations = model_instance.edit_activations(
+            username, inputs
+        )
+    except Exception as err:
+        current_app.logger.info(f"Activation editing request failed with error: {err}")
 
     return jsonify(activations), 200
