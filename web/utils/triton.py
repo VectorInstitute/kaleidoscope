@@ -28,9 +28,11 @@ def prepare_prompts_tensor(prompts, inputs_config):
     return tensor
 
 def prepare_param_tensor(input, inputs_config, batch_size):
+    current_app.logger.info(f"Preparing param tensor, input={input}, inputs_config={inputs_config}, batch_size={batch_size}")
     name, value = input
+    current_app.logger.info(f"Preparing param tensor, name={name}, value={value}")
     input_config = [input_config for input_config in inputs_config if input_config['name'] == name][0]
-
+    current_app.logger.info(f"Preparing param tensor, input_config={input_config}")
     triton_dtype = input_config['data_type'].split('_')[1]
 
     input = _param(triton_to_np_dtype(triton_dtype), value, batch_size)
