@@ -24,3 +24,6 @@ RUN git clone https://github.com/facebookresearch/llama.git
 WORKDIR llama
 RUN pip install -r requirements.txt
 RUN pip install -e .
+
+# Install other dependencies
+RUN pip3 install cloudpickle==2.2.1 einops==0.6.1
