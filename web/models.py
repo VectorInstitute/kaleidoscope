@@ -39,7 +39,7 @@ class ModelInstanceState(ABC):
         """Send a generation request to a model"""
         raise InvalidStateError(self)
 
-    def generate_activations(self, username, prompts, module_names, generation_args):
+    def generate_activations(self, username, inputs):
         """Retrieve intermediate activations from a model"""
         raise InvalidStateError(self)
 
@@ -180,7 +180,7 @@ class ActiveState(ModelInstanceState):
     def get_module_names(self):
         return model_service_client.get_module_names(self._model_instance.host)
 
-    def generate_activations(self, username, prompts, module_names, generation_args):
+    def generate_activations(self, username, inputs):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
@@ -191,15 +191,12 @@ class ActiveState(ModelInstanceState):
 
         activations_response = model_service_client.generate_activations(
             self._model_instance.host,
-            model_instance_generation.id,
             self._model_instance.name,
-            prompts,
-            module_names,
-            generation_args,
+            inputs
         )
         return activations_response
 
-    def edit_activations(self, username, prompts, modules, generation_config):
+    def edit_activations(self, username, inputs):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
@@ -210,10 +207,8 @@ class ActiveState(ModelInstanceState):
 
         activations_response = model_service_client.edit_activations(
             self._model_instance.host,
-            model_instance_generation.id,
-            prompts,
-            modules,
-            generation_config,
+            self._model_instance.name,
+            inputs
         )
 
         return activations_response
@@ -380,25 +375,17 @@ class ModelInstance(BaseMixin, db.Model):
     def generate_activations(
         self,
         username: str,
-        prompts: List[str],
-        module_names: List[str],
-        generation_args: Dict,
+        inputs: Dict,
     ) -> Dict:
         """Retrieve intermediate activations for module name argument"""
-        if generation_args is None:
-            generation_args = {}
-        return self._state.generate_activations(username, prompts, module_names, generation_args)
+        return self._state.generate_activations(username, inputs)
 
     def edit_activations(
         self,
         username: str,
-        prompts: List[str],
-        modules: Dict[str, Optional[Callable]],
-        generation_config: Dict = {},
+        inputs: Dict = {},
     ) -> Dict:
-        return self._state.edit_activations(
-            username, prompts, modules, generation_config
-        )
+        return self._state.edit_activations(username, inputs)
 
     def is_healthy(self) -> bool:
         """Retrieve health status"""
