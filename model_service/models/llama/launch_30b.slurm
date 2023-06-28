@@ -1,8 +1,7 @@
 #!/bin/bash
-#SBATCH --mail-type=END,FAIL
 #SBATCH --partition=a40
 #SBATCH --qos=llm
-#SBATCH --mem=0
+#SBATCH --mem=160G
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:4
@@ -22,4 +21,4 @@ export MASTER_ADDR=$(hostname -I | awk '{print $1}')
 # Send registration request to gateway
 curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':51345"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
 
-srun -q llm -p a40 -N "${SLURM_JOB_NUM_NODES}" --gres=gpu:4 --mem=167G -c 32 singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005 /ssd005/projects/llm/llama-30b-latest.sif /usr/bin/python3 -s $model_service_dir/model_service.py --model_type llama --model_variant 30b --model_path $model_path --model_instance_id $SLURM_JOB_NAME --gateway_host $gateway_host --gateway_port $gateway_port --master_host $MASTER_ADDR --master_port 51345
+srun -q llm -p a40 -N "${SLURM_JOB_NUM_NODES}" --gres=gpu:4 --mem=160G -c 16 singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005 /ssd005/projects/llm/llama-30b-latest.sif /usr/bin/python3 -s $model_service_dir/model_service.py --model_type llama --model_variant 30b --model_path $model_path --model_instance_id $SLURM_JOB_NAME --gateway_host $gateway_host --gateway_port $gateway_port --master_host $MASTER_ADDR --master_port 51345
