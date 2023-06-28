@@ -1,14 +1,15 @@
-"""Module for OPT LLM configurations"""
+"""Module for llama LLM configurations"""
 import cloudpickle
 import codecs
 from collections import defaultdict
 import json
 import logging
 import numpy as np
-import os
+import pathlib
 import pickle
 import queue
-import random
+import socket
+import sys
 import threading
 import time
 import torch
@@ -17,6 +18,10 @@ from typing import Dict, Callable
 from ..abstract_model import AbstractModel
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
+
+# Need to add the models/llama directory to Python system path
+cwd = str(pathlib.Path(__file__).parent.resolve())
+sys.path.append(cwd)
 
 from llama import ModelArgs, Transformer, Tokenizer, LLaMA
 import distributed_utils
@@ -27,17 +32,7 @@ from hosting_utils import (
     setup_model_parallel,
     load_llama,
 )
-
-
-# global state (mutable!)
-REQUEST_QUEUE = None
-RESPONSE_QUEUE = None
-MAX_REQUESTS = None
-GENERATOR = None
-LOGGER = build_host_logger()
-
-logger = logging.getLogger("kaleidoscope.model_service.opt")
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
+from hook_utils import get_activation_capture_hook_dict, apply_forward_hook
 
 
 def encode_obj(obj):
@@ -48,8 +43,33 @@ def decode_str(obj_in_str):
     return pickle.loads(codecs.decode(obj_in_str.encode("utf-8"), "base64"))
 
 
+def get_my_ip():
+    """
+    returns ip / hostname of current host
+    """
+    return socket.gethostbyname(socket.gethostname())
+
+
+def get_free_port():
+    sock = socket.socket()
+    sock.bind(('', 0))
+    return sock.getsockname()[1]
+
+
+# global state (mutable!)
+REQUEST_QUEUE = None
+RESPONSE_QUEUE = None
+MAX_REQUESTS = None
+GENERATOR = None
+PORT = get_free_port()
+
+logger = build_host_logger()
+logger = logging.getLogger("kaleidoscope.model_service.llama")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
+
+
 class Model(AbstractModel):
-    """Class to represent OPT ML model"""
+    """Class to represent llama ML model"""
 
     def __init__(self, model_type, model_variant):
         self.model_type = model_type
@@ -59,9 +79,10 @@ class Model(AbstractModel):
 
     def load(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = self.model_class.from_pretrained(model_path)
+        #self.model = self.model_class.from_pretrained(model_path)
         self.model_path = model_path
-        self.model.to(self.device)
+        self.worker_main()
+        #self.model.to(self.device)
 
 
     def load_default_args(self, config_file):
@@ -85,13 +106,13 @@ class Model(AbstractModel):
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
-                # Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
-                # Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
-#                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
+                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
                 Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
@@ -107,8 +128,8 @@ class Model(AbstractModel):
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
-                # Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
-                # Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
+                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
@@ -148,7 +169,7 @@ class Model(AbstractModel):
 
     def generate(self, inputs):
 
-        LOGGER.info(f"Rank{torch.distributed.get_rank()}: completions")
+        logger.info(f"Rank{torch.distributed.get_rank()}: completions")
 
         # Recv request and enqueue
         request_object = RequestObject(
@@ -158,17 +179,17 @@ class Model(AbstractModel):
             top_p=request.json["top_p"],
             encoded_activation_payload=request.json["encoded_activation_payload"]
         )
-        LOGGER.info(f"Rank{torch.distributed.get_rank()}: completions - made "
+        logger.info(f"Rank{torch.distributed.get_rank()}: completions - made "
                     f"RequestObject: {request_object}")
 
         REQUEST_QUEUE.put(request_object)
-        LOGGER.info(f"Rank{torch.distributed.get_rank()}: completions - "
+        logger.info(f"Rank{torch.distributed.get_rank()}: completions - "
                     f"RequestObject enqueued")
 
         # Recv response and parse
         response_object = RESPONSE_QUEUE.get()
 
-        LOGGER.info(f"Rank{torch.distributed.get_rank()}: completions - response "
+        logger.info(f"Rank{torch.distributed.get_rank()}: completions - response "
                     f"recv")
 
         return response_object.json()
@@ -218,7 +239,7 @@ class Model(AbstractModel):
         return response
 
 
-    def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
+    def worker_main(self, args):
         """
         Hosted version of the web UI for generation.
         """
@@ -227,7 +248,7 @@ class Model(AbstractModel):
         global GENERATOR
 
         rank, world_size = setup_model_parallel()
-        LOGGER.info(f"Rank{torch.distributed.get_rank()} loading "
+        logger.info(f"Rank {torch.distributed.get_rank()} loading "
                     f"[{args.model}] ckpt from {args.ckpt_dir}")
 
         if args.model == "llama":
@@ -246,7 +267,7 @@ class Model(AbstractModel):
         )
         print(GENERATOR.model)
 
-        LOGGER.info(f"Rank{torch.distributed.get_rank()} loaded in "
+        logger.info(f"Rank {torch.distributed.get_rank()} loaded in "
                     f"{time.time() - start_time:.2f} seconds")
 
         if torch.distributed.is_initialized():
@@ -260,16 +281,16 @@ class Model(AbstractModel):
         if torch.distributed.get_rank() == 0:
             REQUEST_QUEUE = queue.Queue()
             RESPONSE_QUEUE = queue.Queue()
-            LOGGER.info(f"Worker engaged! {get_my_ip()}:{PORT}")
+            logger.info(f"Worker engaged! {get_my_ip()}:{PORT}")
             thread = threading.Thread(
                 target=batching_loop, args=(GENERATOR,), daemon=True,
             )
             thread.start()
-            app.run(host="0.0.0.0", port=PORT, threaded=True)
+            #app.run(host="0.0.0.0", port=PORT, threaded=True)
 
         # Other ranks continuously wait for work
         else:
-            LOGGER.info(
+            logger.info(
                 f"Rank{torch.distributed.get_rank()} Looping engaged! "
                 f"{get_my_ip()}:{PORT}"
             )
@@ -306,7 +327,7 @@ class Model(AbstractModel):
                             request_object.top_p,
                         )
 
-                    LOGGER.info(f"Rank{torch.distributed.get_rank()}: Batching "
+                    logger.info(f"Rank{torch.distributed.get_rank()}: Batching "
                                 f"loop - generating on args {request_object}")
                     _ = GENERATOR.generate(
                         request_object.prompts,
@@ -324,10 +345,10 @@ class Model(AbstractModel):
         request objects. This runs only on the head node rank0. LLaMA works on
         batched prompt inputs, so we just implement batching naiively here.
         """
-        LOGGER.info(f"Rank{torch.distributed.get_rank()}: Batching loop")
+        logger.info(f"Rank{torch.distributed.get_rank()}: Batching loop")
         while True:
             request_object = REQUEST_QUEUE.get()
-            LOGGER.info(f"Rank{torch.distributed.get_rank()}: Batching loop - "
+            logger.info(f"Rank{torch.distributed.get_rank()}: Batching loop - "
                         f"got RequestObject")
 
             # aux data needed for act retrieval
@@ -339,10 +360,10 @@ class Model(AbstractModel):
                 src_rank=0,
                 group=distributed_utils.get_global_group(),
             )
-            LOGGER.info(f"Rank{torch.distributed.get_rank()}: Batching loop - "
+            logger.info(f"Rank{torch.distributed.get_rank()}: Batching loop - "
                         f"broadcasted RequestObject")
 
-            LOGGER.info(f"Rank{torch.distributed.get_rank()}: Batching "
+            logger.info(f"Rank{torch.distributed.get_rank()}: Batching "
                         f"loop - generating on args {request_object}")
 
             activation_dict = {}
@@ -373,12 +394,12 @@ class Model(AbstractModel):
                     request_object.top_p,
                 )
 
-            LOGGER.info(f"Rank{torch.distributed.get_rank()}: Generation took "
+            logger.info(f"Rank{torch.distributed.get_rank()}: Generation took "
                         f"{time.time() - start_time} seconds")
 
             ret_dict = {}
             for k, v in activation_dict.items():
-                LOGGER.info(f"Rank{torch.distributed.get_rank()}: Module "
+                logger.info(f"Rank{torch.distributed.get_rank()}: Module "
                             f"{k} activation shape: {v.shape}")
                 ret_dict[k] = codecs.encode(
                     pickle.dumps(v.clone()),
@@ -393,5 +414,5 @@ class Model(AbstractModel):
             )
 
             RESPONSE_QUEUE.put(ret_obj)
-            LOGGER.info(f"Rank{torch.distributed.get_rank()}: Batching loop - "
+            logger.info(f"Rank{torch.distributed.get_rank()}: Batching loop - "
                         f"send response")
