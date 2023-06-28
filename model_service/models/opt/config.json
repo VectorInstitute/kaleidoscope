@@ -4,32 +4,50 @@
     "parameters": {
         "temperature": {
             "type": "float",
-            "default": 0.7,
+            "default": {
+                "generate": 0.7,
+                "activations": 0.7
+            },
             "description": "Temperature of the sampling distribution."
         },
         "top_p": {
             "type": "float",
-            "default": 0.9,
+            "default": {
+                "generate": 0.9,
+                "activations": 0.9
+            },
             "description": "Cumulative probability of top tokens to consider for sampling."
         },
         "min_tokens": {
             "type": "int",
-            "default": null,
+            "default": {
+                "generate": null,
+                "activations": null
+            },
             "description": "Minimum number of tokens to generate."
         },
         "max_tokens": {
             "type": "int",
-            "default": 32,
+            "default": {
+                "generate": 32,
+                "activations": 0
+            },
             "description": "Maximum number of tokens to generate."
         },
         "encoded_activation_payload": {
             "type": "str",
-            "default": null,
+            "default": {
+                "generate": null,
+                "activations": null
+            },
             "description": "Encoded activation payload."
         },
         "echo": {
             "type": "bool",
-            "default": false,
+            "default": {
+                "generate": false,
+                "activations": true
+            },
             "description": "Echo input text."
         }
     },
