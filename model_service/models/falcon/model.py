@@ -95,8 +95,8 @@ class Model(AbstractModel):
             ],
             outputs=[
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
-                # Tensor(name="tokens", dtype=object, shape=(-1,)),
-                # Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
+                Tensor(name="tokens", dtype=object, shape=(-1,)),
+                Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=32), # TODO: set based on device memory and model variant
         )
@@ -138,23 +138,37 @@ class Model(AbstractModel):
         # Run the generation
         input_tokens_size = encoded_prompts.size()[-1]
         input_ids = encoded_prompts if input_tokens_size != 0 else None
-        generated_ids = self.model.generate(
+        outputs = self.model.generate(
             input_ids, 
             gen_cfg, 
-            attention_mask=attn_mask)
-        # Remove input tokens
+            attention_mask=attn_mask, 
+            return_dict_in_generate=True, output_scores=True)
+        transition_scores = self.model.compute_transition_scores(
+            outputs.sequences, outputs.scores, normalize_logits=True)
+        generated_ids = outputs.sequences
+        # remove input tokens
         generated_ids = generated_ids[:, input_tokens_size:]
-        # Replace token_id 0 with a special token so that it is removed while decoding - EOS
+        # replace token_id 0 with a special token so that it is removed while decoding - EOS
         generated_ids[generated_ids==0] = int(self.tokenizer.eos_token_id)
-        # print(f"GENERATED IDS:\n{generated_ids}")
         generations = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-        # print(f"DECODED GENERATIONS:\n{generations}")
 
-        # TODO: Fetch and return logprobs and tokens
+        # Get logprobs of generated tokens
+        tokens = []
+        logprobs = []
+        for sequence, probs in zip(generated_ids, transition_scores):
+            sequence_tokens = []
+            sequence_logprobs = []
+            for token, prob in zip(sequence, probs):
+                if token not in self.tokenizer.all_special_ids:
+                    sequence_tokens.append(self.tokenizer.decode(token))
+                    sequence_logprobs.append(prob.item())
+            tokens.append(sequence_tokens)
+            logprobs.append(sequence_logprobs)
+
         return {
             "sequences": np.array(generations, dtype="S"),
-            # "logprobs": np.array(random_logprobs, dtype="f")
-            #"tokens": np.array(random_tokens, dtype="S")
+            "tokens": np.array(tokens, dtype="S"),
+            "logprobs": np.array(logprobs, dtype="f")
         }
 
 

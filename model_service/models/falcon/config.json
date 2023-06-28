@@ -4,7 +4,7 @@
     "parameters": {
         "max_tokens": {
             "type": "int",
-            "default": 32,
+            "default": 8,
             "description": "Maximum number of tokens to generate."
         },
         "min_tokens": {
