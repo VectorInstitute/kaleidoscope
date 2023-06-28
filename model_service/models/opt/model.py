@@ -120,10 +120,6 @@ class Model(AbstractModel):
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
-                Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
                 Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
