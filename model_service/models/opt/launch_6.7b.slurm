@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --partition=t4v2
 #SBATCH --qos=high
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=8
-#SBATCH --output=OPT-6.7b_service.%j.out
-#SBATCH --error=OPT-6.7b_service.%j.err
+#SBATCH --output=opt-6.7b_service.%j.out
+#SBATCH --error=opt-6.7b_service.%j.err
 
 model_service_dir=$1
 gateway_host=$2

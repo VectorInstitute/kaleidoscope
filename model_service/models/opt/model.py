@@ -6,6 +6,7 @@ import json
 import logging
 import numpy as np
 import os
+import pathlib
 import pickle
 import queue
 import random
@@ -13,6 +14,7 @@ import threading
 import time
 import torch
 from typing import Dict, Callable
+import pprint
 
 from metaseq import options
 from metaseq.dataclass.configs import MetaseqConfig
@@ -63,7 +65,10 @@ class Model(AbstractModel):
     def __init__(self, model_type, model_variant):
         self.model_type = model_type
         self.model_variant = model_variant
-        self.load_default_args("config.json")
+        cwd = str(pathlib.Path(__file__).parent.resolve())
+        logger.info(f"Loading model config from {cwd}/config.json")
+        self.config_path = f"{cwd}/config.json"
+        self.generation_args = {}
 
     def load(self, model_path):
         """Load model into memory"""
@@ -96,15 +101,17 @@ class Model(AbstractModel):
 
         distributed_utils.call_main(cfg, self.worker_main, namespace_args=args)
 
-    def load_default_args(self, config_file):
-        """Load model config"""
+    def load_default_args(self, task_name):
+        """Load model task config"""
+        self.generation_args = {}
         try:
-            with json.loads(config_file) as config:
-                default_args = config["parameters"]
-            logger.info(default_args)
-            self.default_args = {k: v["default"] for k, v in default_args.items() if v}
+            with open(self.config_path) as file:
+                json_data = file.read()
+            default_args = json.loads(json_data)["parameters"]
+            logger.info(pprint.pformat(default_args))
+            self.generation_args = {k: v["default"][task_name] for k, v in default_args.items() if v["default"][task_name] is not None}
         except Exception as err:
-            logger.error(f"Failed to load model default configuration: {err}")
+            logger.error(f"Failed to load model {task_name} default configuration: {err}")
         
     def bind(self, triton):
         triton.bind(
@@ -115,17 +122,13 @@ class Model(AbstractModel):
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
-                Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
+                Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
             ],
             outputs=[
-#                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
+                Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
+                Tensor(name="logprobs", dtype=object, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -134,20 +137,14 @@ class Model(AbstractModel):
             infer_func=self.get_activations,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int16, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
-                Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
+                Tensor(name="temperature", dtype=np.float64, shape=(1,), optional=True),
+                Tensor(name="module_names", dtype=bytes, shape=(1,)),
             ],
             outputs=[
-                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
+                Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
+                Tensor(name="logprobs", dtype=object, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -160,21 +157,21 @@ class Model(AbstractModel):
     @batch
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
-        return self.generate(inputs)
+        self.load_default_args("generate")
+        response = self.generate(inputs)
+        logger.info(f"Infer generation response: {response}")
+        return response
     
     @batch
     def get_activations(self, **inputs):
-        activation_payload = ActivationPayload(
-            module_names_activation_retrieval = inputs["module_names"][0][0],
+        self.load_default_args("activations")
+        module_names = np.char.decode(inputs["module_names"][0][0], encoding="utf-8")
+        self.generation_args["encoded_activation_payload"] = ActivationPayload(
+            module_names_activation_retrieval=[module_names.tolist()],
         )
-        inputs["encoded_activation_payload"][:] = activation_payload
-        inputs["echo"][:] = True
-        inputs["max_tokens"][:] = 0
-        response = self.generate(inputs)
-        return response
+        return self.generate(inputs)
 
     def generate(self, inputs):
-
         prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
         prompts = np.squeeze(prompts, axis=-1).tolist()
 
@@ -194,24 +191,20 @@ class Model(AbstractModel):
         assert len(prompts[0]) > 0
 
         # Check the input parameters, and set default values if not present
-        generation_args = {}
-        generation_args['max_tokens'] = int(inputs["max_tokens"][0][0]) if "max_tokens" in inputs else 128
-        generation_args['temperature'] = float(inputs["temperature"][0][0]) if "temperature" in inputs else 1.0
-        generation_args['top_p'] = float(inputs["top_p"][0][0]) if "top_p" in inputs else 0.9
-        # generation_args['top_k'] = int(inputs["top_k"][0][0]) if "top_k" in inputs else 0
-        # generation_args['repetition_penalty'] = float(inputs["repetition_penalty"][0][0]) if "repetition_penalty" in inputs else 1.0
-
-        generation_args['encoded_activation_payload'] = inputs["encoded_activation_payload"][0][0] if "encoded_activation_payload" in inputs else None
-        generation_args['echo'] = bool(inputs["echo"][0][0]) if "echo" in inputs else False
+        if "max_tokens" in inputs: self.generation_args['max_tokens'] = int(inputs["max_tokens"][0][0])
+        if "min_tokens" in inputs: self.generation_args['min_tokens'] = int(inputs["min_tokens"][0][0])
+        if "temperature" in inputs: self.generation_args['temperature'] = float(inputs["temperature"][0][0]) 
+        if "top_p" in inputs: self.generation_args['top_p'] = float(inputs["top_p"][0][0]) 
+        if "echo" in inputs: self.generation_args['echo'] = bool(inputs["echo"][0][0])
 
         ret_queue = queue.Queue()
         for i, prompt in enumerate(prompts):
-            gen_len = generation_args.get("max_tokens", 0)
+            gen_len = self.generation_args.get("max_tokens", 0)
             if gen_len + len(prompt) + 1 > MAX_SEQ_LEN:
                 # cut off the prompt to always fit with number of generations we need
                 # +1 to always have the EOS token
                 prompt = prompt[-(MAX_SEQ_LEN - gen_len - 1) :]
-            request_object = {"input": prompt, **generation_args}
+            request_object = {"input": prompt, **self.generation_args}
             BATCH_QUEUE.put(
                 WorkItem(
                     cost=len(prompt) + gen_len,
@@ -246,12 +239,11 @@ class Model(AbstractModel):
             logprobs.append(result["token_scores"])
 
         return_val = {
- #           "activations": np.array(activations, dtype=object),
+            "activations": np.array(activations, dtype=np.bytes_),
             "sequences": np.array(generated_sequences, dtype=object),
             "tokens": np.array(tokens, dtype=object),
-            "logprobs": np.array(logprobs, dtype=np.float64)
+            "logprobs": np.array(logprobs, dtype=object)
         }
-
         return return_val
 
     def edit_activations(self, request):
@@ -481,6 +473,7 @@ class Model(AbstractModel):
                         encoded_activation_payload = request_object.pop(
                             "encoded_activation_payload", None
                         )
+                        
                         act_retrieval_aux = request_object.pop("_aux", None)
 
                         if encoded_activation_payload:
@@ -494,7 +487,6 @@ class Model(AbstractModel):
                                 generations = generator.generate(**request_object)
 
                         else:
-                            logger.info(f"About to call generate on request_object={request_object}")
                             generations = generator.generate(**request_object)
 
                     except RuntimeError:
