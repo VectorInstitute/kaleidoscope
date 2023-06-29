@@ -40,9 +40,8 @@ def prepare_param_tensor(input, inputs_config, batch_size):
     return tensor
 
 def prepare_inputs(inputs, inputs_config):
-    """Prepare inputs for Triton
-
-        Note: this currently works only for generation
+    """
+    Prepare inputs for Triton
     """
     inputs = inputs.copy()
     prompts = [[prompt] for prompt in inputs['prompts']]
