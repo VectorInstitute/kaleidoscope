@@ -6,6 +6,7 @@ import json
 import logging
 import numpy as np
 import os
+import pathlib
 import pickle
 import queue
 import random
@@ -64,7 +65,9 @@ class Model(AbstractModel):
     def __init__(self, model_type, model_variant):
         self.model_type = model_type
         self.model_variant = model_variant
-        self.config_path = "config.json"
+        cwd = str(pathlib.Path(__file__).parent.resolve())
+        logger.info(f"Loading model config from {cwd}/config.json")
+        self.config_path = f"{cwd}/config.json"
         self.generation_args = {}
 
     def load(self, model_path):
@@ -134,8 +137,8 @@ class Model(AbstractModel):
             infer_func=self.get_activations,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,)),
+                Tensor(name="temperature", dtype=np.float64, shape=(1,), optional=True),
+                Tensor(name="module_names", dtype=bytes, shape=(1,)),
             ],
             outputs=[
                 Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
@@ -155,19 +158,20 @@ class Model(AbstractModel):
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
         self.load_default_args("generate")
-        return self.generate(inputs)
+        response = self.generate(inputs)
+        logger.info(f"Infer generation response: {response}")
+        return response
     
     @batch
     def get_activations(self, **inputs):
         self.load_default_args("activations")
-        module_names = np.char.decode(inputs["encoded_activation_payload"][0][0], encoding="utf-8")
+        module_names = np.char.decode(inputs["module_names"][0][0], encoding="utf-8")
         self.generation_args["encoded_activation_payload"] = ActivationPayload(
             module_names_activation_retrieval=[module_names.tolist()],
         )
         return self.generate(inputs)
 
     def generate(self, inputs):
-
         prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
         prompts = np.squeeze(prompts, axis=-1).tolist()
 
@@ -187,7 +191,6 @@ class Model(AbstractModel):
         assert len(prompts[0]) > 0
 
         # Check the input parameters, and set default values if not present
-
         if "max_tokens" in inputs: self.generation_args['max_tokens'] = int(inputs["max_tokens"][0][0])
         if "min_tokens" in inputs: self.generation_args['min_tokens'] = int(inputs["min_tokens"][0][0])
         if "temperature" in inputs: self.generation_args['temperature'] = float(inputs["temperature"][0][0]) 
@@ -241,7 +244,6 @@ class Model(AbstractModel):
             "tokens": np.array(tokens, dtype=object),
             "logprobs": np.array(logprobs, dtype=object)
         }
-
         return return_val
 
     def edit_activations(self, request):
@@ -485,7 +487,6 @@ class Model(AbstractModel):
                                 generations = generator.generate(**request_object)
 
                         else:
-                            logger.info(f"About to call generate on request_object={request_object}")
                             generations = generator.generate(**request_object)
 
                     except RuntimeError:
