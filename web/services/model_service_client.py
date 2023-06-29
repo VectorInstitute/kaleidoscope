@@ -62,21 +62,6 @@ def shutdown(model_instance_id: str) -> None:
     return
 
 
-# TODO: Implement with Triton
-def edit_activations(
-    host: str,
-    generation_id: int,
-    prompts: List[str],
-    modules: Dict[str, Optional[Callable]],
-    generation_config: Dict,
-) -> Dict:
-    body = {"prompt": prompts, "modules": modules, **generation_config}
-    current_app.logger.info(f"Sending edit activations request, body: {body}")
-    response = requests.post(f"http://{host}/edit_activations", json=body)
-    response_body = response.json()
-    return response_body
-
-
 def get_module_names(host: str) -> Dict:
     """Retrieve module names"""
     response = requests.get(
@@ -166,4 +151,7 @@ def generate_activations(host: str, model_name: str, inputs: Dict) -> Dict:
     triton_client = TritonClient(host)
     return triton_client.infer(model_name, inputs, task="activations")
 
+def edit_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
+    triton_client = TritonClient(host)
+    return triton_client.infer(model_name, inputs, task="activations")
