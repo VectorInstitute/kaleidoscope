@@ -86,8 +86,6 @@ async def register_model_instance(model_instance_id: str):
 async def model_instance_generate(model_instance_id: str):
     """Retrieve generation for a model instance"""
     username = get_jwt_identity()
-    current_app.logger.info(f"Sending generate request for {username}: {request.json}")
-
     prompts = request.json["prompts"]
     generation_config = request.json["generation_config"]
 
@@ -140,11 +138,17 @@ async def get_activations(model_instance_id: str):
 
     try:
         model_instance = ModelInstance.find_by_id(model_instance_id)
+        inputs = {
+            "prompts": prompts,
+            "module_names": module_names,
+            **generation_config
+        }
+
         activations = model_instance.generate_activations(
-            username, prompts, module_names, generation_config
+            username, inputs
         )
     except Exception as err:
-        current_app.logger.info(f"Activations request failed with error: {err}")
+        current_app.logger.info(f"Activations retrieval request failed with error: {err}")
 
     return jsonify(activations)
 
@@ -159,11 +163,18 @@ async def edit_activations(model_instance_id: str):
     prompts = request.json["prompts"]
     modules = request.json["modules"]
     generation_config = request.json["generation_config"]
-    current_app.logger.info(f"Editing activations for model {model_instance_id} with prompts {prompts} and modules {modules}")
 
-    model_instance = ModelInstance.find_by_id(model_instance_id)
-    activations = model_instance.edit_activations(
-        username, prompts, modules, generation_config
-    )
+    try:
+        model_instance = ModelInstance.find_by_id(model_instance_id)
+        inputs = {
+            "prompts": prompts,
+            "modules": modules,
+            **generation_config
+        }
+        activations = model_instance.edit_activations(
+            username, inputs
+        )
+    except Exception as err:
+        current_app.logger.info(f"Activation editing request failed with error: {err}")
 
     return jsonify(activations), 200
