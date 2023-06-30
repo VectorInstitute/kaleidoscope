@@ -7,6 +7,7 @@ import json
 # import sys
 import torch
 import os
+import pathlib
 
 from ..abstract_model import AbstractModel
 
@@ -37,13 +38,14 @@ class Model(AbstractModel):
         self.model_cfg = None
         self.tokenizer_cfg = None
         self.device = None
-        self.model_cfg_path = f"models/{model_type}"
+        self.model_cfg_path = str(pathlib.Path(__file__).parent.resolve())
 
 
     def load(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.load_model_cfg(os.path.join(self.model_cfg_path, "model_config.json"))
-        
+        # self.load_model_cfg("model_config.json")
+
         self.model = self.model_class.from_pretrained(model_path, **self.model_cfg) # TODO: .eval()?
         self.model.to(self.device)
 
@@ -126,6 +128,7 @@ class Model(AbstractModel):
 
         # Create generation config: Check the input parameters, and set default values if not present
         self.load_default_args(os.path.join(self.model_cfg_path, "config.json"))
+        # self.load_default_args("config.json")
         gen_cfg = GenerationConfig(
             min_new_tokens=inputs["min_tokens"][0][0] if "min_tokens" in inputs else self.default_args["min_tokens"],
             max_new_tokens=inputs["max_tokens"][0][0] if "max_tokens" in inputs else self.default_args["max_tokens"],
