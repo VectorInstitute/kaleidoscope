@@ -91,7 +91,6 @@ class Model(AbstractModel):
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
-                B
                 Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True)
             ],
