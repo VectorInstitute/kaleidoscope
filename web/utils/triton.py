@@ -72,10 +72,6 @@ class TritonClient():
         inputs_wrapped = prepare_inputs(inputs, task_config['input'])
 
         response = self._client.infer(model_bind_name, inputs_wrapped)
-
-        activations = np.char.decode(response.as_numpy("activations").astype("bytes"), "utf-8").tolist()
-        for idx in range(len(activations)):
-            activations[idx] = ast.literal_eval(activations[idx])
         
         sequences = np.char.decode(response.as_numpy("sequences").astype("bytes"), "utf-8").tolist()
         tokens = np.char.decode(response.as_numpy("tokens").astype("bytes"), "utf-8").tolist()
@@ -85,11 +81,17 @@ class TritonClient():
             logprobs[i] = [float(prob) if prob!="None" else None for prob in logprobs[i]]
 
         result = {
-            "activations": activations,
             "sequences": sequences,
             "tokens": tokens,
             "logprobs": logprobs
         }
+        
+        if task == "activations":
+            activations = np.char.decode(response.as_numpy("activations").astype("bytes"), "utf-8").tolist()
+            for idx in range(len(activations)):
+                activations[idx] = ast.literal_eval(activations[idx])
+            result.update({"activations": activations})
+
         return result
 
     def is_model_ready(self, model_name, task="generation"):
