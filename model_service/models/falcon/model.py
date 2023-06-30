@@ -171,7 +171,6 @@ class Model(AbstractModel):
             "sequences": np.array(generations, dtype="S"),
             "tokens": np.array(tokens, dtype="S"),
             "logprobs": np.array(logprobs, dtype="f")
-            B
         }
 
 
