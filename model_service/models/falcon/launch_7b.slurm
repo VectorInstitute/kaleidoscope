@@ -6,8 +6,8 @@
 #SBATCH --qos=high
 #SBATCH --partition=t4v2
 #SBATCH --gres=gpu:1
-#SBATCH --output=models/falcon/debug_logs/falcon_service.%j.out
-#SBATCH --error=models/falcon/debug_logs/falcon_service.%j.err
+#SBATCH --output=falcon-7b_service.%j.out
+#SBATCH --error=falcon-7b_service.%j.err
 
 model_service_dir=$1
 gateway_host=$2
