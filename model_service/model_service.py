@@ -15,7 +15,7 @@ def initialize_model(model_type, model_variant):
     Args:
         model_type (str): Type of model to load
     """
-    return models.falcon.model.Model(model_type, model_variant)
+    return .models.falcon.model.Model(model_type, model_variant)
     #return importlib.import_module(f"models.{model_type}.model").Model(model_type, model_variant)
 
 class ModelService():
