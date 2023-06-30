@@ -74,7 +74,7 @@ class Model(AbstractModel):
                 cfg = json.load(cfg_f)
             default_args = cfg["parameters"]
             logger.info(pprint.pformat(default_args))
-            self.generation_args = {k: v["default"][task_name] for k, v in default_args.items() if v["default"][task_name] is not None}
+            self.default_args = {k: v["default"][task_name] for k, v in default_args.items() if v["default"][task_name] is not None}
         except Exception as err:
             logger.error(f"Failed to load model default generation configuration: {err}")
 
