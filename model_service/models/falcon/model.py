@@ -91,6 +91,7 @@ class Model(AbstractModel):
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
+                B
                 Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True)
             ],
@@ -135,7 +136,7 @@ class Model(AbstractModel):
             top_k=inputs["top_k"][0][0] if "top_k" in inputs else self.default_args["top_k"],
             repetition_penalty=inputs["repetition_penalty"][0][0] if "repetition_penalty" in inputs else self.default_args["repetition_penalty"],
         )
-        logger.info(gen_cfg) # remove later
+        logger.info(gen_cfg.temperature, gen_cfg.max_new_tokens) # remove later
 
         # Run the generation
         input_tokens_size = encoded_prompts.size()[-1]
