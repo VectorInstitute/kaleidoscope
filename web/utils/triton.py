@@ -53,7 +53,8 @@ def prepare_inputs(inputs, inputs_config):
     inputs.pop('prompts')
 
     inputs_wrapped = [prepare_prompts_tensor(prompts)]
-
+    
+    current_app.logger.info(f"Input args: {inputs}")
     for input in inputs.items():
         inputs_wrapped.append(prepare_param_tensor(input, inputs_config, batch_size))
 
