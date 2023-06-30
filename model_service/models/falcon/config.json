@@ -36,6 +36,13 @@
                 "generate": 50
             },
             "description": "Number of top tokens to consider for sampling."
+        },
+        "do_sample": {
+            "type": "bool",
+            "default": {
+                "generate": false
+            },
+            "description": "Whether to enable sampling, required for temperature, top_p and top_k."
         }
     },
     "variants": {

@@ -89,7 +89,8 @@ class Model(AbstractModel):
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True)
+                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='do_sample', dtype=bool, shape=(1,), optional=True),
             ],
             outputs=[
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
@@ -130,7 +131,7 @@ class Model(AbstractModel):
             temperature=inputs["temperature"][0][0] if "temperature" in inputs else self.default_args["temperature"],
             top_p=inputs["top_p"][0][0] if "top_p" in inputs else self.default_args["top_p"],
             top_k=inputs["top_k"][0][0] if "top_k" in inputs else self.default_args["top_k"],
-            do_sample=True # set as always true for sampling - temperature, top_p, top_k only effective when this is true
+            do_sample=inputs["do_sample"][0][0] if "do_sample" in inputs else self.default_args["do_sample"]
         )
 
         # Run the generation
