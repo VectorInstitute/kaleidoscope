@@ -28,4 +28,4 @@ export MASTER_ADDR=$(hostname -I | awk '{print $1}')
 curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':50116"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
 echo $MASTER_ADDR
 
-singularity exec --nv --bind /checkpoint,/scratch /scratch/ssd002/projects/opt_test/triton/pytriton_falcon/pytriton_falcon.sif python3 $model_service_dir/model_service.py --model_type falcon --model_variant 7b --model_path $model_path --model_instance_id $SLURM_JOB_NAME --gateway_host $gateway_host --gateway_port $gateway_port --master_host $MASTER_ADDR --master_port 50116
+singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005 /scratch/ssd002/projects/opt_test/triton/pytriton_falcon/pytriton_falcon.sif python3 $model_service_dir/model_service.py --model_type falcon --model_variant 7b --model_path $model_path --model_instance_id $SLURM_JOB_NAME --gateway_host $gateway_host --gateway_port $gateway_port --master_host $MASTER_ADDR --master_port 50116
