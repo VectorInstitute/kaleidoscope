@@ -1,13 +1,11 @@
 """Module for Falcon LLM configurations"""
 import logging
 import numpy as np
-# import random
-# import re
 import json
-# import sys
 import torch
 import os
 import pathlib
+import pprint
 
 from ..abstract_model import AbstractModel
 
@@ -69,14 +67,14 @@ class Model(AbstractModel):
             logger.error(f"Failed to load model configuration: {err}")
 
 
-    def load_default_args(self, cfg_file):
+    def load_default_args(self, cfg_file, task_name):
         """Load default generation config"""
         try:
             with open(cfg_file, "r") as cfg_f:
                 cfg = json.load(cfg_f)
             default_args = cfg["parameters"]
-            # logger.info(default_args)
-            self.default_args = {k: v["default"] for k, v in default_args.items() if v}
+            logger.info(pprint.pformat(default_args))
+            self.generation_args = {k: v["default"][task_name] for k, v in default_args.items() if v["default"][task_name] is not None}
         except Exception as err:
             logger.error(f"Failed to load model default generation configuration: {err}")
 
@@ -91,8 +89,7 @@ class Model(AbstractModel):
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True)
+                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True)
             ],
             outputs=[
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
@@ -112,6 +109,7 @@ class Model(AbstractModel):
     @batch
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
+        self.load_default_args(os.path.join(self.model_cfg_path, "config.json"), "generate")
         return self.generate(inputs)
 
 
@@ -126,16 +124,15 @@ class Model(AbstractModel):
         attn_mask = attn_mask.to(self.device)
 
         # Create generation config: Check the input parameters, and set default values if not present
-        self.load_default_args(os.path.join(self.model_cfg_path, "config.json"))
         gen_cfg = GenerationConfig(
             min_new_tokens=inputs["min_tokens"][0][0] if "min_tokens" in inputs else self.default_args["min_tokens"],
             max_new_tokens=inputs["max_tokens"][0][0] if "max_tokens" in inputs else self.default_args["max_tokens"],
             temperature=inputs["temperature"][0][0] if "temperature" in inputs else self.default_args["temperature"],
             top_p=inputs["top_p"][0][0] if "top_p" in inputs else self.default_args["top_p"],
             top_k=inputs["top_k"][0][0] if "top_k" in inputs else self.default_args["top_k"],
-            repetition_penalty=inputs["repetition_penalty"][0][0] if "repetition_penalty" in inputs else self.default_args["repetition_penalty"],
+            do_sample=True # set as always true for sampling - temperature, top_p, top_k only effective when this is true
         )
-        logger.info(gen_cfg.temperature, gen_cfg.max_new_tokens) # remove later
+        logger.info(pprint.pformat(gen_cfg))
 
         # Run the generation
         input_tokens_size = encoded_prompts.size()[-1]
