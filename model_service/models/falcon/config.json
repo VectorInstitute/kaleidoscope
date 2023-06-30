@@ -32,5 +32,8 @@
             "default": 1.0,
             "description": "Penalty for repeating tokens."
         }
-    }
+    },
+    "variants": {
+	"7b": {}
+    }	
 }
