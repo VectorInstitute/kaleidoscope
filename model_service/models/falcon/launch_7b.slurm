@@ -23,6 +23,7 @@ model_path="/checkpoint/opt_test/original/falcon-7b-hf/falcon-7b"
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
 export MASTER_ADDR=$(hostname -I | awk '{print $1}')
+export PYTHONPATH=/usr/bin/python3
 
 # Send registration request to gateway 
 curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':50116"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
