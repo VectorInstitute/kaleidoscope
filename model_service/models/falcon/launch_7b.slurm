@@ -1,11 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=Falcon_service
 #SBATCH --mail-type=END,FAIL
-#SBATCH --ntasks=1
-#SBATCH --mem=32G
-#SBATCH --qos=high
+#SBATCH --mem=64G
 #SBATCH --partition=t4v2
-#SBATCH --gres=gpu:1
+#SBATCH --qos=high
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gpus-per-node=1
+#SBATCH --cpus-per-task=8
 #SBATCH --output=falcon-7b_service.%j.out
 #SBATCH --error=falcon-7b_service.%j.err
 
