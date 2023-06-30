@@ -44,7 +44,6 @@ class Model(AbstractModel):
     def load(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.load_model_cfg(os.path.join(self.model_cfg_path, "model_config.json"))
-        # self.load_model_cfg("model_config.json")
 
         self.model = self.model_class.from_pretrained(model_path, **self.model_cfg) # TODO: .eval()?
         self.model.to(self.device)
@@ -76,7 +75,7 @@ class Model(AbstractModel):
             with open(cfg_file, "r") as cfg_f:
                 cfg = json.load(cfg_f)
             default_args = cfg["parameters"]
-            logger.info(default_args)
+            # logger.info(default_args)
             self.default_args = {k: v["default"] for k, v in default_args.items() if v}
         except Exception as err:
             logger.error(f"Failed to load model default generation configuration: {err}")
@@ -100,7 +99,7 @@ class Model(AbstractModel):
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
                 Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
             ],
-            config=ModelConfig(max_batch_size=32), # TODO: set based on device memory and model variant
+            config=ModelConfig(max_batch_size=8), # TODO: set based on device memory and model variant
         )
         return triton
 
@@ -128,7 +127,6 @@ class Model(AbstractModel):
 
         # Create generation config: Check the input parameters, and set default values if not present
         self.load_default_args(os.path.join(self.model_cfg_path, "config.json"))
-        # self.load_default_args("config.json")
         gen_cfg = GenerationConfig(
             min_new_tokens=inputs["min_tokens"][0][0] if "min_tokens" in inputs else self.default_args["min_tokens"],
             max_new_tokens=inputs["max_tokens"][0][0] if "max_tokens" in inputs else self.default_args["max_tokens"],
@@ -137,6 +135,7 @@ class Model(AbstractModel):
             top_k=inputs["top_k"][0][0] if "top_k" in inputs else self.default_args["top_k"],
             repetition_penalty=inputs["repetition_penalty"][0][0] if "repetition_penalty" in inputs else self.default_args["repetition_penalty"],
         )
+        logger.info(gen_cfg) # remove later
 
         # Run the generation
         input_tokens_size = encoded_prompts.size()[-1]
@@ -172,6 +171,7 @@ class Model(AbstractModel):
             "sequences": np.array(generations, dtype="S"),
             "tokens": np.array(tokens, dtype="S"),
             "logprobs": np.array(logprobs, dtype="f")
+            B
         }
 
 
