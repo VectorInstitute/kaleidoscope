@@ -132,7 +132,6 @@ class Model(AbstractModel):
             top_k=inputs["top_k"][0][0] if "top_k" in inputs else self.default_args["top_k"],
             do_sample=True # set as always true for sampling - temperature, top_p, top_k only effective when this is true
         )
-        logger.info(pprint.pformat(gen_cfg))
 
         # Run the generation
         input_tokens_size = encoded_prompts.size()[-1]
