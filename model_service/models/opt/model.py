@@ -123,6 +123,8 @@ class Model(AbstractModel):
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True),
             ],
             outputs=[
                 Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
@@ -137,8 +139,13 @@ class Model(AbstractModel):
             infer_func=self.get_activations,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name="temperature", dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name="module_names", dtype=bytes, shape=(1,)),
+                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name="temperature", dtype=np.float64, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True),
             ],
             outputs=[
                 Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
