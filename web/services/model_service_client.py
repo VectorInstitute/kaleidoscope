@@ -61,19 +61,6 @@ def shutdown(model_instance_id: str) -> None:
         current_app.logger.error(f"Failed to issue SSH command to job manager: {err}")
     return
 
-
-def get_module_names(host: str) -> Dict:
-    """Retrieve module names"""
-    response = requests.get(
-        f"http://{host}/module_names",
-    )
-
-    current_app.logger.info(response)
-
-    response_body = response.json()
-    current_app.logger.info(response_body)
-    return response_body
-
 def verify_job_health(model_instance_id: str) -> bool:
     try:
         ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action get_status --model_instance_id {model_instance_id}"
