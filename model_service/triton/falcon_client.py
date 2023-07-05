@@ -58,22 +58,45 @@ def main():
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
+    # sequence = np.array(
+    #     [
+    #         ["Show me the meaning of "],
+    #         ["I would love to learn cook the Asian street food"],
+    #         ["Carnival in Rio de Janeiro"],
+    #         ["William Shakespeare was a great writer"],
+    #     ]
+    # )
+
     sequence = np.array(
         [
-            ["Show me the meaning of "],
-            ["I would love to learn cook the Asian street food"],
-            ["Carnival in Rio de Janeiro"],
+            ["William Shakespeare was a great writer"],
+            ["William Shakespeare was a great writer"],
             ["William Shakespeare was a great writer"],
         ]
     )
+
     sequence = np.char.encode(sequence, "utf-8")
     logger.info(f"Sequence: {sequence}")
+
+    batch_size = sequence.shape[0]
+    def _param(dtype, value):
+        if bool(value):
+            return np.ones((batch_size, 1), dtype=dtype) * value
+        else:
+            return np.zeros((batch_size, 1), dtype=dtype)
+        
+    gen_params = {
+        "max_tokens": _param(np.int64, 5),
+        "do_sample": _param(np.bool_, True),
+        "temperature": _param(np.float64, 0.7),
+    }
 
     logger.info(f"Waiting for response...")
     with ModelClient(args.url, "falcon-7b_generation", init_timeout_s=args.init_timeout_s) as client:
         for req_idx in range(1, args.iterations + 1):
             logger.info(f"Sending request ({req_idx}).")
-            result_dict = client.infer_batch(sequence)
+            result_dict = client.infer_batch(
+                prompts=sequence, **gen_params)
             logger.info(f"Result: {result_dict} for request ({req_idx}).")
 
 

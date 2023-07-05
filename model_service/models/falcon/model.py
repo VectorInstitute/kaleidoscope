@@ -11,7 +11,8 @@ from ..abstract_model import AbstractModel
 
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
-from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
+from accelerate import init_empty_weights, load_checkpoint_and_dispatch, infer_auto_device_map
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 
 
 logger = logging.getLogger("kaleidoscope.model_service.falcon")
@@ -90,7 +91,7 @@ class Model(AbstractModel):
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                # Tensor(name='do_sample', dtype=bool, shape=(1,), optional=True),
+                Tensor(name='do_sample', dtype=np.bool_, shape=(1,), optional=True),
             ],
             outputs=[
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
@@ -131,9 +132,9 @@ class Model(AbstractModel):
             temperature=inputs["temperature"][0][0] if "temperature" in inputs else self.default_args["temperature"],
             top_p=inputs["top_p"][0][0] if "top_p" in inputs else self.default_args["top_p"],
             top_k=inputs["top_k"][0][0] if "top_k" in inputs else self.default_args["top_k"],
-            # do_sample=inputs["do_sample"][0][0] if "do_sample" in inputs else self.default_args["do_sample"] # TODO: fix this
+            do_sample=bool(inputs["do_sample"][0][0]) if "do_sample" in inputs else self.default_args["do_sample"]
         )
-
+        
         # Run the generation
         input_tokens_size = encoded_prompts.size()[-1]
         input_ids = encoded_prompts if input_tokens_size != 0 else None
