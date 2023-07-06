@@ -76,13 +76,14 @@ class TritonClient():
         sequences = np.char.decode(response.as_numpy("sequences").astype("bytes"), "utf-8").tolist()
         tokens = np.char.decode(response.as_numpy("tokens").astype("bytes"), "utf-8").tolist()
         logprobs = np.char.decode(response.as_numpy("logprobs").astype("bytes"), "utf-8").tolist()
-
+        
         # Logprobs need special treatment because they are encoded as bytes
         # Regular np float arrays don't work, each element has a different number of items
         for i in range(len(logprobs)):
-            # They are also formatted differently for >1 sequences
-            if len(logprobs) > 1:
-                logprobs[i] = logprobs[i][1:-1].split(', ')
+            if model_name != "falcon-7b":
+                # They are also formatted differently for >1 sequences
+                if len(logprobs) > 1:
+                    logprobs[i] = logprobs[i][1:-1].split(', ')
             logprobs[i] = [float(prob) if prob!="None" else None for prob in logprobs[i]]
 
         result = {
