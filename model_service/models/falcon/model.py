@@ -191,9 +191,9 @@ class Model(AbstractModel):
             logprobs.append(sequence_logprobs)
 
         return {
-            "sequences": np.array(generations, dtype="S"),
-            "tokens": np.array(tokens, dtype="S"),
-            "logprobs": np.array(logprobs, dtype="f")
+            "sequences": np.array(generations, dtype=object),
+            "tokens": np.array(tokens, dtype=object),
+            "logprobs": np.array(logprobs, dtype=np.float)
         }
 
 
