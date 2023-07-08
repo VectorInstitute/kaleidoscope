@@ -80,7 +80,7 @@ class TritonClient():
         # Logprobs need special treatment because they are encoded as bytes
         # Regular np float arrays don't work, each element has a different number of items
         for i in range(len(logprobs)):
-            if model_name != "falcon-7b":
+            if model_name not in ["falcon-7b", "falcon-40b"]:
                 # They are also formatted differently for >1 sequences
                 if len(logprobs) > 1:
                     logprobs[i] = logprobs[i][1:-1].split(', ')
