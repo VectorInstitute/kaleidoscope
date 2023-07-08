@@ -91,9 +91,9 @@ def main():
             return np.zeros((batch_size, 1), dtype=dtype)
         
     gen_params = {
-        "max_tokens": _param(np.int64, 5),
-        # "do_sample": _param(np.bool_, True),
-        # "temperature": _param(np.float64, 0.7),
+        "max_tokens": _param(np.int64, 10),
+        "do_sample": _param(np.bool_, True),
+        "temperature": _param(np.float64, 0.7),
     }
 
     logger.info(f"Waiting for response...")

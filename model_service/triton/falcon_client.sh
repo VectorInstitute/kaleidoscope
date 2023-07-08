@@ -16,7 +16,7 @@ fi
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
 echo "Sending request to http://$server_host:$server_port"
-singularity exec --bind /ssd005 /ssd005/projects/llm/falcon-40b.sif /usr/bin/python3 -s ~/triton_multi_node/kaleidoscope/model_service/triton/falcon_client.py --url http://$server_host:$server_port
+singularity exec --bind /ssd005 /ssd005/projects/llm/falcon-hf.sif /usr/bin/python3 -s ~/triton_multi_node/kaleidoscope/model_service/triton/falcon_client.py --url http://$server_host:$server_port
 
 # singularity exec --bind /scratch /scratch/ssd002/projects/opt_test/triton/pytriton_falcon/pytriton_falcon.sif /usr/bin/python3 -s ~/triton_multi_node/kaleidoscope/model_service/triton/falcon_client.py --url http://$server_host:$server_port
 
