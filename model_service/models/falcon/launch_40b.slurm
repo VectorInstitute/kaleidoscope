@@ -2,7 +2,7 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mem=167G
 #SBATCH --partition=a40
-#SBATCH --qos=llm
+#SBATCH --qos=high
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=32

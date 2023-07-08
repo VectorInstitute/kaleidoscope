@@ -2,7 +2,7 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mem=64G
 #SBATCH --partition=t4v2
-#SBATCH --qos=llm
+#SBATCH --qos=high
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-node=1
