@@ -156,7 +156,7 @@ class Model(AbstractModel):
             max_new_tokens=inputs["max_tokens"][0][0] if "max_tokens" in inputs else self.default_args["max_tokens"],
             temperature=inputs["temperature"][0][0] if "temperature" in inputs else self.default_args["temperature"],
             top_p=inputs["top_p"][0][0] if "top_p" in inputs else self.default_args["top_p"],
-            top_k=inputs["top_k"][0][0] if "top_k" in inputs else self.default_args["top_k"],
+            top_k=int(inputs["top_k"][0][0]) if "top_k" in inputs else self.default_args["top_k"],
             do_sample=bool(inputs["do_sample"][0][0]) if "do_sample" in inputs else self.default_args["do_sample"]
         )
         
