@@ -72,6 +72,11 @@ def main():
             ["William Shakespeare was a great writer"],
             ["William Shakespeare was a great writer"],
             ["William Shakespeare was a great writer"],
+            ["William Shakespeare was a great writer"],
+            ["William Shakespeare was a great writer"],
+            ["William Shakespeare was a great writer"],
+            ["William Shakespeare was a great writer"],
+            ["William Shakespeare was a great writer"],
         ]
     )
 
@@ -87,12 +92,12 @@ def main():
         
     gen_params = {
         "max_tokens": _param(np.int64, 5),
-        "do_sample": _param(np.bool_, True),
-        "temperature": _param(np.float64, 0.7),
+        # "do_sample": _param(np.bool_, True),
+        # "temperature": _param(np.float64, 0.7),
     }
 
     logger.info(f"Waiting for response...")
-    with ModelClient(args.url, "falcon-7b_generation", init_timeout_s=args.init_timeout_s) as client:
+    with ModelClient(args.url, "falcon-40b_generation", init_timeout_s=args.init_timeout_s) as client:
         for req_idx in range(1, args.iterations + 1):
             logger.info(f"Sending request ({req_idx}).")
             result_dict = client.infer_batch(

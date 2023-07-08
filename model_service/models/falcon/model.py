@@ -12,6 +12,7 @@ from ..abstract_model import AbstractModel
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch, infer_auto_device_map
+from accelerate.utils.modeling import get_balanced_memory
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 
 
@@ -20,7 +21,8 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %
 
 
 TORCH_DTYPE_MAP = {
-    "bfloat16": torch.bfloat16
+    "bfloat16": torch.bfloat16,
+    "float16": torch.float16,
 }
 
 
@@ -44,8 +46,31 @@ class Model(AbstractModel):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.load_model_cfg(os.path.join(self.model_cfg_path, "model_config.json"))
 
-        self.model = self.model_class.from_pretrained(model_path, **self.model_cfg) # TODO: .eval()?
-        self.model.to(self.device)
+        if self.model_variant == "40b":
+            local_rank = int(os.getenv("LOCAL_RANK", "0"))
+            world_size = torch.cuda.device_count()
+            logger.info(f"Rank: {local_rank}")
+            logger.info(f"World size: {world_size}")
+
+            logger.debug(f"Torch dtype: {self.model_cfg['torch_dtype']}")
+            config = AutoConfig.from_pretrained(
+               model_path, trust_remote_code=self.model_cfg["trust_remote_code"], torch_dtype=self.model_cfg["torch_dtype"])
+            with init_empty_weights():
+               model = self.model_class.from_config(config, trust_remote_code=self.model_cfg["trust_remote_code"], torch_dtype=self.model_cfg["torch_dtype"])
+            model.tie_weights()
+
+            # Configure memory per device and get device map
+            max_memory = {idx: "40GiB" for idx in range(world_size)}
+            max_memory.update({"cpu": "120GiB"})
+            device_map = infer_auto_device_map(model, max_memory, no_split_module_classes=["MLP", "DecoderLayer"])
+            logging.debug(f"Max memory: {max_memory}")
+            logging.debug(f"Device map: {device_map}")
+
+            self.model = load_checkpoint_and_dispatch(
+               model, model_path, device_map=device_map, dtype=self.model_cfg["torch_dtype"]) 
+        else:
+            self.model = self.model_class.from_pretrained(model_path, **self.model_cfg) # TODO: .eval()?
+            self.model.to(self.device)
 
         self.tokenizer = self.tokenizer_class.from_pretrained(model_path, **self.tokenizer_cfg)
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
