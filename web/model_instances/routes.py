@@ -3,15 +3,27 @@ from flask import Blueprint, request, current_app, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from config import Config
-from models import MODEL_CONFIG, ModelInstance
+from db import db
+import tasks
+from models import ModelInstance, MODEL_CONFIG
 
 model_instances_bp = Blueprint("models", __name__)
 
-
 @model_instances_bp.route("/", methods=["GET"])
 async def get_models():
-    """Retrieve model names"""
-    return list(MODEL_CONFIG.keys()), 200
+    current_app.logger.info(f"Model config: {MODEL_CONFIG}")
+    models = []
+    for model in MODEL_CONFIG:
+        try:
+            if not "variants" in model:
+                models.append(model["type"])
+            else:
+                for variant in model["variants"].keys():
+                    models.append(f"{model['type']}-{variant}")
+        except Exception as err:
+            current_app.logger.error(f"Error while processing model {model}: {err}")
+            continue
+    return models, 200
 
 
 @model_instances_bp.route("/instances", methods=["GET"])
@@ -29,7 +41,6 @@ async def create_model_instance():
     """Launch a model instance if not active"""
     current_app.logger.info(f"Received model instance creation request: {request}")
     model_name = request.json["name"]
-
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
     if model_instance is None:
         model_instance = ModelInstance.create(name=model_name)
@@ -70,22 +81,11 @@ async def register_model_instance(model_instance_id: str):
     return jsonify(model_instance.serialize()), 200
 
 
-@model_instances_bp.route("/instances/<model_instance_id>/activate", methods=["POST"])
-async def activate_model_instance(model_instance_id: str):
-    """Activate model instance by ID"""
-    model_instance = ModelInstance.find_by_id(model_instance_id)
-    model_instance.activate()
-
-    return jsonify(model_instance.serialize()), 200
-
-
 @model_instances_bp.route("instances/<model_instance_id>/generate", methods=["POST"])
 @jwt_required()
 async def model_instance_generate(model_instance_id: str):
     """Retrieve generation for a model instance"""
     username = get_jwt_identity()
-    current_app.logger.info(f"Sending generate request for {username}: {request.json}")
-
     prompts = request.json["prompts"]
     generation_config = request.json["generation_config"]
 
@@ -99,7 +99,11 @@ async def model_instance_generate(model_instance_id: str):
         )
     else:
         model_instance = ModelInstance.find_by_id(model_instance_id)
-        generation = model_instance.generate(username, prompts, generation_config)
+        inputs = {
+            "prompts": prompts,
+            **generation_config
+        }
+        generation = model_instance.generate(username, inputs)
 
         return jsonify(generation.serialize()), 200
 
@@ -120,11 +124,8 @@ async def get_activations(model_instance_id: str):
     """Retrieve model activations for a model ID"""
     username = get_jwt_identity()
     prompts = request.json["prompts"]
-    current_app.logger.info(f"prompts {prompts}")
     module_names = request.json["module_names"]
-    current_app.logger.info(f"module_names {module_names}")
     generation_config = request.json["generation_config"]
-    current_app.logger.info(f"generation_config {generation_config}")
 
     if len(prompts) > int(Config.BATCH_REQUEST_LIMIT):
         return (
@@ -137,11 +138,17 @@ async def get_activations(model_instance_id: str):
 
     try:
         model_instance = ModelInstance.find_by_id(model_instance_id)
+        inputs = {
+            "prompts": prompts,
+            "module_names": module_names,
+            **generation_config
+        }
+
         activations = model_instance.generate_activations(
-            username, prompts, module_names, generation_config
+            username, inputs
         )
     except Exception as err:
-        current_app.logger.info(f"Activations request failed with error: {err}")
+        current_app.logger.info(f"Activations retrieval request failed with error: {err}")
 
     return jsonify(activations)
 
@@ -156,11 +163,18 @@ async def edit_activations(model_instance_id: str):
     prompts = request.json["prompts"]
     modules = request.json["modules"]
     generation_config = request.json["generation_config"]
-    current_app.logger.info(f"Editing activations for model {model_instance_id} with prompts {prompts} and modules {modules}")
 
-    model_instance = ModelInstance.find_by_id(model_instance_id)
-    activations = model_instance.edit_activations(
-        username, prompts, modules, generation_config
-    )
+    try:
+        model_instance = ModelInstance.find_by_id(model_instance_id)
+        inputs = {
+            "prompts": prompts,
+            "modules": modules,
+            **generation_config
+        }
+        activations = model_instance.edit_activations(
+            username, inputs
+        )
+    except Exception as err:
+        current_app.logger.info(f"Activation editing request failed with error: {err}")
 
     return jsonify(activations), 200

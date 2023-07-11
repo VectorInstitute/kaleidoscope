@@ -14,7 +14,6 @@ from db import db
 from home.routes import home_bp
 from model_instances.routes import model_instances_bp
 
-
 def create_app():
     """Create Flask application with authentication and DB configs"""
     app = Flask(__name__)
@@ -48,6 +47,10 @@ def make_celery(app):
         "verify_health": {
             "task": "tasks.verify_model_instance_health",
             "schedule": 30.0,
+        },
+        "verify_active": {
+            "task": "tasks.verify_model_instance_active",
+            "schedule": 30.0,
         }
     }
 
@@ -61,7 +64,6 @@ def make_celery(app):
     celery.Task = ContextTask
     app.celery = celery
     return celery
-
 
 app = create_app()
 celery = make_celery(app)

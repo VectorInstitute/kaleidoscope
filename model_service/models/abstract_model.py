@@ -1,21 +1,34 @@
 """A module to abstract the models' functionality"""
 import abc
 
+from pytriton.decorators import batch
+
 
 class AbstractModel(abc.ABC):
     """An abstraction of a generative AI model"""
 
     @abc.abstractmethod
-    def load(self, device, model_path):
+    def load(self, model_path):
         """An abstract method for loading a model"""
+        pass
 
     @abc.abstractmethod
-    def module_names(self):
-        """An abstract method for getting module names"""
+    def bind(self, triton):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def rank(self):
+        pass
 
     @abc.abstractmethod
-    def generate(self, request):
-        """An abstract method for generating text"""
+    @batch
+    def infer(self, **inputs):
+        pass
+
+    @abc.abstractmethod
+    def generate(self, inputs):
+        pass
 
     @abc.abstractmethod
     def get_activations(self, request):

@@ -1,237 +1,103 @@
 """Module for the model service API routes"""
 import argparse
-import signal
-import socket
-import sys
-import os
-import requests
-import torch
+import logging
+import importlib
+from pathlib import Path
+import random
+import string
 
-from flask import Flask, request
+from pytriton.triton import Triton, TritonConfig
 
+from services.gateway_service import GatewayServiceClient
 
-# Globals
+logger = logging.getLogger("kaleidoscope.model_service")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
-AVAILABLE_MODELS = ["OPT-175B", "OPT-6.7B", "GPT2"]
+def initialize_model(model_type, model_variant):
+    """Initializes model based on model type
+    Args:
+        model_type (str): Type of model to load
+    """
+    return importlib.import_module(f"models.{model_type}.model").Model(model_type, model_variant)
 
+class ModelService():
+    ''' Model service is responsible for loading and serving a model.
+    '''
 
-# Start the Flask service that will hand off requests to the model libraries
+    def __init__(self, model_instance_id: str, model_type: str, model_variant: str, model_path: str, gateway_host: str, gateway_port: int, master_host: str, master_port: int) -> None:
+        """
+        Args:
+            model_instance_id (str): Unique identifier for model instance
+            model_type (str): Type of model to load
+            model_variant (str): Variant of model to load
+            model_path (str): Path to pre-trained model
+            gateway_host (str): Hostname for gateway service
+            gateway_port (int): Port for gateway service
+            master_host (str): Hostname for master service
+            master_port (int): Port for master service
+        """
+        self.model_instance_id = model_instance_id
+        self.model_type = model_type
+        self.model_variant = model_variant if model_variant != "None" else ""
+        self.model_path = model_path
 
-service = Flask(__name__)
-
-
-@service.route("/health", methods=["GET"])
-def health():
-    """Retrieve model health status"""
-    return {"msg": "Still Alive"}, 200
-
-
-@service.route("/module_names", methods=["GET"])
-def module_names():
-    """Retrieve module names of a specified model"""
-    result = model.module_names()
-    return result
-
-
-@service.route("/generate", methods=["POST"])
-def generate_text():
-    """Submit a job for model generation"""
-    result = model.generate(request)
-    return result
-
-
-@service.route("/get_activations", methods=["POST"])
-def get_activations():
-    """Retrieve intermediate activations from specified model"""
-    print(request)
-    print(request.json)
-    result = model.get_activations(request)
-    return result
-
-
-@service.route("/edit_activations", methods=["POST"])
-def edit_activations():
-    print(request)
-    print(request.json)
-    result = model.edit_activations(request)
-    return result
+        self.gateway_host = gateway_host
+        self.gateway_port = gateway_port
     
+        self.master_host = master_host
+        self.master_port = master_port
 
-# We only want to load the model library that's being requested, not all of them
-# TODO: Is there a way to make this happen automatically, without separate entries?
+    def run(self):
+        """Loads model and starts serving requests
+        """
 
+        gateway_service = GatewayServiceClient(self.gateway_host, self.gateway_port)
 
-def initialize_model(model_type):
-    """Instantiates a ML model based on the argument"""
-    if model_type in ("OPT-175B", "OPT-6.7B"):
-        from models import OPT
+        model = initialize_model(self.model_type, self.model_variant)
+        model.load(self.model_path)
 
-        return OPT.OPT()
-    if model_type == "GPT2":
-        from models import GPT2
+        if model.rank == 0:
+            logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
 
-        return GPT2.GPT2()
-
-    return None
-
-
-def signal_handler(sig, frame):
-    """Sends a remove request to gateway if the service is killed by the system"""
-    global model_type
-    send_remove_request(model_type)
-    sys.exit(0)
-
-
-def send_remove_request(model_type, gateway_host):
-    """Removes a model from the model instances"""
-    remove_url = f"http://{gateway_host}/models/{model_type}/remove"
-    try:
-        requests.delete(remove_url, timeout=300)
-    except requests.ConnectionError as err:
-        print(f"Connection error: {err}")
-    except Exception as other_error:
-        print(f"Unknown error contacting gateway service at {gateway_host} with: {other_error}")
-
-
-def register_model_instance(model_instance_id, model_host, gateway_host):
-    """Registers a specified model to the model instances list"""
-    print("Preparing model registration request")
-    register_url = f"http://{gateway_host}/models/instances/{model_instance_id}/register"
-    register_data = {"host": model_host}
-    print(f"Sending model registration request to {register_url} with data: {register_data}")
-    try:
-        response = requests.post(register_url, json=register_data, timeout=300)
-        # HTTP error codes between 450 and 500 are custom to the kaleidoscope gateway
-        if int(response.status_code) >= 450 and int(response.status_code) < 500:
-            raise requests.HTTPError(response.content.decode("utf-8"))
-    # If we fail to contact the gateway service, print an error but continue running anyway
-    # TODO: HTTPError probably isn't the best way to catch custom errors
-    except requests.HTTPError as err:
-        print(err)
-    except requests.ConnectionError as err:
-        print(f"Connection error: {err}")
-    except Exception as other_error:
-        print(f"Unknown error contacting gateway service at {gateway_host} with: {other_error}")
-
-
-def activate_model_instance(model_instance_id, gateway_host):
-    """Send a model activation request"""
-    activation_url = f"http://{gateway_host}/models/instances/{model_instance_id}/activate"
-    print(f"Sending model activation request to {activation_url}")
-    try:
-        response = requests.post(activation_url, timeout=300)
-    except Exception:
-        print(
-            f"Model instance activation failed with status code \
-            {response.status_code}: {response.text}"
-        )
-        print(
-            "Continuing to load model anyway, but it will not be accessible to any gateway services"
-        )
+            #Placeholder static triton config for now
+            triton_config = TritonConfig(http_address="0.0.0.0", http_port=self.master_port, log_verbose=4)
+            triton_workspace = Path("/tmp") / Path("pytriton") / Path("".join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=16)))
+            with Triton(config=triton_config, workspace=triton_workspace) as triton:
+                triton = model.bind(triton)
+                triton.serve()
 
 
 def main():
-    """Load model into GPU memorys"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model_type",
-        required=True,
-        type=str,
-        help="Model type selected in the list: " + ", ".join(AVAILABLE_MODELS),
+        "--model_type", required=True, type=str, help="Type of model to load (ie. opt, gpt2)"
     )
     parser.add_argument(
-        "--model_path",
-        required=True,
-        type=str,
-        help="Path to pre-trained model",
-    )
-    parser.add_argument("--model_instance_id", required=True, type=str)
-    parser.add_argument(
-        "--gateway_host",
-        required=False,
-        type=str,
-        help="Hostname of gateway service",
-        default="llm.cluster.local",
+        "--model_variant", required=True, type=str, help="Variant of model to load (ie. 6.7b)"
     )
     parser.add_argument(
-        "--gateway_port",
-        required=False,
-        type=int,
-        help="Port of gateway service",
-        default=3001,
+        "--model_path", required=True, type=str, help="Path to pre-trained model"
+    )
+    parser.add_argument(
+        "--model_instance_id", required=True, type=str
+    )
+    parser.add_argument(
+        "--master_host", required=True, type=str, help="Hostname for device communication"
+    )
+    parser.add_argument(
+        "--master_port", required=True, type=int, help="Port for device communication"
+    )
+    parser.add_argument(
+        "--gateway_host", required=False, type=str, help="Hostname of gateway service", default=None
+    )
+    parser.add_argument(
+        "--gateway_port", required=False, type=int, help="Port of gateway service", default=None
     )
     args = parser.parse_args()
-    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Validate input arguments
-    if args.model_type not in AVAILABLE_MODELS:
-        print(
-            f"Error: model type {args.model_type} is not supported. \
-            Please use one of the following: {', '.join(AVAILABLE_MODELS)}"
-        )
-        sys.exit(1)
-
-    gateway_host = f"{args.gateway_host}:{args.gateway_port}"
-
-    # Determine the distributed training rank (if applicable)
-    rank = 0
-    if "SLURM_PROCID" in os.environ:
-        try:
-            rank = int(os.environ["SLURM_PROCID"])
-        except Exception:
-            pass
-
-    print(f"Loading model service with rank {rank}")
-
-    # Setup a global model instance
-    global model, model_type
-
-    model = initialize_model(args.model_type)
-    model_instance_id = args.model_instance_id
-    model_type = args.model_type
-
-    # Determine the IP address for the head node of this model
-    try:
-        master_addr = os.environ["MASTER_ADDR"]
-    except Exception:
-        master_addr = "localhost"
-        print("MASTER_ADDR not set, defaulting to localhost")
-
-    # Find an ephemeral port to use for this model service
-    sock = socket.socket()
-    sock.bind(("", 0))
-    model_port = sock.getsockname()[1]
-    sock.close()
-
-    model_host = f"{master_addr}:{model_port}"
-
-    # Models that only run on a single node should advertise their IP address instead of "localhost"
-    if master_addr == "localhost":
-        hostname = socket.gethostname()
-        ip_addr = socket.gethostbyname(hostname)
-        model_host = f"{ip_addr}:{model_port}"
-
-    if rank == 0:
-        register_model_instance(model_instance_id, model_host, gateway_host)
-
-    # Load the model into GPU memory
-    print(f"Loading model into device {args.device}")
-    model.load(args.device, args.model_path)
-
-    # Register signal handlers
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    # Now start the service. This will block until user hits Ctrl+C
-    #   or the process gets killed by the system
-    if rank == 0:
-        activate_model_instance(model_instance_id, gateway_host)
-    print("Starting model service, press Ctrl+C to exit")
-    service.run(host=model_host.split(":")[0], port=model_host.split(":")[1])
-
-    # Inform the gateway service that we are shutting down and it should remove this model
-    if rank == 0:
-        send_remove_request(args.model_type)
+    # ToDo: Better init of model service
+    model_service = ModelService(**args.__dict__)
+    model_service.run()
 
 
 if __name__ == "__main__":

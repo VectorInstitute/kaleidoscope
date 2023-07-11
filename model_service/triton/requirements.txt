@@ -1,0 +1,9 @@
+astunparse
+datasets==2.10.1
+flatbuffers
+gast==0.5.4
+pandas==1.5.3
+requests==2.28.2
+torch==1.13.1
+transformers==4.26.1
+jaxlib

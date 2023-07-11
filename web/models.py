@@ -4,43 +4,17 @@ from enum import Enum
 from typing import List, Optional, Dict
 from abc import ABC
 from datetime import datetime
-import uuid
-
+from db import db, BaseMixin
 from flask import current_app
 from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
+from config import Config
 from errors import InvalidStateError
-from db import db, BaseMixin
 from services import model_service_client
 
-MODEL_CONFIG = {
-    "OPT-175B": {
-        "name": "OPT-175B",
-        "description": "175B parameter version of the Open Pre-trained Transformer (OPT) \
-         model trained by Meta",
-        "url": "https://huggingface.co/meta/opt-175B",
-        "path": "/ssd005/projects/llm/OPT-175B-mp32",
-    },
-    "OPT-6.7B": {
-        "name": "OPT-6.7B",
-        "description": "6.7B parameter version of the Open Pre-trained Transformer (OPT) model \
-         trained by Meta",
-        "url": "https://huggingface.co/facebook/opt-6.7b",
-        "path": "/ssd005/projects/llm/opt-6.7b",
-    },
-    "GPT2": {
-        "name": "GPT2",
-        "description": "GPT2 model trained by OpenAI, available only for testing and development",
-        "url": "https://huggingface.co/gpt2",
-        # For HuggingFace models, just passing the name will download them on demand
-        "path": "gpt2",
-    },
-    # "Galactica-120B": {
-    #     "name": "Galactica-120B",
-    #     "description": "120B parameter version of the Galactica model trained by Meta",
-    #     "url": "https://huggingface.co/meta/galactica-120B",
-    # }q
-}
+
+MODEL_CONFIG = model_service_client.get_model_config()
 
 
 class ModelInstanceState(ABC):
@@ -50,36 +24,36 @@ class ModelInstanceState(ABC):
         self._model_instance = model_instance
 
     def launch(self):
-        """Launch abstract"""
+        """Launch a new instance of a model"""
         raise InvalidStateError(self)
 
     def register(self, host: str):
-        """Register abstract"""
+        """Register a model instance"""
         raise InvalidStateError(self)
 
-    def activate(self):
-        """Activate abstract"""
+    def verify_active(self):
+        """Check if a model is active and ready to service requests"""
         raise InvalidStateError(self)
 
-    def generate(self, username, prompts, generation_args):
-        """Generate abstract"""
+    def generate(self, username, inputs):
+        """Send a generation request to a model"""
         raise InvalidStateError(self)
 
-    def generate_activations(self, username, prompts, module_names, generation_args):
-        """Generate activations abstract"""
+    def generate_activations(self, username, inputs):
+        """Retrieve intermediate activations from a model"""
         raise InvalidStateError(self)
 
     def get_module_names(self):
-        """Module abstract"""
+        """Get names of layer modules"""
         raise InvalidStateError(self)
 
     def shutdown(self):
-        """Shutdown abstract"""
+        """Shutdown a model"""
         model_service_client.shutdown(self._model_instance.id)
         self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
     def is_healthy(self):
-        """Health abstract"""
+        """Check if a model is healthy"""
         raise InvalidStateError(self)
 
     def is_timed_out(self, timeout):
@@ -90,18 +64,37 @@ class PendingState(ModelInstanceState):
     """Class for model pending state"""
 
     def launch(self):
+        # Derive the model type and variant from the MODEL_CONFIG data
+        model_variant = "None"
+        for model in MODEL_CONFIG:
+            if model["type"] in self._model_instance.name:
+                model_type = model["type"]
+                model_path = model["path"]
+                if "variants" in model:
+                    for variant in model["variants"].keys():
+                        if variant in self._model_instance.name:
+                            model_variant = variant
+                            try:
+                                model_path = model["variants"][variant]["path"]
+                            except:
+                                pass
+                            break
+
+        current_app.logger.info(f"Issuing launch command for model type {model_type} with optional variant {model_variant}")
+        
         """Launch a model"""
         try:
             # ToDo: set job id params here
             model_service_client.launch(
                 self._model_instance.id,
-                self._model_instance.name,
-                MODEL_CONFIG[self._model_instance.name]["path"],
+                model_type,
+                model_variant,
+                model_path,
             )
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:
             current_app.logger.error(f"Job launch for {self._model_instance.name} failed: {err}")
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
+            self._model_instance.transition_to_state(ModelInstanceStates.COMPLETED)
 
     def is_healthy(self):
         """Determine model health status"""
@@ -142,9 +135,10 @@ class LaunchingState(ModelInstanceState):
 class LoadingState(ModelInstanceState):
     """Class for model loading state"""
 
-    def activate(self):
-        """Register model as active"""
-        self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
+    def verify_active(self):
+        is_active = model_service_client.verify_model_instance_active(self._model_instance.host, self._model_instance.name)
+        if is_active:
+            self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
     # If we receive multiple registration requests for the same model, just ignore them
     # This will happen whenever a model is loaded onto multiple nodes
@@ -167,29 +161,28 @@ class LoadingState(ModelInstanceState):
 class ActiveState(ModelInstanceState):
     """Class for model active state"""
 
-    def generate(self, username, prompts, generation_args):
+    def generate(self, username, inputs):
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
         )
-        model_instance_generation.prompts = prompts
-
-        current_app.logger.info(model_instance_generation)
+        model_instance_generation.prompts = inputs["prompts"]
 
         # ToDo - add and save response to generation object in db
         generation_response = model_service_client.generate(
             self._model_instance.host,
-            model_instance_generation.id,
-            prompts,
-            generation_args,
+            self._model_instance.name,
+            inputs
         )
         model_instance_generation.generation = generation_response
         return model_instance_generation
 
     def get_module_names(self):
-        return model_service_client.get_module_names(self._model_instance.host)
+        for model in MODEL_CONFIG:
+            if model["type"] in self._model_instance.name:
+                return model["module_names"]
 
-    def generate_activations(self, username, prompts, module_names, generation_args):
+    def generate_activations(self, username, inputs):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
@@ -200,14 +193,12 @@ class ActiveState(ModelInstanceState):
 
         activations_response = model_service_client.generate_activations(
             self._model_instance.host,
-            model_instance_generation.id,
-            prompts,
-            module_names,
-            generation_args,
+            self._model_instance.name,
+            inputs
         )
         return activations_response
 
-    def edit_activations(self, username, prompts, modules, generation_config):
+    def edit_activations(self, username, inputs):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
@@ -218,16 +209,14 @@ class ActiveState(ModelInstanceState):
 
         activations_response = model_service_client.edit_activations(
             self._model_instance.host,
-            model_instance_generation.id,
-            prompts,
-            modules,
-            generation_config,
+            self._model_instance.name,
+            inputs
         )
 
         return activations_response
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_model_health(self._model_instance.host)
+        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
         if not is_healthy:
             current_app.logger.error(
                 f"Health check for active model {self._model_instance.name} failed"
@@ -241,7 +230,7 @@ class ActiveState(ModelInstanceState):
         if last_generation:
             last_event_datetime = last_generation.created_at
 
-        return (datetime.now() - last_event_datetime) > timeout
+        return (datetime.now() - last_event_datetime) > Config.MODEL_INSTANCE_TIMEOUT
 
 
 class FailedState(ModelInstanceState):
@@ -322,6 +311,19 @@ class ModelInstance(BaseMixin, db.Model):
         return db.session.execute(current_instance_query).scalars().all()
 
     @classmethod
+    def find_loading_instances(cls) -> List[ModelInstance]:
+        """Find the current instances of all models"""
+        current_instance_query = db.select(cls).filter(
+            cls.state_name.in_(
+                (
+                    ModelInstanceStates.LOADING,
+                )
+            )
+        )
+
+        return db.session.execute(current_instance_query).scalars().all()
+
+    @classmethod
     def find_current_instance_by_name(cls, name: str) -> Optional[ModelInstance]:
         """Find the current instance of a model by name"""
         current_instance_query = (
@@ -358,18 +360,15 @@ class ModelInstance(BaseMixin, db.Model):
         current_app.logger.info(f"Received registration request from host {host}")
         self._state.register(host)
 
-    def activate(self) -> None:
-        """Activate model"""
-        self._state.activate()
+    def verify_active(self) -> None:
+        self._state.verify_active()
 
     def shutdown(self) -> None:
         """Shutdown model"""
         self._state.shutdown()
 
-    def generate(self, username: str, prompts: List[str], generation_args: Dict) -> Dict:
-        if generation_args is None:
-            generation_args = {}
-        return self._state.generate(username, prompts, generation_args)
+    def generate(self, username: str, inputs: Dict) -> Dict:
+        return self._state.generate(username, inputs)
 
     def get_module_names(self):
         """Retrieve module names"""
@@ -378,25 +377,17 @@ class ModelInstance(BaseMixin, db.Model):
     def generate_activations(
         self,
         username: str,
-        prompts: List[str],
-        module_names: List[str],
-        generation_args: Dict,
+        inputs: Dict,
     ) -> Dict:
         """Retrieve intermediate activations for module name argument"""
-        if generation_args is None:
-            generation_args = {}
-        return self._state.generate_activations(username, prompts, module_names, generation_args)
+        return self._state.generate_activations(username, inputs)
 
     def edit_activations(
         self,
         username: str,
-        prompts: List[str],
-        modules: Dict[str, Optional[Callable]],
-        generation_config: Dict = {},
+        inputs: Dict = {},
     ) -> Dict:
-        return self._state.edit_activations(
-            username, prompts, modules, generation_config
-        )
+        return self._state.edit_activations(username, inputs)
 
     def is_healthy(self) -> bool:
         """Retrieve health status"""
@@ -442,14 +433,3 @@ class ModelInstanceGeneration(BaseMixin, db.Model):
             "prompts": self.prompts,
             "generation": self.generation,
         }
-
-
-# ToDo: Should generalize generation and activation? This needs a design decision.
-# class Activation():
-
-#     def serialize(self):
-#         return {
-#             "model_instance_id": str(self.model_instance_generation_id),
-#             "prompt": self.prompt,
-#             "generation": self.model_generation
-#         }

@@ -39,5 +39,6 @@ class Config:
     CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]
     CELERY_BACKEND_URL = os.environ["CELERY_BACKEND_URL"]
 
+    MODEL_INSTANCE_ACTIVATION_TIMEOUT = datetime.timedelta(minutes=int(os.environ["MODEL_INSTANCE_ACTIVATION_TIMEOUT"]))
     MODEL_INSTANCE_TIMEOUT = datetime.timedelta(minutes=int(os.environ["MODEL_INSTANCE_TIMEOUT"]))
     BATCH_REQUEST_LIMIT = os.environ["BATCH_REQUEST_LIMIT"]
