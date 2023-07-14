@@ -1,4 +1,5 @@
 """Module for OPT LLM configurations"""
+import binascii
 import cloudpickle
 import codecs
 from collections import defaultdict
@@ -136,10 +137,10 @@ class Model(AbstractModel):
         )
         triton.bind(
             model_name=f"{self.model_type}-{self.model_variant}_activations",
-            infer_func=self.get_activations,
+            infer_func=self.activations,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name="module_names", dtype=bytes, shape=(1,)),
+                Tensor(name="modules", dtype=bytes, shape=(1,)),
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name="temperature", dtype=np.float64, shape=(1,), optional=True),
@@ -170,13 +171,45 @@ class Model(AbstractModel):
         return response
     
     @batch
-    def get_activations(self, **inputs):
+    def activations(self, **inputs):
+        """ Generate activations for a prompt. This function handles both activation retrieval and manipulation. """
         self.load_default_args("activations")
-        module_names = np.char.decode(inputs["module_names"][0][0], encoding="utf-8")
-        self.generation_args["encoded_activation_payload"] = ActivationPayload(
-            module_names_activation_retrieval=[module_names.tolist()],
-        )
-        return self.generate(inputs)
+
+        # If the modules are base-64 encoded, this is a manipulation request
+        try:
+            # Extract modules + editing functions from encoded request
+            encoded_modules = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            # TODO: This only works for a single module name. Add code to handle multiple modules.
+            decoded_modules = decode_str(str(encoded_modules))
+            editing_fns: Dict[str, Callable] = {}
+            for module_name, edit_fn in decoded_modules.items():
+                if edit_fn is not None:
+                    editing_fns[module_name] = edit_fn
+
+            # Define activation payload
+            self.generation_args["encoded_activation_payload"] = encode_obj(
+                    ActivationPayload(
+                    module_names_activation_retrieval=list(decoded_modules.keys()),
+                    module_editing_fn_pairs=editing_fns,
+                )
+            )
+            response = self.generate(inputs)
+
+        # If not base64, this is a retrieval request
+        except binascii.Error:
+            module_names = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            self.generation_args["encoded_activation_payload"] = ActivationPayload(
+                module_names_activation_retrieval=[module_names.tolist()],
+            )
+            response = self.generate(inputs)
+
+        # Handle all other errors
+        except Exception as err:
+            response = {}
+            response["activations"] = torch.empty(0)
+            response["error"] = f"Error with activations request: {err}"
+
+        return response
 
     def generate(self, inputs):
         prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
@@ -253,28 +286,6 @@ class Model(AbstractModel):
         }
         return return_val
 
-    def edit_activations(self, request):
-        # Extract modules + editing functions from encoded request
-        decoded_modules = decode_str(request.json['modules'])
-        editing_fns: Dict[str, Callable] = {}
-        for module_name, edit_fn in decoded_modules.items():
-            if edit_fn is not None:
-                logger.info(f"Adding module name {module_name} with edit function {edit_fn}")
-                editing_fns[module_name] = edit_fn
-
-        # Define activation payload
-        activation_payload = ActivationPayload(
-            module_names_activation_retrieval=list(decoded_modules.keys()),
-            module_editing_fn_pairs=editing_fns,
-        )
-
-        request.json["encoded_activation_payload"] = encode_obj(activation_payload)
-        request.json["echo"] = True
-        request.json["max_tokens"] = 0
-
-        response = self.generate(request)
-
-        return response
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
         """Create model generator worker"""
