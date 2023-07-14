@@ -189,8 +189,6 @@ class ActiveState(ModelInstanceState):
             username=username,
         )
 
-        current_app.logger.info(model_instance_generation)
-
         activations_response = model_service_client.generate_activations(
             self._model_instance.host,
             self._model_instance.name,
@@ -204,8 +202,6 @@ class ActiveState(ModelInstanceState):
             model_instance_id=self._model_instance.id,
             username=username,
         )
-
-        current_app.logger.info(model_instance_generation)
 
         activations_response = model_service_client.edit_activations(
             self._model_instance.host,
