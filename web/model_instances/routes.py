@@ -104,6 +104,8 @@ async def model_instance_generate(model_instance_id: str):
             **generation_config
         }
         generation = model_instance.generate(username, inputs)
+        if isinstance(generation.generation, Exception):
+            return jsonify(msg=f"Generation failed: {generation.generation}"), 400
 
         return jsonify(generation.serialize()), 200
 
