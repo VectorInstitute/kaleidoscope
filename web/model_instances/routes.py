@@ -41,6 +41,14 @@ async def create_model_instance():
     """Launch a model instance if not active"""
     current_app.logger.info(f"Received model instance creation request: {request}")
     model_name = request.json["name"]
+    model_list, _ = await get_models()
+    if model_name not in model_list:
+        return (
+            jsonify(
+                msg=f"Model name {model_name} not found in model list {model_list}"
+            ),
+            400,
+        )
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
     if model_instance is None:
         model_instance = ModelInstance.create(name=model_name)
