@@ -150,6 +150,10 @@ async def get_activations(model_instance_id: str):
         activations = model_instance.generate_activations(
             username, inputs
         )
+        if isinstance(activations, tuple):
+            err, input = activations
+            return jsonify(msg=f"Activations retrieval failed: {err}, Error Source: {input}"), 400
+        
     except Exception as err:
         current_app.logger.info(f"Activations retrieval request failed with error: {err}")
 
