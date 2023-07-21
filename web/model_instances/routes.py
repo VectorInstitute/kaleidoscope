@@ -116,7 +116,7 @@ async def model_instance_generate(model_instance_id: str):
         try:
             generation = model_instance.generate(username, inputs)
         except InvalidStateError as err:
-            return jsonify(msg=f"Model not active yet"), 400
+            return jsonify(msg=f"Generation failed: {err}"), 400
 
         if isinstance(generation.generation, tuple):
             err, input = generation.generation
@@ -165,7 +165,7 @@ async def get_activations(model_instance_id: str):
     try:
         activations = model_instance.generate_activations(username, inputs)
     except InvalidStateError as err:
-        return jsonify(msg=f"Model not active yet"), 400
+        return jsonify(msg=f"Generation failed: {err}"), 400
     
     if isinstance(activations, tuple):
         err, input = activations
@@ -196,7 +196,7 @@ async def edit_activations(model_instance_id: str):
     try:
         activations = model_instance.edit_activations(username, inputs)
     except InvalidStateError as err:
-        return jsonify(msg=f"Model not active yet"), 400
+        return jsonify(msg=f"Generation failed: {err}"), 400
     
     if isinstance(activations, tuple):
         err, input = activations
