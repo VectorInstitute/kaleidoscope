@@ -77,7 +77,10 @@ class TritonClient():
         if isinstance(inputs_wrapped, tuple):
             return inputs_wrapped
 
-        response = self._client.infer(model_bind_name, inputs_wrapped)
+        try:
+            response = self._client.infer(model_bind_name, inputs_wrapped)
+        except Exception as err:
+            return err
         sequences = np.char.decode(response.as_numpy("sequences").astype("bytes"), "utf-8").tolist()
         tokens = np.char.decode(response.as_numpy("tokens").astype("bytes"), "utf-8").tolist()
         logprobs = np.char.decode(response.as_numpy("logprobs").astype("bytes"), "utf-8").tolist()
