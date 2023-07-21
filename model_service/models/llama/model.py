@@ -8,6 +8,7 @@ import numpy as np
 import pathlib
 import pickle
 import queue
+import requests
 import socket
 import sys
 import threading
@@ -33,6 +34,7 @@ from hosting_utils import (
     load_llama,
 )
 from hook_utils import get_activation_capture_hook_dict, apply_forward_hook
+from activation_utils import ActivationPayload
 
 
 def encode_obj(obj):
@@ -167,7 +169,7 @@ class Model(AbstractModel):
         return response
 
 
-    def generate(self, inputs):
+    def generate(self, request):
 
         logger.info(f"Rank{torch.distributed.get_rank()}: completions")
 
@@ -192,7 +194,7 @@ class Model(AbstractModel):
         logger.info(f"Rank{torch.distributed.get_rank()}: completions - response "
                     f"recv")
 
-        return response_object.json()
+        results = response_object.json()
 
         # Compile the results into a structure consistent with other kaleidoscope models
         activations = []
@@ -213,7 +215,6 @@ class Model(AbstractModel):
         }
 
         return return_val
-
 
     def edit_activations(self, request):
         # Extract modules + editing functions from encoded request
@@ -238,8 +239,7 @@ class Model(AbstractModel):
 
         return response
 
-
-    def worker_main(self, args):
+    def worker_main(self):
         """
         Hosted version of the web UI for generation.
         """
@@ -248,22 +248,17 @@ class Model(AbstractModel):
         global GENERATOR
 
         rank, world_size = setup_model_parallel()
-        logger.info(f"Rank {torch.distributed.get_rank()} loading "
-                    f"[{args.model}] ckpt from {args.ckpt_dir}")
 
-        if args.model == "llama":
-            load_fn = load_llama
-        else:
-            raise NotImplementedError
+        load_fn = load_llama
 
         start_time = time.time()
         GENERATOR = load_fn(
             local_rank=rank,
             world_size=world_size,
-            max_seq_len=args.max_seq_len,
-            max_batch_size=args.max_batch_size,
-            ckpt_dir=args.ckpt_dir,
-            tokenizer_path=args.tokenizer_pth,
+            max_seq_len=512,
+            max_batch_size=32,
+            ckpt_dir="/ssd005/projects/llm/llama/LLaMA/30B",
+            tokenizer_path="/ssd005/projects/llm/llama/LLaMA/tokenizer.model",
         )
         print(GENERATOR.model)
 
@@ -283,7 +278,7 @@ class Model(AbstractModel):
             RESPONSE_QUEUE = queue.Queue()
             logger.info(f"Worker engaged! {get_my_ip()}:{PORT}")
             thread = threading.Thread(
-                target=batching_loop, args=(GENERATOR,), daemon=True,
+                target=self.batching_loop, args=(GENERATOR,), daemon=True,
             )
             thread.start()
             #app.run(host="0.0.0.0", port=PORT, threaded=True)
@@ -339,7 +334,7 @@ class Model(AbstractModel):
                     pass
 
 
-    def batching_loop(generator):
+    def batching_loop(self, generator):
         """
         Until forever, execute generations once we reach the max threshold of
         request objects. This runs only on the head node rank0. LLaMA works on

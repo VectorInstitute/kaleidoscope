@@ -26,8 +26,8 @@ from llama.model import (
 )
 
 
-_LayerOutput = tuple[Any]
-_Activation = Union[Tensor, tuple[Tensor]]
+_LayerOutput = Tuple[Any]
+_Activation = Union[Tensor, Tuple[Tensor]]
 
 
 # Helper functions for debugging activation editing functionality
@@ -75,7 +75,7 @@ class ActivationPayload:
     """
     def __init__(
         self,
-        module_names_activation_retrieval: tuple,
+        module_names_activation_retrieval: Tuple,
         module_editing_fn_pairs: Optional[dict] = None,
     ) -> None:
         self.module_names_activation_retrieval = module_names_activation_retrieval
@@ -93,7 +93,7 @@ class GatherFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _LayerOutput:
         """
         Layers with no defined gather function use this. Simply returns the
@@ -106,7 +106,7 @@ class GatherFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _LayerOutput:
         if not module.gather_output:
             output = (
@@ -120,7 +120,7 @@ class GatherFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _LayerOutput:
         if "self_attn" in registered_name:
             # NOTE: Newest megatron supports both first and last dim
@@ -143,7 +143,7 @@ class GatherFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _LayerOutput:
         output = gather_from_model_parallel_region(layer_output)
         return output
@@ -154,7 +154,7 @@ class GatherFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _LayerOutput:
         if not module.gather_output:
             output = gather_from_model_parallel_region(layer_output)
@@ -170,7 +170,7 @@ class ScatterFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _LayerOutput:
         """
         Layers with no defined scatter function use this. Simply returns the
@@ -183,7 +183,7 @@ class ScatterFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _LayerOutput:
         if not module.gather_output:
             output = (
@@ -199,7 +199,7 @@ class ScatterFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _LayerOutput:
         if "self_attn" in registered_name:
             output = scatter_from_rank0_to_tensor_model_parallel_region(
@@ -216,7 +216,7 @@ class ScatterFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _LayerOutput:
         output = scatter_from_rank0_to_tensor_model_parallel_region(
             layer_output,
@@ -228,7 +228,7 @@ class ScatterFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _LayerOutput:
         if not module.gather_output:
             output = scatter_from_rank0_to_tensor_model_parallel_region(
@@ -248,16 +248,16 @@ class RearrangeFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _Activation:
         """
         Layers with no defined rearrange function use this. If the output is
-        a tuple with more than one element, then we assume the first element is
+        a Tuple with more than one element, then we assume the first element is
         always the activation, and the rest is auxillary data.
         If the output is just a single element, then we don't prune any
         auxillary data.
         """
-        if isinstance(layer_output, tuple) and len(layer_output) > 1:
+        if isinstance(layer_output, Tuple) and len(layer_output) > 1:
             activation = layer_output[0]
             auxillary_output = layer_output[1:]
         else:
@@ -281,7 +281,7 @@ class RearrangeFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _Activation:
         """
         Edits can be done either before bias addition or after bias addition.
@@ -341,7 +341,7 @@ class RearrangeFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _Activation:
         layer_type = registered_name.split(".")[-1]
         activation, bias = layer_output
@@ -384,7 +384,7 @@ class RearrangeFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _Activation:
         activation = layer_output[0]
         auxillary_output = layer_output[1:]
@@ -403,7 +403,7 @@ class RearrangeFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _Activation:
         activation = layer_output[0]
         auxillary_output = layer_output[1:]
@@ -423,7 +423,7 @@ class RearrangeFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _Activation:
         activation = layer_output
 
@@ -442,7 +442,7 @@ class RearrangeFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _Activation:
         activation, bias = layer_output[0]
 
@@ -471,7 +471,7 @@ class RearrangeFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _Activation:
         activation = layer_output
 
@@ -502,7 +502,7 @@ class RearrangeFunctions:
         registered_name: str,
         module: nn.Module,
         layer_output: _LayerOutput,
-        aux: tuple[Any],
+        aux: Tuple[Any],
     ) -> _Activation:
         # This function is also just unity
         activation = layer_output
@@ -668,7 +668,7 @@ class ShardedActivation:
         self,
         registered_name: str,
         module: nn.Module,
-        aux: tuple[Any],
+        aux: Tuple[Any],
         layer_outputs: _LayerOutput,
     ) -> None:
         # TODO: Support self.activations = Tuple[activations]
@@ -703,7 +703,7 @@ class ShardedActivation:
 
     def gather(self):
         """
-        Gather functions take a tuple of (registered_name, module,
+        Gather functions take a Tuple of (registered_name, module,
         layer_outputs, aux), and call gather on some subset of the
         layer_outputs. They may also do some preliminary rearranging if
         necessary. The gather functions return the gathered layer_outputs.
@@ -721,14 +721,14 @@ class ShardedActivation:
 
     def rearrange(self):
         """
-        Rearrange functions take a tuple of (registered_name, module,
+        Rearrange functions take a Tuple of (registered_name, module,
         layer_outputs, aux), prune out non-activation layer_outputs, rearrange
         the extracted activation, and return the activation. Also returns the
         inverse rearrange function to restore the original shape of the
         activation.
 
         Rearrange functions also must handle auxillary data in
-        self.activations, ie. the layer output (tuple potentially). The
+        self.activations, ie. the layer output (Tuple potentially). The
         auxillary data is different from layer to layer, so we
         must special case them along with their respective rearrange logic.
         """
