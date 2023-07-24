@@ -99,12 +99,6 @@ class PendingState(ModelInstanceState):
     def is_healthy(self):
         """Determine model health status"""
         return model_service_client.verify_job_health(self._model_instance.id)
-        # if not is_healthy:
-        #     current_app.logger.error(
-        #         f"Health check for pending model {self._model_instance.name} failed"
-        #     )
-        #     self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        # return is_healthy
 
     def is_timed_out(self, timeout):
         return False
@@ -121,12 +115,6 @@ class LaunchingState(ModelInstanceState):
     def is_healthy(self):
         """Retrieve model health status"""
         return model_service_client.verify_job_health(self._model_instance.id)
-        # if not is_healthy:
-        #     current_app.logger.error(
-        #         f"Health check for launching model {self._model_instance.name} failed"
-        #     )
-        #     self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        # return is_healthy
 
     def is_timed_out(self, timeout):
         return False
@@ -142,12 +130,6 @@ class LoadingState(ModelInstanceState):
 
     def is_healthy(self):
         return model_service_client.verify_job_health(self._model_instance.id)
-        # if not is_healthy:
-        #     current_app.logger.error(
-        #         f"Health check for loading model {self._model_instance.name} failed"
-        #     )
-        #     self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        # return is_healthy
     
     def is_timed_out(self):
         last_event_datetime = self._model_instance.updated_at
