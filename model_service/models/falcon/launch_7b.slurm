@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mem=64G
-#SBATCH --partition=t4v2
-#SBATCH --qos=high
+#SBATCH --mem=128G
+#SBATCH --partition=a40
+#SBATCH --qos=llm
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-node=1
