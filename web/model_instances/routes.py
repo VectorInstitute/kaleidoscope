@@ -6,6 +6,8 @@ from config import Config
 from db import db
 import tasks
 from models import ModelInstance, MODEL_CONFIG
+from errors import InvalidStateError
+
 
 model_instances_bp = Blueprint("models", __name__)
 
@@ -41,6 +43,14 @@ async def create_model_instance():
     """Launch a model instance if not active"""
     current_app.logger.info(f"Received model instance creation request: {request}")
     model_name = request.json["name"]
+    model_list, _ = await get_models()
+    if model_name not in model_list:
+        return (
+            jsonify(
+                msg=f"Model name {model_name} not found in model list {model_list}"
+            ),
+            400,
+        )
     model_instance = ModelInstance.find_current_instance_by_name(name=model_name)
     if model_instance is None:
         model_instance = ModelInstance.create(name=model_name)
@@ -103,7 +113,16 @@ async def model_instance_generate(model_instance_id: str):
             "prompts": prompts,
             **generation_config
         }
-        generation = model_instance.generate(username, inputs)
+        try:
+            generation = model_instance.generate(username, inputs)
+        except InvalidStateError as err:
+            return jsonify(msg=f"Generation failed: {err}"), 400
+
+        if isinstance(generation.generation, tuple):
+            err, input = generation.generation
+            return jsonify(msg=f"Generation failed: {err}, Error Source: {input}"), 400
+        if isinstance(generation.generation, Exception):
+            return jsonify(msg=f"Generation failed: {generation.generation}"), 500
 
         return jsonify(generation.serialize()), 200
 
@@ -136,19 +155,23 @@ async def get_activations(model_instance_id: str):
             400,
         )
 
-    try:
-        model_instance = ModelInstance.find_by_id(model_instance_id)
-        inputs = {
-            "prompts": prompts,
-            "module_names": module_names,
-            **generation_config
-        }
+    model_instance = ModelInstance.find_by_id(model_instance_id)
+    inputs = {
+        "prompts": prompts,
+        "module_names": module_names,
+        **generation_config
+    }
 
-        activations = model_instance.generate_activations(
-            username, inputs
-        )
-    except Exception as err:
-        current_app.logger.info(f"Activations retrieval request failed with error: {err}")
+    try:
+        activations = model_instance.generate_activations(username, inputs)
+    except InvalidStateError as err:
+        return jsonify(msg=f"Generation failed: {err}"), 400
+    
+    if isinstance(activations, tuple):
+        err, input = activations
+        return jsonify(msg=f"Activations retrieval failed: {err}, Error Source: {input}"), 400
+    if isinstance(activations, Exception):
+        return jsonify(msg=f"Activations retrieval failed: {activations}"), 500
 
     return jsonify(activations)
 
@@ -164,17 +187,21 @@ async def edit_activations(model_instance_id: str):
     modules = request.json["modules"]
     generation_config = request.json["generation_config"]
 
+    model_instance = ModelInstance.find_by_id(model_instance_id)
+    inputs = {
+        "prompts": prompts,
+        "modules": modules,
+        **generation_config
+    }
     try:
-        model_instance = ModelInstance.find_by_id(model_instance_id)
-        inputs = {
-            "prompts": prompts,
-            "modules": modules,
-            **generation_config
-        }
-        activations = model_instance.edit_activations(
-            username, inputs
-        )
-    except Exception as err:
-        current_app.logger.info(f"Activation editing request failed with error: {err}")
-
+        activations = model_instance.edit_activations(username, inputs)
+    except InvalidStateError as err:
+        return jsonify(msg=f"Generation failed: {err}"), 400
+    
+    if isinstance(activations, tuple):
+        err, input = activations
+        return jsonify(msg=f"Activations editing failed: {err}, Error Source: {input}"), 400
+    if isinstance(activations, Exception):
+        return jsonify(msg=f"Activations editing failed: {activations}"), 500
+    
     return jsonify(activations), 200

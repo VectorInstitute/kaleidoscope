@@ -56,7 +56,10 @@ def prepare_inputs(inputs, inputs_config):
     
     current_app.logger.info(f"Input args: {inputs}")
     for input in inputs.items():
-        inputs_wrapped.append(prepare_param_tensor(input, inputs_config, batch_size))
+        try:
+            inputs_wrapped.append(prepare_param_tensor(input, inputs_config, batch_size))
+        except Exception as err:
+            return (err, input)
 
     return inputs_wrapped
 
@@ -71,8 +74,13 @@ class TritonClient():
         task_config = self._client.get_model_config(model_bind_name)
 
         inputs_wrapped = prepare_inputs(inputs, task_config['input'])
+        if isinstance(inputs_wrapped, tuple):
+            return inputs_wrapped
 
-        response = self._client.infer(model_bind_name, inputs_wrapped)
+        try:
+            response = self._client.infer(model_bind_name, inputs_wrapped)
+        except Exception as err:
+            return err
         sequences = np.char.decode(response.as_numpy("sequences").astype("bytes"), "utf-8").tolist()
         tokens = np.char.decode(response.as_numpy("tokens").astype("bytes"), "utf-8").tolist()
         logprobs = np.char.decode(response.as_numpy("logprobs").astype("bytes"), "utf-8").tolist()
