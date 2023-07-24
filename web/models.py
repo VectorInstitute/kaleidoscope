@@ -31,7 +31,7 @@ class ModelInstanceState(ABC):
         """Register a model instance"""
         raise InvalidStateError(self)
 
-    def verify_active(self):
+    def verify_activation(self):
         """Check if a model is active and ready to service requests"""
         raise InvalidStateError(self)
 
@@ -98,13 +98,7 @@ class PendingState(ModelInstanceState):
 
     def is_healthy(self):
         """Determine model health status"""
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
-        if not is_healthy:
-            current_app.logger.error(
-                f"Health check for pending model {self._model_instance.name} failed"
-            )
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        return is_healthy
+        return model_service_client.verify_job_health(self._model_instance.id)
 
     def is_timed_out(self, timeout):
         return False
@@ -120,13 +114,7 @@ class LaunchingState(ModelInstanceState):
 
     def is_healthy(self):
         """Retrieve model health status"""
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
-        if not is_healthy:
-            current_app.logger.error(
-                f"Health check for launching model {self._model_instance.name} failed"
-            )
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        return is_healthy
+        return model_service_client.verify_job_health(self._model_instance.id)
 
     def is_timed_out(self, timeout):
         return False
@@ -135,27 +123,17 @@ class LaunchingState(ModelInstanceState):
 class LoadingState(ModelInstanceState):
     """Class for model loading state"""
 
-    def verify_active(self):
+    def verify_activation(self):
         is_active = model_service_client.verify_model_instance_active(self._model_instance.host, self._model_instance.name)
         if is_active:
             self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
-    # If we receive multiple registration requests for the same model, just ignore them
-    # This will happen whenever a model is loaded onto multiple nodes
-    def register(self, host: str):
-        pass
-
     def is_healthy(self):
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
-        if not is_healthy:
-            current_app.logger.error(
-                f"Health check for loading model {self._model_instance.name} failed"
-            )
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        return is_healthy
+        return model_service_client.verify_job_health(self._model_instance.id)
     
-    def is_timed_out(self, timeout):
-        return False
+    def is_timed_out(self):
+        last_event_datetime = self._model_instance.updated_at
+        return (datetime.now() - last_event_datetime) > Config.MODEL_INSTANCE_ACTIVATION_TIMEOUT
 
 
 class ActiveState(ModelInstanceState):
@@ -216,13 +194,7 @@ class ActiveState(ModelInstanceState):
         return activations_response
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
-        if not is_healthy:
-            current_app.logger.error(
-                f"Health check for active model {self._model_instance.name} failed"
-            )
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        return is_healthy
+        return model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
     
     def is_timed_out(self, timeout):
         last_event_datetime = self._model_instance.updated_at
@@ -236,18 +208,12 @@ class ActiveState(ModelInstanceState):
 class FailedState(ModelInstanceState):
     """Class for failed model instance state"""
 
-    def is_healthy(self):
-        return False
-
     def shutdown(self):
         raise InvalidStateError(self)
 
 
 class CompletedState(ModelInstanceState):
     """Class for completed model instance state"""
-
-    def is_healthy(self):
-        return True
 
     def shutdown(self):
         raise InvalidStateError(self)
@@ -360,8 +326,8 @@ class ModelInstance(BaseMixin, db.Model):
         current_app.logger.info(f"Received registration request from host {host}")
         self._state.register(host)
 
-    def verify_active(self) -> None:
-        self._state.verify_active()
+    def verify_activation(self) -> None:
+        self._state.verify_activation()
 
     def shutdown(self) -> None:
         """Shutdown model"""
