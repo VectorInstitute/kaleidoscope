@@ -136,8 +136,29 @@ class Model(AbstractModel):
             config=ModelConfig(max_batch_size=128),
         )
         triton.bind(
-            model_name=f"{self.model_type}-{self.model_variant}_activations",
-            infer_func=self.activations,
+            model_name=f"{self.model_type}-{self.model_variant}_get_activations",
+            infer_func=self.get_activations,
+            inputs=[
+                Tensor(name="prompts", dtype=bytes, shape=(1,)),
+                Tensor(name="modules", dtype=bytes, shape=(1,)),
+                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name="temperature", dtype=np.float64, shape=(1,), optional=True),
+                Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
+                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
+                Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True),
+            ],
+            outputs=[
+                Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
+                Tensor(name="sequences", dtype=object, shape=(-1,)),
+                Tensor(name="tokens", dtype=object, shape=(-1,)),
+                Tensor(name="logprobs", dtype=object, shape=(-1,)),
+            ],
+            config=ModelConfig(max_batch_size=128),
+        )
+        triton.bind(
+            model_name=f"{self.model_type}-{self.model_variant}_edit_activations",
+            infer_func=self.edit_activations,
             inputs=[
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
                 Tensor(name="modules", dtype=bytes, shape=(1,)),
@@ -171,8 +192,29 @@ class Model(AbstractModel):
         return response
     
     @batch
-    def activations(self, **inputs):
-        """ Generate activations for a prompt. This function handles both activation retrieval and manipulation. """
+    def get_activations(self, **inputs):
+        """ Retrieve activations for a list of prompts and list of module names """
+        self.load_default_args("activations")
+
+        # If the modules are base-64 encoded, this is a manipulation request
+        try:
+            module_names = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            self.generation_args["encoded_activation_payload"] = ActivationPayload(
+                module_names_activation_retrieval=[module_names.tolist()],
+            )
+            response = self.generate(inputs)
+
+        # Handle all other errors
+        except Exception as err:
+            response = {}
+            response["activations"] = torch.empty(0)
+            response["error"] = f"Error with activations request: {err}"
+
+        return response
+
+    @batch
+    def edit_activations(self, **inputs):
+        """ Edit activations for a list of prompts and list of modules """
         self.load_default_args("activations")
 
         # If the modules are base-64 encoded, this is a manipulation request
@@ -192,14 +234,6 @@ class Model(AbstractModel):
                     module_names_activation_retrieval=list(decoded_modules.keys()),
                     module_editing_fn_pairs=editing_fns,
                 )
-            )
-            response = self.generate(inputs)
-
-        # If not base64, this is a retrieval request
-        except binascii.Error:
-            module_names = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
-            self.generation_args["encoded_activation_payload"] = ActivationPayload(
-                module_names_activation_retrieval=[module_names.tolist()],
             )
             response = self.generate(inputs)
 
