@@ -69,10 +69,10 @@ class TritonClient():
     def infer(self, model_name, inputs, task="generation"):
         model_bind_name = f'{model_name}_{task}'
         task_config = self._client.get_model_config(model_bind_name)
-
         inputs_wrapped = prepare_inputs(inputs, task_config['input'])
 
         response = self._client.infer(model_bind_name, inputs_wrapped)
+
         sequences = np.char.decode(response.as_numpy("sequences").astype("bytes"), "utf-8").tolist()
         tokens = np.char.decode(response.as_numpy("tokens").astype("bytes"), "utf-8").tolist()
         logprobs = np.char.decode(response.as_numpy("logprobs").astype("bytes"), "utf-8").tolist()

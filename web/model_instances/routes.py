@@ -124,7 +124,7 @@ async def get_activations(model_instance_id: str):
     """Retrieve model activations for a model ID"""
     username = get_jwt_identity()
     prompts = request.json["prompts"]
-    module_names = request.json["module_names"]
+    modules = request.json["modules"]
     generation_config = request.json["generation_config"]
 
     if len(prompts) > int(Config.BATCH_REQUEST_LIMIT):
@@ -140,7 +140,7 @@ async def get_activations(model_instance_id: str):
         model_instance = ModelInstance.find_by_id(model_instance_id)
         inputs = {
             "prompts": prompts,
-            "module_names": module_names,
+            "modules": modules,
             **generation_config
         }
 
