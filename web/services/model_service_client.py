@@ -133,12 +133,12 @@ def generate(host: str, model_name: str, inputs: Dict) -> Dict:
     # print(output0.shape)
     # print(output0)
 
-def generate_activations(host: str, model_name: str, inputs: Dict) -> Dict:
+def get_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, task="activations")
+    return triton_client.infer(model_name, inputs, task="get_activations")
 
 def edit_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, task="activations")
+    return triton_client.infer(model_name, inputs, task="edit_activations")

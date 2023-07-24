@@ -92,7 +92,7 @@ class TritonClient():
             "logprobs": logprobs
         }
         
-        if task == "activations":
+        if task in ["get_activations", "edit_activations"]:
             activations = np.char.decode(response.as_numpy("activations").astype("bytes"), "utf-8").tolist()
             for idx in range(len(activations)):
                 activations[idx] = ast.literal_eval(activations[idx])

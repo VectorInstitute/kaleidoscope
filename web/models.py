@@ -39,7 +39,7 @@ class ModelInstanceState(ABC):
         """Send a generation request to a model"""
         raise InvalidStateError(self)
 
-    def generate_activations(self, username, inputs):
+    def get_activations(self, username, inputs):
         """Retrieve intermediate activations from a model"""
         raise InvalidStateError(self)
 
@@ -182,14 +182,14 @@ class ActiveState(ModelInstanceState):
             if model["type"] in self._model_instance.name:
                 return model["module_names"]
 
-    def generate_activations(self, username, inputs):
+    def get_activations(self, username, inputs):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
         )
 
-        activations_response = model_service_client.generate_activations(
+        activations_response = model_service_client.get_activations(
             self._model_instance.host,
             self._model_instance.name,
             inputs
@@ -370,13 +370,13 @@ class ModelInstance(BaseMixin, db.Model):
         """Retrieve module names"""
         return self._state.get_module_names()
 
-    def generate_activations(
+    def get_activations(
         self,
         username: str,
         inputs: Dict,
     ) -> Dict:
         """Retrieve intermediate activations for module name argument"""
-        return self._state.generate_activations(username, inputs)
+        return self._state.get_activations(username, inputs)
 
     def edit_activations(
         self,
