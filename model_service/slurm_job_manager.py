@@ -15,7 +15,7 @@ def launch_job(args):
     try:
         model_type = args.model_name.split('-')[0]
         cwd = pathlib.Path(__file__).parent.resolve()
-        scheduler_cmd = f'sbatch --job-name={args.model_instance_id} {cwd}/models/{model_type}/launch{args.model_name}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
+        scheduler_cmd = f'sbatch --job-name={args.model_instance_id} {cwd}/models/{model_type}/launch_{args.model_name}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
         print(f"Scheduler command: {scheduler_cmd}")
         scheduler_output = subprocess.check_output(
             scheduler_cmd, shell=True
