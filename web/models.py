@@ -14,7 +14,7 @@ from errors import InvalidStateError
 from services import model_service_client
 
 
-MODEL_CONFIG = model_service_client.get_model_config()
+# MODEL_CONFIG = model_service_client.get_model_config()
 AVAIALBLE_MODELS = model_service_client.get_available_models()
 
 

@@ -5,7 +5,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from config import Config
 from db import db
 import tasks
-from models import ModelInstance, MODEL_CONFIG, AVAIALBLE_MODELS
+from models import ModelInstance, AVAIALBLE_MODELS
 from errors import InvalidStateError
 
 
