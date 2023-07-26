@@ -44,24 +44,29 @@ def get_job_status(args):
     except Exception as err:
         print(f"Job status failed: {err}")
 
-def get_model_config(args):
+def get_available_models(args):
     # Look at every subdirectory under the /models directory, and grab config.json files
-    metadata = []
+    available_models = []
     cwd = os.path.dirname(os.path.realpath(__file__))
     for subdir in os.listdir(f"{cwd}/models"):
         if os.path.isdir(os.path.join(f"{cwd}/models", subdir)):
             try:
                 with open(f"{cwd}/models/{subdir}/config.json", "r") as config:
-                    metadata.append(json.load(config))
+                    model_config = json.load(config)
+                if not "variants" in model_config:
+                    available_models.append(model_config["type"])
+                else:
+                    for variant in model_config["variants"].keys():
+                        available_models.append(f"{model_config['type']}-{variant}")                        
             except:
                 pass
-    print(metadata)
+    print(available_models)
 
 job_manager_actions = {
     'launch': launch_job,
     'shutdown': shutdown_job,
     'get_status': get_job_status,
-    'get_model_config': get_model_config,
+    'get_available_models': get_available_models,
 }
 
 def main():
