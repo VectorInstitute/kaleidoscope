@@ -7,15 +7,15 @@ import subprocess
 
 
 def launch_job(args):
-    for arg in ["model_type", "model_variant", "model_path", "gateway_host", "gateway_port"]:
+    for arg in ["model_name", "gateway_host", "gateway_port"]:
         if not getattr(args, arg):
             raise ValueError(f"Argument --{arg} must be specified to launch a job")
         
     # ToDo: No validation of model_type, model_variant
     try:
-        model_variant = f"_{args.model_variant}" if args.model_variant != "None" else ""
+        model_type = args.model_name.split('-')[0]
         cwd = pathlib.Path(__file__).parent.resolve()
-        scheduler_cmd = f'sbatch --job-name={args.model_instance_id} {cwd}/models/{args.model_type}/launch{model_variant}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
+        scheduler_cmd = f'sbatch --job-name={args.model_instance_id} {cwd}/models/{model_type}/launch{args.model_name}.slurm {cwd} {args.gateway_host} {args.gateway_port}'
         print(f"Scheduler command: {scheduler_cmd}")
         scheduler_output = subprocess.check_output(
             scheduler_cmd, shell=True

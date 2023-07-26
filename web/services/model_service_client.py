@@ -13,23 +13,6 @@ from config import Config
 
 from utils.triton import TritonClient
 
-# UPDATE (1406): Inserted model_type arg to fetch config for specific model. Set default as None to preserve original function.
-def get_model_config(model_type: str=None) -> List:
-    config = []
-    try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_model_config --model_instance_id 0"
-        #print(f"Get model config SSH command: {ssh_command}")
-        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        #print(f"Get model config SSH output: {ssh_output}")
-        config = ast.literal_eval(ssh_output)
-
-        if model_type is not None:
-            for model_cfg in config:
-                if model_cfg["type"] == model_type:
-                    config = [model_cfg]
-    except Exception as err:
-        print(f"Failed to issue SSH command to job manager: {err}")
-    return config
 
 def get_available_models() -> List:
     available_models = []
@@ -42,10 +25,10 @@ def get_available_models() -> List:
     return available_models
 
 
-def launch(model_instance_id: str, model_type: str, model_variant: str, model_path: str) -> None:
-    current_app.logger.info(f"Model service client: launching {model_type} with ID {model_instance_id}")
+def launch(model_instance_id: str, model_name: str) -> None:
+    current_app.logger.info(f"Model service client: launching {model_name} with ID {model_instance_id}")
     try:
-        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_type} --model_variant {model_variant} --model_instance_id {model_instance_id} --model_path {model_path} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
+        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_name{model_name} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
         current_app.logger.info(f"Launch SSH command: {ssh_command}")
 
         # System job scheduler needs ssh to keep running in the background
