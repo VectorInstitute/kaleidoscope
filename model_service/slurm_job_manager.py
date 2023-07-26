@@ -62,11 +62,22 @@ def get_available_models(args):
                 pass
     print(available_models)
 
+def get_module_names(args):
+    model_type = args.model_name.split('-')[0]
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    try:
+        with open(f"{cwd}/models/{model_type}/config.json", "r") as config:
+            model_config = json.load(config)
+        print(model_config["module_names"])                        
+    except:
+        pass
+
 job_manager_actions = {
     'launch': launch_job,
     'shutdown': shutdown_job,
     'get_status': get_job_status,
     'get_available_models': get_available_models,
+    'get_module_names': get_module_names,
 }
 
 def main():

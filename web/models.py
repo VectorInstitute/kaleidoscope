@@ -137,9 +137,7 @@ class ActiveState(ModelInstanceState):
         return model_instance_generation
 
     def get_module_names(self):
-        for model in MODEL_CONFIG:
-            if model["type"] in self._model_instance.name:
-                return model["module_names"]
+        return model_service_client.get_module_names(self._model_instance.name)
 
     def generate_activations(self, username, inputs):
 

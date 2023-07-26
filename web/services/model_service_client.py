@@ -25,6 +25,17 @@ def get_available_models() -> List:
     return available_models
 
 
+def get_module_names(model_name) -> List:
+    module_names = []
+    try:
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_module_names --model_name {model_name} --model_instance_id 0"
+        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
+        module_names = ast.literal_eval(ssh_output)
+    except Exception as err:
+        print(f"Failed to issue SSH command to job manager: {err}")
+    return module_names
+
+
 def launch(model_instance_id: str, model_name: str) -> None:
     current_app.logger.info(f"Model service client: launching {model_name} with ID {model_instance_id}")
     try:
