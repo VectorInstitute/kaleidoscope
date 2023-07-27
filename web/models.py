@@ -56,7 +56,7 @@ class ModelInstanceState(ABC):
         """Check if a model is healthy"""
         raise InvalidStateError(self)
 
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         raise InvalidStateError(self)
     
 
@@ -100,7 +100,7 @@ class PendingState(ModelInstanceState):
         """Determine model health status"""
         return model_service_client.verify_job_health(self._model_instance.id)
 
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         return False
 
 
@@ -116,7 +116,7 @@ class LaunchingState(ModelInstanceState):
         """Retrieve model health status"""
         return model_service_client.verify_job_health(self._model_instance.id)
 
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         return False
 
 
@@ -196,7 +196,7 @@ class ActiveState(ModelInstanceState):
     def is_healthy(self):
         return model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
     
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         last_event_datetime = self._model_instance.updated_at
         last_generation = self._model_instance.last_generation()
         if last_generation:
@@ -359,8 +359,8 @@ class ModelInstance(BaseMixin, db.Model):
         """Retrieve health status"""
         return self._state.is_healthy()
 
-    def is_timed_out(self, timeout):
-        return self._state.is_timed_out(timeout)
+    def is_timed_out(self):
+        return self._state.is_timed_out()
 
     def last_generation(self):
         last_generation_query = (
