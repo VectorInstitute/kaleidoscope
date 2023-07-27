@@ -50,9 +50,9 @@ class Model(AbstractModel):
                 Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True)
             ],
             outputs=[
-                Tensor(name="sequences", dtype=object, shape=(-1,)),
+                Tensor(name="sequences", dtype=np.bytes_, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
+                Tensor(name="logprobs", dtype=object, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -134,10 +134,12 @@ class Model(AbstractModel):
             for _ in range(len(random_tokens)):
                 random_logprobs.append(random.uniform(-3, -0.001))
 
+        random_tokens = [random_tokens]
+        random_logprobs = [random_logprobs]
         return {
-            "sequences": np.array(generated_sequences, dtype="S"),
-            "logprobs": np.array(random_logprobs, dtype="f")
-            #"tokens": np.array(random_tokens, dtype="S")
+            "sequences": np.array(generated_sequences, dtype=np.bytes_),
+            "tokens": np.array(random_tokens, dtype=object),
+            "logprobs": np.array(random_logprobs, dtype=object)
         }
 
 
