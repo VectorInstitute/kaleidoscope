@@ -5,7 +5,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from config import Config
 from db import db
 import tasks
-from models import ModelInstance, MODEL_CONFIG
+from models import ModelInstance, AVAIALBLE_MODELS
 from errors import InvalidStateError
 
 
@@ -13,19 +13,8 @@ model_instances_bp = Blueprint("models", __name__)
 
 @model_instances_bp.route("/", methods=["GET"])
 async def get_models():
-    current_app.logger.info(f"Model config: {MODEL_CONFIG}")
-    models = []
-    for model in MODEL_CONFIG:
-        try:
-            if not "variants" in model:
-                models.append(model["type"])
-            else:
-                for variant in model["variants"].keys():
-                    models.append(f"{model['type']}-{variant}")
-        except Exception as err:
-            current_app.logger.error(f"Error while processing model {model}: {err}")
-            continue
-    return models, 200
+    current_app.logger.info(f"Available models: {AVAIALBLE_MODELS}")
+    return AVAIALBLE_MODELS, 200
 
 
 @model_instances_bp.route("/instances", methods=["GET"])
@@ -43,11 +32,10 @@ async def create_model_instance():
     """Launch a model instance if not active"""
     current_app.logger.info(f"Received model instance creation request: {request}")
     model_name = request.json["name"]
-    model_list, _ = await get_models()
-    if model_name not in model_list:
+    if model_name not in AVAIALBLE_MODELS:
         return (
             jsonify(
-                msg=f"Model name {model_name} not found in model list {model_list}"
+                msg=f"Model name {model_name} not found in model list {AVAIALBLE_MODELS}"
             ),
             400,
         )
