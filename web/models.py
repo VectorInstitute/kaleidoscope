@@ -14,7 +14,7 @@ from errors import InvalidStateError
 from services import model_service_client
 
 
-MODEL_CONFIG = model_service_client.get_model_config()
+AVAIALBLE_MODELS = model_service_client.get_available_models()
 
 
 class ModelInstanceState(ABC):
@@ -64,32 +64,13 @@ class PendingState(ModelInstanceState):
     """Class for model pending state"""
 
     def launch(self):
-        # Derive the model type and variant from the MODEL_CONFIG data
-        model_variant = "None"
-        for model in MODEL_CONFIG:
-            if model["type"] in self._model_instance.name:
-                model_type = model["type"]
-                model_path = model["path"]
-                if "variants" in model:
-                    for variant in model["variants"].keys():
-                        if variant in self._model_instance.name:
-                            model_variant = variant
-                            try:
-                                model_path = model["variants"][variant]["path"]
-                            except:
-                                pass
-                            break
-
-        current_app.logger.info(f"Issuing launch command for model type {model_type} with optional variant {model_variant}")
-        
+        current_app.logger.info(f"Issuing launch command for model {self._model_instance.name}")
         """Launch a model"""
         try:
             # ToDo: set job id params here
             model_service_client.launch(
                 self._model_instance.id,
-                model_type,
-                model_variant,
-                model_path,
+                self._model_instance.name,
             )
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:
@@ -156,9 +137,7 @@ class ActiveState(ModelInstanceState):
         return model_instance_generation
 
     def get_module_names(self):
-        for model in MODEL_CONFIG:
-            if model["type"] in self._model_instance.name:
-                return model["module_names"]
+        return model_service_client.get_module_names(self._model_instance.name)
 
     def generate_activations(self, username, inputs):
 
