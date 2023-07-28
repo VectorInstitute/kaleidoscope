@@ -70,14 +70,14 @@ class TritonClient():
         self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True)
 
     def infer(self, model_name, inputs, task="generation"):
-        model_bind_name = f'{model_name}_{task}'
-        task_config = self._client.get_model_config(model_bind_name)
+        task_config = self._client.get_model_config(model_name)
+        inputs['task'] = task
         inputs_wrapped = prepare_inputs(inputs, task_config['input'])
         if isinstance(inputs_wrapped, tuple):
             return inputs_wrapped
 
         try:
-            response = self._client.infer(model_bind_name, inputs_wrapped)
+            response = self._client.infer(model_name, inputs_wrapped)
         except Exception as err:
             return err
         sequences = np.char.decode(response.as_numpy("sequences").astype("bytes"), "utf-8").tolist()
@@ -107,8 +107,5 @@ class TritonClient():
 
         return result
 
-    def is_model_ready(self, model_name, task="generation"):
-        model_bind_name = f'{model_name}_{task}'
-        print(model_bind_name)
-        is_model_ready = self._client.is_model_ready(model_bind_name)
-        return is_model_ready
+    def is_model_ready(self, model_name):
+        return self._client.is_model_ready(model_name)

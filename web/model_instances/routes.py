@@ -158,7 +158,7 @@ async def get_activations(model_instance_id: str):
     model_instance = ModelInstance.find_by_id(model_instance_id)
     inputs = {
         "prompts": prompts,
-        "module_names": module_names,
+        "modules": modules,
         **generation_config
     }
 
