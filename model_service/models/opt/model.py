@@ -116,55 +116,15 @@ class Model(AbstractModel):
         
     def bind(self, triton):
         triton.bind(
-            model_name=f"{self.model_type}-{self.model_variant}_generation",
+            model_name=f"{self.model_type}-{self.model_variant}",
             infer_func=self.infer,
             inputs=[
+                Tensor(name="task", dtype=bytes, shape=(1,)),
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
+                Tensor(name="modules", dtype=bytes, shape=(1,), optional=True),
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True),
-            ],
-            outputs=[
-                Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
-                Tensor(name="sequences", dtype=object, shape=(-1,)),
-                Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=object, shape=(-1,)),
-            ],
-            config=ModelConfig(max_batch_size=128),
-        )
-        triton.bind(
-            model_name=f"{self.model_type}-{self.model_variant}_get_activations",
-            infer_func=self.get_activations,
-            inputs=[
-                Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name="modules", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name="temperature", dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True),
-            ],
-            outputs=[
-                Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
-                Tensor(name="sequences", dtype=object, shape=(-1,)),
-                Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=object, shape=(-1,)),
-            ],
-            config=ModelConfig(max_batch_size=128),
-        )
-        triton.bind(
-            model_name=f"{self.model_type}-{self.model_variant}_edit_activations",
-            infer_func=self.edit_activations,
-            inputs=[
-                Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name="modules", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name="temperature", dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True),
@@ -185,17 +145,22 @@ class Model(AbstractModel):
 
     @batch
     def infer(self, **inputs):
-        """Generate sequences from a prompt"""
+        """ Dispatch request to a handler function based on the task """
         self.load_default_args("generate")
-        response = self.generate(inputs)
-        logger.info(f"Infer generation response: {response}")
+
+        task = inputs['task'][0][0].decode()
+        if task == "get_activations":
+            response = self.get_activations(inputs)
+        elif task == "edit_activations":
+            response = self.edit_activations(inputs)
+        else:
+            response = self.generate(inputs)
+
         return response
     
-    @batch
-    def get_activations(self, **inputs):
+    def get_activations(self, inputs):
         """ Retrieve activations for a list of prompts and list of module names """
         self.load_default_args("activations")
-
         # If the modules are base-64 encoded, this is a manipulation request
         try:
             module_names = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
@@ -212,8 +177,7 @@ class Model(AbstractModel):
 
         return response
 
-    @batch
-    def edit_activations(self, **inputs):
+    def edit_activations(self, inputs):
         """ Edit activations for a list of prompts and list of modules """
         self.load_default_args("activations")
 
@@ -246,6 +210,7 @@ class Model(AbstractModel):
         return response
 
     def generate(self, inputs):
+        """Generate sequences from a prompt"""
         prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
         prompts = np.squeeze(prompts, axis=-1).tolist()
 
@@ -370,7 +335,6 @@ class Model(AbstractModel):
                         src_rank=0,
                         group=distributed_utils.get_global_group(),
                     )
-
                     encoded_activation_payload = request_object.pop(
                         "encoded_activation_payload", None
                     )
@@ -525,7 +489,6 @@ class Model(AbstractModel):
                         encoded_activation_payload = request_object.pop(
                             "encoded_activation_payload", None
                         )
-                        
                         act_retrieval_aux = request_object.pop("_aux", None)
 
                         if encoded_activation_payload:
