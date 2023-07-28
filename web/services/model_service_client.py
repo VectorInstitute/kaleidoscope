@@ -83,7 +83,7 @@ def verify_job_health(model_instance_id: str) -> bool:
 def verify_model_instance_active(host: str, model_name: str) -> bool:
     try:
         triton_client = TritonClient(host)
-        return triton_client.is_model_ready(model_name, task="generation")
+        return triton_client.is_model_ready(model_name)
 
     except Exception as err:
         current_app.logger.error(f"Model active check failed: {err}")
@@ -92,7 +92,7 @@ def verify_model_instance_active(host: str, model_name: str) -> bool:
 def verify_model_health(host: str, model_name: str) -> bool:
     try:
         triton_client = TritonClient(host)
-        return triton_client.is_model_ready(model_name, task="generation")
+        return triton_client.is_model_ready(model_name)
 
     except Exception as err:
         current_app.logger.error(f"Model health failed check: {err}")
