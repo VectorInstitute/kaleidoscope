@@ -64,7 +64,7 @@ def prepare_inputs(inputs, inputs_config):
 class TritonClient():
 
     def __init__(self, host):
-        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True)
+        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, connection_timeout=600.0)
 
     def infer(self, model_name, inputs, task="generation"):
         model_bind_name = f'{model_name}_{task}'
