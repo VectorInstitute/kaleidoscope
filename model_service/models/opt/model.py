@@ -1,5 +1,4 @@
 """Module for OPT LLM configurations"""
-import binascii
 import cloudpickle
 import codecs
 from collections import defaultdict
