@@ -71,14 +71,7 @@ def main():
     sequence = np.array(
         [
             ["William Shakespeare was a great writer"],
-            ["William Shakespeare was a great writer"],
-            ["William Shakespeare was a great writer"],
-            ["William Shakespeare was a great writer"],
-            ["William Shakespeare was a great writer"],
-            ["William Shakespeare was a great writer"],
-            ["William Shakespeare was a great writer"],
-            ["William Shakespeare was a great writer"],
-        ]
+        ]*6
     )
 
     sequence = np.char.encode(sequence, "utf-8")
@@ -91,7 +84,7 @@ def main():
         else:
             return np.zeros((batch_size, 1), dtype=dtype)
     
-    num_tokens = 8
+    num_tokens = 128
     gen_params = {
         "max_tokens": _param(np.int64, num_tokens),
         "do_sample": _param(np.bool_, False),
@@ -100,33 +93,33 @@ def main():
     
     model_name = "falcon-40b_generation"
 
-    # logger.info(f"Waiting for response...")
-    # start_time = time.time()
-    # with ModelClient(args.url, model_name, init_timeout_s=args.init_timeout_s) as client:
-    #     for req_idx in range(1, args.iterations + 1):
-    #         logger.info(f"Sending request ({req_idx}).")
-    #         result_dict = client.infer_batch(
-    #             prompts=sequence, **gen_params)
-    #         logger.info(f"Result: {result_dict} for request ({req_idx}).")
-    # time_taken = time.time() - start_time
-    # logger.info(f"Total time taken: {time_taken:.2f} secs")
-    # token_per_sec = (num_tokens*batch_size)/time_taken
-    # logger.info(f"tokens/sec: {token_per_sec:.2f}")
+    logger.info(f"Waiting for response...")
+    start_time = time.time()
+    with ModelClient(args.url, model_name, init_timeout_s=args.init_timeout_s, inference_timeout_s=600) as client:
+        for req_idx in range(1, args.iterations + 1):
+            logger.info(f"Sending request ({req_idx}).")
+            result_dict = client.infer_batch(
+                prompts=sequence, **gen_params)
+            logger.info(f"Result: {result_dict} for request ({req_idx}).")
+    time_taken = time.time() - start_time
+    logger.info(f"Total time taken: {time_taken:.2f} secs")
+    token_per_sec = (num_tokens*batch_size)/time_taken
+    logger.info(f"tokens/sec: {token_per_sec:.2f}")
 
 
-    # benchmark
-    n_runs = 5
-    run_times = []
-    for run_idx in range(n_runs):
-        start_time = time.time()
-        with ModelClient(args.url, model_name, init_timeout_s=args.init_timeout_s) as client:
-            for req_idx in range(1, args.iterations + 1):
-                logger.info(f"Sending request ({req_idx}).")
-                result_dict = client.infer_batch(
-                    prompts=sequence, **gen_params)
-        run_times.append(time.time() - start_time)
-    mean_token_per_sec = np.mean([(num_tokens*batch_size)/elm for elm in run_times])
-    logger.info(f"seq_len: {num_tokens}, tokens/sec: {mean_token_per_sec:.2f}")
+#    # benchmark
+#    n_runs = 5
+#    run_times = []
+#    for run_idx in range(n_runs):
+#        start_time = time.time()
+#        with ModelClient(args.url, model_name, init_timeout_s=args.init_timeout_s) as client:
+#            for req_idx in range(1, args.iterations + 1):
+#                logger.info(f"Sending request ({req_idx}).")
+#                result_dict = client.infer_batch(
+#                    prompts=sequence, **gen_params)
+#        run_times.append(time.time() - start_time)
+#    mean_token_per_sec = np.mean([(num_tokens*batch_size)/elm for elm in run_times])
+#    logger.info(f"seq_len: {num_tokens}, tokens/sec: {mean_token_per_sec:.2f}")
 
 if __name__ == "__main__":
     main()

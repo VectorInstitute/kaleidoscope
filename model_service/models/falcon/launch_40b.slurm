@@ -4,7 +4,7 @@
 #SBATCH --partition=a40
 #SBATCH --qos=llm
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=2
+#SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=32
 #SBATCH --output=falcon-40b_service.%j.out
 #SBATCH --error=falcon-40b_service.%j.err
@@ -19,7 +19,7 @@ model_path="/model_checkpoint"
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
 export MASTER_ADDR=$(hostname -I | awk '{print $1}')
-export CUDA_VISIBLE_DEVICES=0,1 #,2,3 # Add 2 and 3 if changed to 4 gpus
+export CUDA_VISIBLE_DEVICES=0,1,2,3 # Add 2 and 3 if changed to 4 gpus
 # export NCCL_IB_DISABLE=1
 
 # Send registration request to gateway 

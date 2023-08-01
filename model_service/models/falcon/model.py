@@ -10,7 +10,7 @@ import pprint
 from ..abstract_model import AbstractModel
 
 from pytriton.decorators import batch
-from pytriton.model_config import ModelConfig, Tensor
+from pytriton.model_config import ModelConfig, Tensor, DynamicBatcher, QueuePolicy
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch, infer_auto_device_map
 from accelerate.utils.modeling import get_balanced_memory
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, GenerationConfig
@@ -60,7 +60,8 @@ class Model(AbstractModel):
             model.tie_weights()
 
             # Configure memory per device and get device map
-            max_memory = {idx: "40GiB" for idx in range(world_size)}
+            max_memory = {idx: ("10GiB" if idx==0 else "40GiB") for idx in range(world_size)}
+            #max_memory = {idx: "40GiB" for idx in range(world_size)}
             max_memory.update({"cpu": "120GiB"})
             device_map = infer_auto_device_map(model, max_memory, no_split_module_classes=["MLP", "DecoderLayer"])
             logging.debug(f"Max memory: {max_memory}")
@@ -124,6 +125,12 @@ class Model(AbstractModel):
                 Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=8), # TODO: set based on device memory and model variant
+#            config=ModelConfig(
+#                max_batch_size=8,
+#                batcher=DynamicBatcher(
+#                            default_queue_policy=QueuePolicy(default_timeout_microseconds=600000000)
+#                        ),
+#                ),
         )
         return triton
 
