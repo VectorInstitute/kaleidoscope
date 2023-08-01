@@ -148,12 +148,10 @@ class Model(AbstractModel):
         self.load_default_args("generate")
 
         task = inputs['task'][0][0].decode()
-        if task == "get_activations":
-            response = self.get_activations(inputs)
-        elif task == "edit_activations":
-            response = self.edit_activations(inputs)
-        else:
-            response = self.generate(inputs)
+        try:
+            response = getattr(self, task)(inputs)
+        except Exception as err:
+            logger.error(f"Invalid task name: {err}")
 
         return response
     
