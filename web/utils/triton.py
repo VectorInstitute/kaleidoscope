@@ -1,4 +1,4 @@
-from flask import current_app
+#from flask import current_app
 import numpy as np
 import tritonclient.http as httpclient
 from tritonclient.utils import np_to_triton_dtype, triton_to_np_dtype
@@ -28,11 +28,11 @@ def prepare_prompts_tensor(prompts):
     return tensor
 
 def prepare_param_tensor(input, inputs_config, batch_size):
-    current_app.logger.info(f"Preparing param tensor, input={input}, inputs_config={inputs_config}, batch_size={batch_size}")
+    #current_app.logger.info(f"Preparing param tensor, input={input}, inputs_config={inputs_config}, batch_size={batch_size}")
     name, value = input
-    current_app.logger.info(f"Preparing param tensor, name={name}, value={value}")
+    #current_app.logger.info(f"Preparing param tensor, name={name}, value={value}")
     input_config = [input_config for input_config in inputs_config if input_config['name'] == name][0]
-    current_app.logger.info(f"Preparing param tensor, input_config={input_config}")
+    #current_app.logger.info(f"Preparing param tensor, input_config={input_config}")
     triton_dtype = input_config['data_type'].split('_')[1]
     if triton_dtype == "STRING":
         triton_dtype = "BYTES"
@@ -54,7 +54,7 @@ def prepare_inputs(inputs, inputs_config):
 
     inputs_wrapped = [prepare_prompts_tensor(prompts)]
     
-    current_app.logger.info(f"Input args: {inputs}")
+    #current_app.logger.info(f"Input args: {inputs}")
     for input in inputs.items():
         inputs_wrapped.append(prepare_param_tensor(input, inputs_config, batch_size))
 
@@ -64,7 +64,7 @@ def prepare_inputs(inputs, inputs_config):
 class TritonClient():
 
     def __init__(self, host):
-        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, connection_timeout=600.0)
+        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, network_timeout=600.0)
 
     def infer(self, model_name, inputs, task="generation"):
         model_bind_name = f'{model_name}_{task}'
