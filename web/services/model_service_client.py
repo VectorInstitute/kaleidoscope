@@ -116,7 +116,7 @@ def shutdown(model_instance_id: str) -> None:
 def generate(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    generation = triton_client.infer(model_name, inputs, task="generation")
+    generation = triton_client.infer(model_name, inputs, task="generate")
     return generation
 
     # # Only for GPT-J
