@@ -1,5 +1,4 @@
 """Module for OPT LLM configurations"""
-import binascii
 import cloudpickle
 import codecs
 from collections import defaultdict
@@ -38,7 +37,7 @@ from metaseq_cli.activation_utils import ActivationPayload
 from metaseq_cli.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
 
 from ..abstract_model import AbstractModel
-from pytriton.decorators import batch
+from pytriton.decorators import batch, group_by_values
 from pytriton.model_config import ModelConfig, Tensor
 
 
@@ -144,17 +143,16 @@ class Model(AbstractModel):
         return torch.distributed.get_rank()
 
     @batch
+    @group_by_values("task")
     def infer(self, **inputs):
         """ Dispatch request to a handler function based on the task """
         self.load_default_args("generate")
 
         task = inputs['task'][0][0].decode()
-        if task == "get_activations":
-            response = self.get_activations(inputs)
-        elif task == "edit_activations":
-            response = self.edit_activations(inputs)
-        else:
-            response = self.generate(inputs)
+        try:
+            response = getattr(self, task)(inputs)
+        except Exception as err:
+            logger.error(f"Invalid task name: {err}")
 
         return response
     
