@@ -125,13 +125,13 @@ async def get_module_names(model_instance_id: str):
     return jsonify(module_names), 200
 
 
-@model_instances_bp.route("/instances/<model_instance_id>/generate_activations", methods=["POST"])
+@model_instances_bp.route("/instances/<model_instance_id>/get_activations", methods=["POST"])
 @jwt_required()
 async def get_activations(model_instance_id: str):
     """Retrieve model activations for a model ID"""
     username = get_jwt_identity()
     prompts = request.json["prompts"]
-    module_names = request.json["module_names"]
+    modules = request.json["modules"]
     generation_config = request.json["generation_config"]
 
     if len(prompts) > int(Config.BATCH_REQUEST_LIMIT):
@@ -146,12 +146,12 @@ async def get_activations(model_instance_id: str):
     model_instance = ModelInstance.find_by_id(model_instance_id)
     inputs = {
         "prompts": prompts,
-        "module_names": module_names,
+        "modules": modules,
         **generation_config
     }
 
     try:
-        activations = model_instance.generate_activations(username, inputs)
+        activations = model_instance.get_activations(username, inputs)
     except InvalidStateError as err:
         return jsonify(msg=f"Generation failed: {err}"), 400
     
@@ -175,12 +175,22 @@ async def edit_activations(model_instance_id: str):
     modules = request.json["modules"]
     generation_config = request.json["generation_config"]
 
+    if len(prompts) > int(Config.BATCH_REQUEST_LIMIT):
+        return (
+            jsonify(
+                msg=f"Request batch size of {len(prompts)} exceeds prescribed \
+        limit of {Config.BATCH_REQUEST_LIMIT}"
+            ),
+            400,
+        )
+
     model_instance = ModelInstance.find_by_id(model_instance_id)
     inputs = {
         "prompts": prompts,
         "modules": modules,
         **generation_config
     }
+    
     try:
         activations = model_instance.edit_activations(username, inputs)
     except InvalidStateError as err:
