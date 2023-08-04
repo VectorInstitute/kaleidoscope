@@ -88,7 +88,7 @@ def verify_job_health(model_instance_id: str) -> bool:
 def verify_model_instance_active(host: str, model_name: str) -> bool:
     try:
         triton_client = TritonClient(host)
-        return triton_client.is_model_ready(model_name, task="generation")
+        return triton_client.is_model_ready(model_name)
 
     except Exception as err:
         current_app.logger.error(f"Model active check failed: {err}")
@@ -97,7 +97,7 @@ def verify_model_instance_active(host: str, model_name: str) -> bool:
 def verify_model_health(host: str, model_name: str) -> bool:
     try:
         triton_client = TritonClient(host)
-        return triton_client.is_model_ready(model_name, task="generation")
+        return triton_client.is_model_ready(model_name)
 
     except Exception as err:
         current_app.logger.error(f"Model health failed check: {err}")
@@ -116,7 +116,7 @@ def shutdown(model_instance_id: str) -> None:
 def generate(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    generation = triton_client.infer(model_name, inputs, task="generation")
+    generation = triton_client.infer(model_name, inputs, task="generate")
     return generation
 
     # # Only for GPT-J
@@ -138,12 +138,12 @@ def generate(host: str, model_name: str, inputs: Dict) -> Dict:
     # print(output0.shape)
     # print(output0)
 
-def generate_activations(host: str, model_name: str, inputs: Dict) -> Dict:
+def get_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, task="activations")
+    return triton_client.infer(model_name, inputs, task="get_activations")
 
 def edit_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, task="activations")
+    return triton_client.infer(model_name, inputs, task="edit_activations")
