@@ -80,9 +80,20 @@ class TritonClient():
             response = self._client.infer(model_name, inputs_wrapped)
         except Exception as err:
             return err
+
         sequences = np.char.decode(response.as_numpy("sequences").astype("bytes"), "utf-8").tolist()
-        tokens = np.char.decode(response.as_numpy("tokens").astype("bytes"), "utf-8").tolist()
-        logprobs = np.char.decode(response.as_numpy("logprobs").astype("bytes"), "utf-8").tolist()
+        tokens = []
+        logprobs = []
+
+        try:
+            tokens = np.char.decode(response.as_numpy("tokens").astype("bytes"), "utf-8").tolist()
+        except Exception as err:
+            pass
+
+        try:
+            logprobs = np.char.decode(response.as_numpy("logprobs").astype("bytes"), "utf-8").tolist()
+        except Exception as err:
+            pass
         
         # Logprobs need special treatment because they are encoded as bytes
         # Regular np float arrays don't work, each element has a different number of items
