@@ -165,8 +165,15 @@ class Model(AbstractModel):
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
         self.load_default_args("generate")
-        response = self.generate(inputs)
-        logger.info(f"Infer generation response: {response}")
+
+        task = inputs['task'][0][0].decode()
+        if task == "get_activations":
+            response = self.get_activations(inputs)
+        elif task == "edit_activations":
+            response = self.edit_activations(inputs)
+        else:
+            response = self.generate(inputs)
+
         return response
     
     @batch
