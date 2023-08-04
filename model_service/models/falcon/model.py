@@ -10,7 +10,7 @@ import pprint
 from ..abstract_model import AbstractModel
 
 from pytriton.decorators import batch
-from pytriton.model_config import ModelConfig, Tensor, # DynamicBatcher, QueuePolicy
+from pytriton.model_config import ModelConfig, Tensor # DynamicBatcher, QueuePolicy
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch, infer_auto_device_map
 from accelerate.utils.modeling import get_balanced_memory
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, GenerationConfig
