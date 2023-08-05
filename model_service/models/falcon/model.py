@@ -108,9 +108,10 @@ class Model(AbstractModel):
 
     def bind(self, triton):
         triton.bind(
-            model_name=f"{self.model_type}-{self.model_variant}_generation",
+            model_name=f"{self.model_type}-{self.model_variant}",
             infer_func=self.infer,
             inputs=[
+                Tensor(name="task", dtype=bytes, shape=(1,)),
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),

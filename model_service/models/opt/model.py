@@ -37,7 +37,7 @@ from metaseq_cli.activation_utils import ActivationPayload
 from metaseq_cli.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
 
 from ..abstract_model import AbstractModel
-from pytriton.decorators import batch
+from pytriton.decorators import batch, group_by_values
 from pytriton.model_config import ModelConfig, Tensor
 
 
@@ -115,34 +115,15 @@ class Model(AbstractModel):
         
     def bind(self, triton):
         triton.bind(
-            model_name=f"{self.model_type}-{self.model_variant}_generation",
+            model_name=f"{self.model_type}-{self.model_variant}",
             infer_func=self.infer,
             inputs=[
+                Tensor(name="task", dtype=bytes, shape=(1,)),
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
+                Tensor(name="modules", dtype=bytes, shape=(1,), optional=True),
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True),
-            ],
-            outputs=[
-                Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
-                Tensor(name="sequences", dtype=object, shape=(-1,)),
-                Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=object, shape=(-1,)),
-            ],
-            config=ModelConfig(max_batch_size=128),
-        )
-        triton.bind(
-            model_name=f"{self.model_type}-{self.model_variant}_activations",
-            infer_func=self.get_activations,
-            inputs=[
-                Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name="module_names", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name="temperature", dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='repetition_penalty', dtype=np.float64, shape=(1,), optional=True),
@@ -162,23 +143,74 @@ class Model(AbstractModel):
         return torch.distributed.get_rank()
 
     @batch
+    @group_by_values("task")
     def infer(self, **inputs):
-        """Generate sequences from a prompt"""
+        """ Dispatch request to a handler function based on the task """
         self.load_default_args("generate")
-        response = self.generate(inputs)
-        logger.info(f"Infer generation response: {response}")
+
+        task = inputs['task'][0][0].decode()
+        if task == "get_activations":
+            response = self.get_activations(inputs)
+        elif task == "edit_activations":
+            response = self.edit_activations(inputs)
+        else:
+            response = self.generate(inputs)
+
         return response
     
-    @batch
-    def get_activations(self, **inputs):
+    def get_activations(self, inputs):
+        """ Retrieve activations for a list of prompts and list of module names """
         self.load_default_args("activations")
-        module_names = np.char.decode(inputs["module_names"][0][0], encoding="utf-8")
-        self.generation_args["encoded_activation_payload"] = ActivationPayload(
-            module_names_activation_retrieval=[module_names.tolist()],
-        )
-        return self.generate(inputs)
+        # If the modules are base-64 encoded, this is a manipulation request
+        try:
+            module_names = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            self.generation_args["encoded_activation_payload"] = ActivationPayload(
+                module_names_activation_retrieval=[module_names.tolist()],
+            )
+            response = self.generate(inputs)
+
+        # Handle all other errors
+        except Exception as err:
+            response = {}
+            response["activations"] = torch.empty(0)
+            response["error"] = f"Error with activations request: {err}"
+
+        return response
+
+    def edit_activations(self, inputs):
+        """ Edit activations for a list of prompts and list of modules """
+        self.load_default_args("activations")
+
+        # If the modules are base-64 encoded, this is a manipulation request
+        try:
+            # Extract modules + editing functions from encoded request
+            encoded_modules = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            # TODO: This only works for a single module name. Add code to handle multiple modules.
+            decoded_modules = decode_str(str(encoded_modules))
+            editing_fns: Dict[str, Callable] = {}
+            for module_name, edit_fn in decoded_modules.items():
+                if edit_fn is not None:
+                    editing_fns[module_name] = edit_fn
+
+            # Define activation payload
+            self.generation_args["encoded_activation_payload"] = encode_obj(
+                    ActivationPayload(
+                    module_names_activation_retrieval=list(decoded_modules.keys()),
+                    module_editing_fn_pairs=editing_fns,
+                )
+            )
+            response = self.generate(inputs)
+
+        # Handle all other errors
+        except Exception as err:
+            response = {}
+            response["activations"] = torch.empty(0)
+            response["error"] = f"Error with activations request: {err}"
+
+        return response
 
     def generate(self, inputs):
+        """Generate sequences from a prompt"""
         prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
         prompts = np.squeeze(prompts, axis=-1).tolist()
 
@@ -253,28 +285,6 @@ class Model(AbstractModel):
         }
         return return_val
 
-    def edit_activations(self, request):
-        # Extract modules + editing functions from encoded request
-        decoded_modules = decode_str(request.json['modules'])
-        editing_fns: Dict[str, Callable] = {}
-        for module_name, edit_fn in decoded_modules.items():
-            if edit_fn is not None:
-                logger.info(f"Adding module name {module_name} with edit function {edit_fn}")
-                editing_fns[module_name] = edit_fn
-
-        # Define activation payload
-        activation_payload = ActivationPayload(
-            module_names_activation_retrieval=list(decoded_modules.keys()),
-            module_editing_fn_pairs=editing_fns,
-        )
-
-        request.json["encoded_activation_payload"] = encode_obj(activation_payload)
-        request.json["echo"] = True
-        request.json["max_tokens"] = 0
-
-        response = self.generate(request)
-
-        return response
 
     def worker_main(self, cfg1: MetaseqConfig, namespace_args=None):
         """Create model generator worker"""
@@ -325,7 +335,6 @@ class Model(AbstractModel):
                         src_rank=0,
                         group=distributed_utils.get_global_group(),
                     )
-
                     encoded_activation_payload = request_object.pop(
                         "encoded_activation_payload", None
                     )
@@ -480,7 +489,6 @@ class Model(AbstractModel):
                         encoded_activation_payload = request_object.pop(
                             "encoded_activation_payload", None
                         )
-                        
                         act_retrieval_aux = request_object.pop("_aux", None)
 
                         if encoded_activation_payload:

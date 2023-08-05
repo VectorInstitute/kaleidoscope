@@ -14,7 +14,7 @@ from errors import InvalidStateError
 from services import model_service_client
 
 
-MODEL_CONFIG = model_service_client.get_model_config()
+AVAIALBLE_MODELS = model_service_client.get_available_models()
 
 
 class ModelInstanceState(ABC):
@@ -31,7 +31,7 @@ class ModelInstanceState(ABC):
         """Register a model instance"""
         raise InvalidStateError(self)
 
-    def verify_active(self):
+    def verify_activation(self):
         """Check if a model is active and ready to service requests"""
         raise InvalidStateError(self)
 
@@ -39,7 +39,7 @@ class ModelInstanceState(ABC):
         """Send a generation request to a model"""
         raise InvalidStateError(self)
 
-    def generate_activations(self, username, inputs):
+    def get_activations(self, username, inputs):
         """Retrieve intermediate activations from a model"""
         raise InvalidStateError(self)
 
@@ -56,7 +56,7 @@ class ModelInstanceState(ABC):
         """Check if a model is healthy"""
         raise InvalidStateError(self)
 
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         raise InvalidStateError(self)
     
 
@@ -64,32 +64,13 @@ class PendingState(ModelInstanceState):
     """Class for model pending state"""
 
     def launch(self):
-        # Derive the model type and variant from the MODEL_CONFIG data
-        model_variant = "None"
-        for model in MODEL_CONFIG:
-            if model["type"] in self._model_instance.name:
-                model_type = model["type"]
-                model_path = model["path"]
-                if "variants" in model:
-                    for variant in model["variants"].keys():
-                        if variant in self._model_instance.name:
-                            model_variant = variant
-                            try:
-                                model_path = model["variants"][variant]["path"]
-                            except:
-                                pass
-                            break
-
-        current_app.logger.info(f"Issuing launch command for model type {model_type} with optional variant {model_variant}")
-        
+        current_app.logger.info(f"Issuing launch command for model {self._model_instance.name}")
         """Launch a model"""
         try:
             # ToDo: set job id params here
             model_service_client.launch(
                 self._model_instance.id,
-                model_type,
-                model_variant,
-                model_path,
+                self._model_instance.name,
             )
             self._model_instance.transition_to_state(ModelInstanceStates.LAUNCHING)
         except Exception as err:
@@ -98,15 +79,9 @@ class PendingState(ModelInstanceState):
 
     def is_healthy(self):
         """Determine model health status"""
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
-        if not is_healthy:
-            current_app.logger.error(
-                f"Health check for pending model {self._model_instance.name} failed"
-            )
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        return is_healthy
+        return model_service_client.verify_job_health(self._model_instance.id)
 
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         return False
 
 
@@ -120,42 +95,26 @@ class LaunchingState(ModelInstanceState):
 
     def is_healthy(self):
         """Retrieve model health status"""
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
-        if not is_healthy:
-            current_app.logger.error(
-                f"Health check for launching model {self._model_instance.name} failed"
-            )
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        return is_healthy
+        return model_service_client.verify_job_health(self._model_instance.id)
 
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         return False
 
 
 class LoadingState(ModelInstanceState):
     """Class for model loading state"""
 
-    def verify_active(self):
+    def verify_activation(self):
         is_active = model_service_client.verify_model_instance_active(self._model_instance.host, self._model_instance.name)
         if is_active:
             self._model_instance.transition_to_state(ModelInstanceStates.ACTIVE)
 
-    # If we receive multiple registration requests for the same model, just ignore them
-    # This will happen whenever a model is loaded onto multiple nodes
-    def register(self, host: str):
-        pass
-
     def is_healthy(self):
-        is_healthy = model_service_client.verify_job_health(self._model_instance.id)
-        if not is_healthy:
-            current_app.logger.error(
-                f"Health check for loading model {self._model_instance.name} failed"
-            )
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        return is_healthy
+        return model_service_client.verify_job_health(self._model_instance.id)
     
-    def is_timed_out(self, timeout):
-        return False
+    def is_timed_out(self):
+        last_event_datetime = self._model_instance.updated_at
+        return (datetime.now() - last_event_datetime) > Config.MODEL_INSTANCE_ACTIVATION_TIMEOUT
 
 
 class ActiveState(ModelInstanceState):
@@ -178,20 +137,16 @@ class ActiveState(ModelInstanceState):
         return model_instance_generation
 
     def get_module_names(self):
-        for model in MODEL_CONFIG:
-            if model["type"] in self._model_instance.name:
-                return model["module_names"]
+        return model_service_client.get_module_names(self._model_instance.name)
 
-    def generate_activations(self, username, inputs):
+    def get_activations(self, username, inputs):
 
         model_instance_generation = ModelInstanceGeneration.create(
             model_instance_id=self._model_instance.id,
             username=username,
         )
 
-        current_app.logger.info(model_instance_generation)
-
-        activations_response = model_service_client.generate_activations(
+        activations_response = model_service_client.get_activations(
             self._model_instance.host,
             self._model_instance.name,
             inputs
@@ -205,8 +160,6 @@ class ActiveState(ModelInstanceState):
             username=username,
         )
 
-        current_app.logger.info(model_instance_generation)
-
         activations_response = model_service_client.edit_activations(
             self._model_instance.host,
             self._model_instance.name,
@@ -216,15 +169,9 @@ class ActiveState(ModelInstanceState):
         return activations_response
 
     def is_healthy(self):
-        is_healthy = model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
-        if not is_healthy:
-            current_app.logger.error(
-                f"Health check for active model {self._model_instance.name} failed"
-            )
-            self._model_instance.transition_to_state(ModelInstanceStates.FAILED)
-        return is_healthy
+        return model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
     
-    def is_timed_out(self, timeout):
+    def is_timed_out(self):
         last_event_datetime = self._model_instance.updated_at
         last_generation = self._model_instance.last_generation()
         if last_generation:
@@ -236,18 +183,12 @@ class ActiveState(ModelInstanceState):
 class FailedState(ModelInstanceState):
     """Class for failed model instance state"""
 
-    def is_healthy(self):
-        return False
-
     def shutdown(self):
         raise InvalidStateError(self)
 
 
 class CompletedState(ModelInstanceState):
     """Class for completed model instance state"""
-
-    def is_healthy(self):
-        return True
 
     def shutdown(self):
         raise InvalidStateError(self)
@@ -360,8 +301,8 @@ class ModelInstance(BaseMixin, db.Model):
         current_app.logger.info(f"Received registration request from host {host}")
         self._state.register(host)
 
-    def verify_active(self) -> None:
-        self._state.verify_active()
+    def verify_activation(self) -> None:
+        self._state.verify_activation()
 
     def shutdown(self) -> None:
         """Shutdown model"""
@@ -374,13 +315,13 @@ class ModelInstance(BaseMixin, db.Model):
         """Retrieve module names"""
         return self._state.get_module_names()
 
-    def generate_activations(
+    def get_activations(
         self,
         username: str,
         inputs: Dict,
     ) -> Dict:
         """Retrieve intermediate activations for module name argument"""
-        return self._state.generate_activations(username, inputs)
+        return self._state.get_activations(username, inputs)
 
     def edit_activations(
         self,
@@ -393,8 +334,8 @@ class ModelInstance(BaseMixin, db.Model):
         """Retrieve health status"""
         return self._state.is_healthy()
 
-    def is_timed_out(self, timeout):
-        return self._state.is_timed_out(timeout)
+    def is_timed_out(self):
+        return self._state.is_timed_out()
 
     def last_generation(self):
         last_generation_query = (

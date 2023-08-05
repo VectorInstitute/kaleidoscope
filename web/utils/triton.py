@@ -56,7 +56,10 @@ def prepare_inputs(inputs, inputs_config):
     
     #current_app.logger.info(f"Input args: {inputs}")
     for input in inputs.items():
-        inputs_wrapped.append(prepare_param_tensor(input, inputs_config, batch_size))
+        try:
+            inputs_wrapped.append(prepare_param_tensor(input, inputs_config, batch_size))
+        except Exception as err:
+            return (err, input)
 
     return inputs_wrapped
 
@@ -66,16 +69,31 @@ class TritonClient():
     def __init__(self, host):
         self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, network_timeout=600.0)
 
-    def infer(self, model_name, inputs, task="generation"):
-        model_bind_name = f'{model_name}_{task}'
-        task_config = self._client.get_model_config(model_bind_name)
-
+    def infer(self, model_name, inputs, task="generate"):
+        task_config = self._client.get_model_config(model_name)
+        inputs['task'] = task
         inputs_wrapped = prepare_inputs(inputs, task_config['input'])
+        if isinstance(inputs_wrapped, tuple):
+            return inputs_wrapped
 
-        response = self._client.infer(model_bind_name, inputs_wrapped)
+        try:
+            response = self._client.infer(model_name, inputs_wrapped)
+        except Exception as err:
+            return err
+
         sequences = np.char.decode(response.as_numpy("sequences").astype("bytes"), "utf-8").tolist()
-        tokens = np.char.decode(response.as_numpy("tokens").astype("bytes"), "utf-8").tolist()
-        logprobs = np.char.decode(response.as_numpy("logprobs").astype("bytes"), "utf-8").tolist()
+        tokens = []
+        logprobs = []
+
+        try:
+            tokens = np.char.decode(response.as_numpy("tokens").astype("bytes"), "utf-8").tolist()
+        except Exception as err:
+            pass
+
+        try:
+            logprobs = np.char.decode(response.as_numpy("logprobs").astype("bytes"), "utf-8").tolist()
+        except Exception as err:
+            pass
         
         # Logprobs need special treatment because they are encoded as bytes
         # Regular np float arrays don't work, each element has a different number of items
@@ -92,7 +110,7 @@ class TritonClient():
             "logprobs": logprobs
         }
         
-        if task == "activations":
+        if task in ["get_activations", "edit_activations"]:
             activations = np.char.decode(response.as_numpy("activations").astype("bytes"), "utf-8").tolist()
             for idx in range(len(activations)):
                 activations[idx] = ast.literal_eval(activations[idx])
@@ -100,8 +118,5 @@ class TritonClient():
 
         return result
 
-    def is_model_ready(self, model_name, task="generation"):
-        model_bind_name = f'{model_name}_{task}'
-        print(model_bind_name)
-        is_model_ready = self._client.is_model_ready(model_bind_name)
-        return is_model_ready
+    def is_model_ready(self, model_name):
+        return self._client.is_model_ready(model_name)
