@@ -2,6 +2,7 @@
 import numpy as np
 import tritonclient.http as httpclient
 from tritonclient.utils import np_to_triton_dtype, triton_to_np_dtype
+from ..config import Config
 import typing
 import ast
 
@@ -67,7 +68,7 @@ def prepare_inputs(inputs, inputs_config):
 class TritonClient():
 
     def __init__(self, host):
-        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, network_timeout=600.0)
+        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, network_timeout=Config.TRITON_INFERENCE_TIMEOUT)
 
     def infer(self, model_name, inputs, task="generate"):
         task_config = self._client.get_model_config(model_name)
