@@ -191,8 +191,8 @@ class Model(AbstractModel):
                     editing_fns[module_name] = edit_fn
 
             # Define activation payload
-            self.generation_args["encoded_activation_payload"] = encode_obj(
-                    ActivationPayload(
+            inputs["encoded_activation_payload"] = encode_obj(
+                ActivationPayload(
                     module_names_activation_retrieval=list(decoded_modules.keys()),
                     module_editing_fn_pairs=editing_fns,
                 )
