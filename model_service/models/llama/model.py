@@ -7,6 +7,7 @@ import logging
 import numpy as np
 import pathlib
 import pickle
+import pprint
 import queue
 import requests
 import socket
@@ -17,7 +18,7 @@ import torch
 from typing import Dict, Callable
 
 from ..abstract_model import AbstractModel
-from pytriton.decorators import batch
+from pytriton.decorators import batch, group_by_values
 from pytriton.model_config import ModelConfig, Tensor
 
 # Need to add the models/llama directory to Python system path
@@ -76,26 +77,29 @@ class Model(AbstractModel):
     def __init__(self, model_type, model_variant):
         self.model_type = model_type
         self.model_variant = model_variant
-        self.load_default_args("config.json")
+        cwd = str(pathlib.Path(__file__).parent.resolve())
+        self.config_path = f"{cwd}/config.json"
+        self.generation_args = {}
 
 
     def load(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        #self.model = self.model_class.from_pretrained(model_path)
         self.model_path = model_path
         self.worker_main()
-        #self.model.to(self.device)
 
 
-    def load_default_args(self, config_file):
+    def load_default_args(self, task_name):
         """Load model config"""
+        logger.info(f"Loading default args from self.config_path: {self.config_path}")
+        self.generation_args = {}
         try:
-            with json.loads(config_file) as config:
-                default_args = config["parameters"]
-            logger.info(default_args)
-            self.default_args = {k: v["default"] for k, v in default_args.items() if v}
+            with open(self.config_path) as file:
+                json_data = file.read()
+            default_args = json.loads(json_data)["parameters"]
+            logger.info(pprint.pformat(default_args))
+            self.generation_args = {k: v["default"][task_name] for k, v in default_args.items() if v["default"][task_name] is not None}
         except Exception as err:
-            logger.error(f"Failed to load model default configuration: {err}")
+            logger.error(f"Failed to load model {task_name} default configuration: {err}")
 
 
     def bind(self, triton):
@@ -116,38 +120,14 @@ class Model(AbstractModel):
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
-                #Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
+                Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 #Tensor(name="tokens", dtype=object, shape=(-1,)),
                 #Tensor(name="logprobs", dtype=object, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
-        """
-        triton.bind(
-            model_name=f"{self.model_type}-{self.model_variant}_activations",
-            infer_func=self.get_activations,
-            inputs=[
-                Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
-                Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True),
-                Tensor(name='module_names', dtype=bytes,shape=(1,)),
-            ],
-            outputs=[
-                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
-                Tensor(name="sequences", dtype=object, shape=(-1,)),
-                Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
-            ],
-            config=ModelConfig(max_batch_size=128),
-        )
-        """
+
         return triton
 
 
@@ -157,30 +137,80 @@ class Model(AbstractModel):
 
 
     @batch
+    @group_by_values("task")
     def infer(self, **inputs):
-        """Generate sequences from a prompt"""
-        response = self.generate(inputs)
+        """Dispatch request to a handler function based on the task"""
+        task = inputs['task'][0][0].decode()
+
+        if task == "get_activations":
+            response = self.get_activations(inputs)
+        elif task == "edit_activations":
+            response = self.edit_activations(inputs)
+        else:
+            response = self.generate(inputs)
+
         logger.info(f"Infer function returning response: {response}")
         return response
 
 
-    """
-    @batch
-    def get_activations(self, **inputs):
-        activation_payload = ActivationPayload(
-            module_names_activation_retrieval = inputs["module_names"][0][0],
-        )
-        inputs["encoded_activation_payload"][:] = activation_payload
-        inputs["echo"][:] = True
-        inputs["max_tokens"][:] = 0
+    def get_activations(self, inputs):
+        """Retrieve activations for a list of prompts and list of module names"""
+        self.load_default_args("activations")
+
+        # If the modules are base-64 encoded, this is a manipulation request
+        try:
+            module_names = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            inputs["encoded_activation_payload"] = ActivationPayload(
+                module_names_activation_retrieval=[module_names.tolist()],
+            )
+            response = self.generate(inputs)
+
+        # Handle all other errors
+        except Exception as err:
+            response = {}
+            response["activations"] = torch.empty(0)
+            response["error"] = f"Error with activations request: {err}"
+
         response = self.generate(inputs)
         return response
-    """
-    def get_activations(self, *args, **kwargs):
-        raise NotImplementedError
+
+
+    def edit_activations(self, inputs):
+        """Edit activations for a list of prompts and list of modules"""
+        self.load_default_args("activations")
+
+        # If the modules are base-64 encoded, this is a manipulation request
+        try:
+            # Extract modules + editing functions from encoded request
+            encoded_modules = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            # TODO: This only works for a single module name. Add code to handle multiple modules.
+            decoded_modules = decode_str(str(encoded_modules))
+            editing_fns: Dict[str, Callable] = {}
+            for module_name, edit_fn in decoded_modules.items():
+                if edit_fn is not None:
+                    editing_fns[module_name] = edit_fn
+
+            # Define activation payload
+            inputs["encoded_activation_payload"] = encode_obj(
+                ActivationPayload(
+                    module_names_activation_retrieval=list(decoded_modules.keys()),
+                    module_editing_fn_pairs=editing_fns,
+                )
+            )
+            response = self.generate(inputs)
+
+        # Handle all other errors
+        except Exception as err:
+            response = {}
+            response["activations"] = torch.empty(0)
+            response["error"] = f"Error with activations request: {err}"
+
+        return response
 
 
     def generate(self, request):
+        """Generate sequences from a prompt"""
+        logger.info(f"Generate function called with request: {request}")
         prompts = [
             p[0].decode("utf-8") for p in request["prompts"]
         ]
@@ -197,7 +227,7 @@ class Model(AbstractModel):
             max_gen_len=max_gen_len,
             #temperature=request["temperature"],
             #top_p=request["top_p"],
-            #encoded_activation_payload=request["encoded_activation_payload"]
+            encoded_activation_payload=request["encoded_activation_payload"]
         )
         logger.info(f"Rank{torch.distributed.get_rank()}: completions - made "
                     f"RequestObject: {request_object}")
@@ -219,16 +249,17 @@ class Model(AbstractModel):
         generated_sequences = []
         tokens = []
         logprobs = []
-        logger.info(f"{results}")
-        for result in results["choices"][0]["text"]:
-            #activations.append(result["activations"])
+
+        logger.info(f"Generation results: {results}")
+        for result in results["choices"]:
+            activations.append(result["activations"])
             #activations.append(torch.empty(0))
-            generated_sequences.append(result)
+            generated_sequences.append(result["text"])
             #tokens.append(torch.empty(0))
             #logprobs.append(torch.empty(0, dtype=bytes))
 
         return_val = {
-            #"activations": np.array(activations, dtype=np.bytes_),
+            "activations": np.array(activations, dtype=np.bytes_),
             "sequences": np.array(generated_sequences, dtype=object),
             #"tokens": np.array(tokens, dtype=object),
             #"logprobs": np.array(logprobs, dtype=object)
@@ -236,28 +267,6 @@ class Model(AbstractModel):
         logger.info(f"Generate returning return_val: {return_val}")
         return return_val
 
-    def edit_activations(self, request):
-        # Extract modules + editing functions from encoded request
-        decoded_modules = decode_str(request.json['modules'])
-        editing_fns: Dict[str, Callable] = {}
-        for module_name, edit_fn in decoded_modules.items():
-            if edit_fn is not None:
-                logger.info(f"Adding module name {module_name} with edit function {edit_fn}")
-                editing_fns[module_name] = edit_fn
-
-        # Define activation payload
-        activation_payload = ActivationPayload(
-            module_names_activation_retrieval=list(decoded_modules.keys()),
-            module_editing_fn_pairs=editing_fns,
-        )
-
-        request.json["encoded_activation_payload"] = encode_obj(activation_payload)
-        request.json["echo"] = True
-        request.json["max_tokens"] = 0
-
-        response = self.generate(request)
-
-        return response
 
     def worker_main(self):
         """
@@ -383,7 +392,6 @@ class Model(AbstractModel):
 
             activation_dict = {}
             encoded_activation_payload = request_object.encoded_activation_payload
-
             act_retrieval_aux = request_object._aux
             if encoded_activation_payload is not None:
                 hook_dict, activation_dict = get_activation_capture_hook_dict(
