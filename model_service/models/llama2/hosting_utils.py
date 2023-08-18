@@ -30,6 +30,7 @@ class RequestObject:
 class ResponseObject:
     """OpenAI API response-like object."""
     generations: List[str]
+    logprobs: List[float]
     activations: Dict[str, Tensor]
 
     def __post_init__(self):
@@ -47,7 +48,7 @@ class ResponseObject:
                 # TODO: Impl rest of keys under logprobs
                 {
                     "text": self.generations,
-                    "logprobs": None,
+                    "logprobs": self.logprobs,
                     "activations": self.activations,
                 }
             ]

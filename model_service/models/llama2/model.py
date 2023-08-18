@@ -122,8 +122,8 @@ class Model(AbstractModel):
             outputs=[
                 Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
-                #Tensor(name="tokens", dtype=object, shape=(-1,)),
-                #Tensor(name="logprobs", dtype=object, shape=(-1,)),
+                Tensor(name="tokens", dtype=object, shape=(-1,)),
+                Tensor(name="logprobs", dtype=object, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -140,6 +140,7 @@ class Model(AbstractModel):
     @group_by_values("task")
     def infer(self, **inputs):
         """Dispatch request to a handler function based on the task"""
+        self.load_default_args("generate")
         task = inputs['task'][0][0].decode()
 
         if task == "get_activations":
@@ -211,14 +212,12 @@ class Model(AbstractModel):
     def generate(self, request):
         """Generate sequences from a prompt"""
         logger.info(f"Generate function called with request: {request}")
+        logger.info(f"Self generation args: {self.generation_args}")
         global GENERATOR
+
         prompts = [
             p[0].decode("utf-8") for p in request["prompts"]
         ]
-        # TODO: Read in default parameter values from config
-        max_gen_len = 64
-        if "max_tokens" in request:
-            max_gen_len = int(request["max_tokens"].max())
 
         logger.info(f"Rank{torch.distributed.get_rank()}: completions")
 
@@ -228,9 +227,9 @@ class Model(AbstractModel):
         # Recv request and enqueue
         request_object = RequestObject(
             prompts=prompt_tokens,
-            max_gen_len=max_gen_len,
-            #temperature=request["temperature"],
-            #top_p=request["top_p"],
+            max_gen_len=int(request["max_tokens"]) if "max_tokens" in request else int(self.generation_args["max_tokens"]),
+            temperature=float(request["temperature"]) if "temperature" in request else float(self.generation_args["temperature"]),
+            top_p=float(request["top_p"]) if "top_p" in request else float(self.generation_args["top_p"]),
             encoded_activation_payload=request["encoded_activation_payload"] if "encoded_activation_payload" in request else None
         )
 
@@ -250,24 +249,18 @@ class Model(AbstractModel):
         results = response_object.json()
 
         # Compile the results into a structure consistent with other kaleidoscope models
-        activations = []
-        generated_sequences = []
+        activations = results["choices"][0]["activations"]
+        generated_sequences = GENERATOR.tokenizer.decode(results["choices"][0]["text"][0])
         tokens = []
-        logprobs = []
-
-        logger.info(f"Generation results: {results}")
-        # TODO: This only supports single-prompt requests, make it support multiple prompts
-        for result in results["choices"]:
-            activations.append(result["activations"])
-            generated_sequences.append(GENERATOR.tokenizer.decode(result['text'][0]))
-            #tokens.append(torch.empty(0))
-            #logprobs.append(torch.empty(0, dtype=bytes))
+        for sequence in results["choices"][0]["text"]:
+            tokens.append([GENERATOR.tokenizer.decode(token) for token in sequence])
+        logprobs = results["choices"][0]["logprobs"]
 
         return_val = {
             "activations": np.array(activations, dtype=np.bytes_),
             "sequences": np.array(generated_sequences, dtype=object),
-            #"tokens": np.array(tokens, dtype=object),
-            #"logprobs": np.array(logprobs, dtype=object)
+            "tokens": np.array(tokens, dtype=object),
+            "logprobs": np.array(logprobs, dtype=object)
         }
         logger.info(f"Generate returning return_val: {return_val}")
         return return_val
@@ -294,7 +287,6 @@ class Model(AbstractModel):
             ckpt_dir=f"{self.model_path}",
             tokenizer_path=f"{self.model_path}/tokenizer.model",
         )
-        logger.info(f"GENERATOR.model: {GENERATOR.model}")
 
         logger.info(f"Rank {torch.distributed.get_rank()} loaded in "
                     f"{time.time() - start_time:.2f} seconds")
@@ -334,7 +326,6 @@ class Model(AbstractModel):
 
                     encoded_activation_payload = request_object.encoded_activation_payload
                     act_retrieval_aux = request_object._aux
-                    logger.info(f"Worker main got request object: {request_object}")
                     if encoded_activation_payload is not None:
                         hook_dict, _ = get_activation_capture_hook_dict(
                             GENERATOR.model,
@@ -343,27 +334,30 @@ class Model(AbstractModel):
                         )
 
                         with apply_forward_hook(GENERATOR.model, hook_dict):
-                            _ = GENERATOR.generate(
+                            _, _ = GENERATOR.generate(
                                 request_object.prompts,
                                 request_object.max_gen_len,
                                 request_object.temperature,
                                 request_object.top_p,
+                                logprobs=True
                             )
                     else:
-                        _ = GENERATOR.generate(
+                        _, _ = GENERATOR.generate(
                             request_object.prompts,
                             request_object.max_gen_len,
                             request_object.temperature,
                             request_object.top_p,
+                            logprobs=True
                         )
 
                     logger.info(f"Rank{torch.distributed.get_rank()}: Batching "
                                 f"loop - generating on args {request_object}")
-                    _ = GENERATOR.generate(
+                    _, _ = GENERATOR.generate(
                         request_object.prompts,
                         request_object.max_gen_len,
                         request_object.temperature,
                         request_object.top_p,
+                        logprobs=True
                     )
                 except Exception as err:
                     logger.info(f"Worker main caught exception: {err}")
@@ -409,20 +403,22 @@ class Model(AbstractModel):
                 )
                 start_time = time.time()
                 with apply_forward_hook(generator.model, hook_dict):
-                    generation = generator.generate(
+                    generation, logprobs = generator.generate(
                         request_object.prompts,
                         request_object.max_gen_len,
                         request_object.temperature,
                         request_object.top_p,
+                        logprobs=True
                     )
 
             else:
                 start_time = time.time()
-                generation = generator.generate(
+                generation, logprobs = generator.generate(
                     request_object.prompts,
                     request_object.max_gen_len,
                     request_object.temperature,
                     request_object.top_p,
+                    logprobs=True
                 )
 
             logger.info(f"Rank{torch.distributed.get_rank()}: Generation took "
@@ -441,6 +437,7 @@ class Model(AbstractModel):
 
             ret_obj = ResponseObject(
                 generations=generation,
+                logprobs=logprobs,
                 activations=ret_dict,
             )
 
