@@ -1,4 +1,4 @@
-"""Module for llama LLM configurations"""
+"""Module for llama2 LLM configurations"""
 import cloudpickle
 import codecs
 from collections import defaultdict
@@ -7,6 +7,7 @@ import logging
 import numpy as np
 import pathlib
 import pickle
+import pprint
 import queue
 import requests
 import socket
@@ -17,14 +18,14 @@ import torch
 from typing import Dict, Callable
 
 from ..abstract_model import AbstractModel
-from pytriton.decorators import batch
+from pytriton.decorators import batch, group_by_values
 from pytriton.model_config import ModelConfig, Tensor
 
 # Need to add the models/llama directory to Python system path
 cwd = str(pathlib.Path(__file__).parent.resolve())
 sys.path.append(cwd)
 
-from llama import ModelArgs, Transformer, Tokenizer, LLaMA
+from llama import ModelArgs, Transformer, Tokenizer, Llama
 import distributed_utils
 from hosting_utils import (
     RequestObject,
@@ -66,7 +67,7 @@ GENERATOR = None
 PORT = get_free_port()
 
 logger = build_host_logger()
-logger = logging.getLogger("kaleidoscope.model_service.llama")
+logger = logging.getLogger("kaleidoscope.model_service.llama2")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
 
@@ -76,26 +77,29 @@ class Model(AbstractModel):
     def __init__(self, model_type, model_variant):
         self.model_type = model_type
         self.model_variant = model_variant
-        self.load_default_args("config.json")
+        cwd = str(pathlib.Path(__file__).parent.resolve())
+        self.config_path = f"{cwd}/config.json"
+        self.generation_args = {}
 
 
     def load(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        #self.model = self.model_class.from_pretrained(model_path)
         self.model_path = model_path
         self.worker_main()
-        #self.model.to(self.device)
 
 
-    def load_default_args(self, config_file):
+    def load_default_args(self, task_name):
         """Load model config"""
+        logger.info(f"Loading default args from self.config_path: {self.config_path}")
+        self.generation_args = {}
         try:
-            with json.loads(config_file) as config:
-                default_args = config["parameters"]
-            logger.info(default_args)
-            self.default_args = {k: v["default"] for k, v in default_args.items() if v}
+            with open(self.config_path) as file:
+                json_data = file.read()
+            default_args = json.loads(json_data)["parameters"]
+            logger.info(pprint.pformat(default_args))
+            self.generation_args = {k: v["default"][task_name] for k, v in default_args.items() if v["default"][task_name] is not None}
         except Exception as err:
-            logger.error(f"Failed to load model default configuration: {err}")
+            logger.error(f"Failed to load model {task_name} default configuration: {err}")
 
 
     def bind(self, triton):
@@ -116,38 +120,14 @@ class Model(AbstractModel):
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
-                #Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
-                Tensor(name="sequences", dtype=object, shape=(-1,)),
-                #Tensor(name="tokens", dtype=object, shape=(-1,)),
-                #Tensor(name="logprobs", dtype=object, shape=(-1,)),
-            ],
-            config=ModelConfig(max_batch_size=128),
-        )
-        """
-        triton.bind(
-            model_name=f"{self.model_type}-{self.model_variant}_activations",
-            infer_func=self.get_activations,
-            inputs=[
-                Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='encoded_activation_payload', dtype=bytes, shape=(1,), optional=True),
-                Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True),
-                Tensor(name='module_names', dtype=bytes,shape=(1,)),
-            ],
-            outputs=[
-                Tensor(name="activations", dtype=np.float64, shape=(-1,)),
+                Tensor(name="activations", dtype=np.bytes_, shape=(-1,)),
                 Tensor(name="sequences", dtype=object, shape=(-1,)),
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
+                Tensor(name="logprobs", dtype=object, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
-        """
+
         return triton
 
 
@@ -157,48 +137,102 @@ class Model(AbstractModel):
 
 
     @batch
+    @group_by_values("task")
     def infer(self, **inputs):
-        """Generate sequences from a prompt"""
-        response = self.generate(inputs)
+        """Dispatch request to a handler function based on the task"""
+        self.load_default_args("generate")
+        task = inputs['task'][0][0].decode()
+
+        if task == "get_activations":
+            response = self.get_activations(inputs)
+        elif task == "edit_activations":
+            response = self.edit_activations(inputs)
+        else:
+            response = self.generate(inputs)
+
         logger.info(f"Infer function returning response: {response}")
         return response
 
 
-    """
-    @batch
-    def get_activations(self, **inputs):
-        activation_payload = ActivationPayload(
-            module_names_activation_retrieval = inputs["module_names"][0][0],
-        )
-        inputs["encoded_activation_payload"][:] = activation_payload
-        inputs["echo"][:] = True
-        inputs["max_tokens"][:] = 0
+    def get_activations(self, inputs):
+        """Retrieve activations for a list of prompts and list of module names"""
+        self.load_default_args("activations")
+
+        # If the modules are base-64 encoded, this is a manipulation request
+        try:
+            module_names = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            inputs["encoded_activation_payload"] = ActivationPayload(
+                module_names_activation_retrieval=[module_names.tolist()],
+            )
+            response = self.generate(inputs)
+
+        # Handle all other errors
+        except Exception as err:
+            response = {}
+            response["activations"] = torch.empty(0)
+            response["error"] = f"Error with activations request: {err}"
+
         response = self.generate(inputs)
         return response
-    """
-    def get_activations(self, *args, **kwargs):
-        raise NotImplementedError
+
+
+    def edit_activations(self, inputs):
+        """Edit activations for a list of prompts and list of modules"""
+        self.load_default_args("activations")
+
+        # If the modules are base-64 encoded, this is a manipulation request
+        try:
+            # Extract modules + editing functions from encoded request
+            encoded_modules = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            # TODO: This only works for a single module name. Add code to handle multiple modules.
+            decoded_modules = decode_str(str(encoded_modules))
+            editing_fns: Dict[str, Callable] = {}
+            for module_name, edit_fn in decoded_modules.items():
+                if edit_fn is not None:
+                    editing_fns[module_name] = edit_fn
+
+            # Define activation payload
+            inputs["encoded_activation_payload"] = encode_obj(
+                ActivationPayload(
+                    module_names_activation_retrieval=list(decoded_modules.keys()),
+                    module_editing_fn_pairs=editing_fns,
+                )
+            )
+            response = self.generate(inputs)
+
+        # Handle all other errors
+        except Exception as err:
+            response = {}
+            response["activations"] = torch.empty(0)
+            response["error"] = f"Error with activations request: {err}"
+
+        return response
 
 
     def generate(self, request):
+        """Generate sequences from a prompt"""
+        logger.info(f"Generate function called with request: {request}")
+        logger.info(f"Self generation args: {self.generation_args}")
+        global GENERATOR
+
         prompts = [
             p[0].decode("utf-8") for p in request["prompts"]
         ]
-        # TODO: Read in default parameter values from config
-        max_gen_len = 64
-        if "max_tokens" in request:
-            max_gen_len = int(request["max_tokens"].max())
 
         logger.info(f"Rank{torch.distributed.get_rank()}: completions")
 
+        # Tokenize the prompts (needs to be done manually now)
+        prompt_tokens = [GENERATOR.tokenizer.encode(s=prompt, bos=True, eos=False) for prompt in prompts]
+        
         # Recv request and enqueue
         request_object = RequestObject(
-            prompts=prompts,
-            max_gen_len=max_gen_len,
-            #temperature=request["temperature"],
-            #top_p=request["top_p"],
-            #encoded_activation_payload=request["encoded_activation_payload"]
+            prompts=prompt_tokens,
+            max_gen_len=int(request["max_tokens"]) if "max_tokens" in request else int(self.generation_args["max_tokens"]),
+            temperature=float(request["temperature"]) if "temperature" in request else float(self.generation_args["temperature"]),
+            top_p=float(request["top_p"]) if "top_p" in request else float(self.generation_args["top_p"]),
+            encoded_activation_payload=request["encoded_activation_payload"] if "encoded_activation_payload" in request else None
         )
+
         logger.info(f"Rank{torch.distributed.get_rank()}: completions - made "
                     f"RequestObject: {request_object}")
 
@@ -215,49 +249,22 @@ class Model(AbstractModel):
         results = response_object.json()
 
         # Compile the results into a structure consistent with other kaleidoscope models
-        activations = []
-        generated_sequences = []
+        activations = results["choices"][0]["activations"]
+        generated_sequences = GENERATOR.tokenizer.decode(results["choices"][0]["text"][0])
         tokens = []
-        logprobs = []
-        logger.info(f"{results}")
-        for result in results["choices"][0]["text"]:
-            #activations.append(result["activations"])
-            #activations.append(torch.empty(0))
-            generated_sequences.append(result)
-            #tokens.append(torch.empty(0))
-            #logprobs.append(torch.empty(0, dtype=bytes))
+        for sequence in results["choices"][0]["text"]:
+            tokens.append([GENERATOR.tokenizer.decode(token) for token in sequence])
+        logprobs = results["choices"][0]["logprobs"]
 
         return_val = {
-            #"activations": np.array(activations, dtype=np.bytes_),
+            "activations": np.array(activations, dtype=np.bytes_),
             "sequences": np.array(generated_sequences, dtype=object),
-            #"tokens": np.array(tokens, dtype=object),
-            #"logprobs": np.array(logprobs, dtype=object)
+            "tokens": np.array(tokens, dtype=object),
+            "logprobs": np.array(logprobs, dtype=object)
         }
         logger.info(f"Generate returning return_val: {return_val}")
         return return_val
 
-    def edit_activations(self, request):
-        # Extract modules + editing functions from encoded request
-        decoded_modules = decode_str(request.json['modules'])
-        editing_fns: Dict[str, Callable] = {}
-        for module_name, edit_fn in decoded_modules.items():
-            if edit_fn is not None:
-                logger.info(f"Adding module name {module_name} with edit function {edit_fn}")
-                editing_fns[module_name] = edit_fn
-
-        # Define activation payload
-        activation_payload = ActivationPayload(
-            module_names_activation_retrieval=list(decoded_modules.keys()),
-            module_editing_fn_pairs=editing_fns,
-        )
-
-        request.json["encoded_activation_payload"] = encode_obj(activation_payload)
-        request.json["echo"] = True
-        request.json["max_tokens"] = 0
-
-        response = self.generate(request)
-
-        return response
 
     def worker_main(self):
         """
@@ -278,9 +285,8 @@ class Model(AbstractModel):
             max_seq_len=512,
             max_batch_size=32,
             ckpt_dir=f"{self.model_path}",
-            tokenizer_path=f"{self.model_path}/../tokenizer.model",
+            tokenizer_path=f"{self.model_path}/tokenizer.model",
         )
-        print(GENERATOR.model)
 
         logger.info(f"Rank {torch.distributed.get_rank()} loaded in "
                     f"{time.time() - start_time:.2f} seconds")
@@ -317,9 +323,9 @@ class Model(AbstractModel):
                         group=distributed_utils.get_global_group(),
                     )
 
+
                     encoded_activation_payload = request_object.encoded_activation_payload
                     act_retrieval_aux = request_object._aux
-
                     if encoded_activation_payload is not None:
                         hook_dict, _ = get_activation_capture_hook_dict(
                             GENERATOR.model,
@@ -328,30 +334,33 @@ class Model(AbstractModel):
                         )
 
                         with apply_forward_hook(GENERATOR.model, hook_dict):
-                            _ = GENERATOR.generate(
+                            _, _ = GENERATOR.generate(
                                 request_object.prompts,
                                 request_object.max_gen_len,
                                 request_object.temperature,
                                 request_object.top_p,
+                                logprobs=True
                             )
                     else:
-                        _ = GENERATOR.generate(
+                        _, _ = GENERATOR.generate(
                             request_object.prompts,
                             request_object.max_gen_len,
                             request_object.temperature,
                             request_object.top_p,
+                            logprobs=True
                         )
 
                     logger.info(f"Rank{torch.distributed.get_rank()}: Batching "
                                 f"loop - generating on args {request_object}")
-                    _ = GENERATOR.generate(
+                    _, _ = GENERATOR.generate(
                         request_object.prompts,
                         request_object.max_gen_len,
                         request_object.temperature,
                         request_object.top_p,
+                        logprobs=True
                     )
-                except Exception:
-                    pass
+                except Exception as err:
+                    logger.info(f"Worker main caught exception: {err}")
 
 
     def batching_loop(self, generator):
@@ -370,6 +379,7 @@ class Model(AbstractModel):
             # TODO: Surely a better way to impl this?
             request_object._aux = (len(request_object.prompts),)
 
+
             distributed_utils.broadcast_object(
                 request_object,
                 src_rank=0,
@@ -383,8 +393,8 @@ class Model(AbstractModel):
 
             activation_dict = {}
             encoded_activation_payload = request_object.encoded_activation_payload
-
             act_retrieval_aux = request_object._aux
+
             if encoded_activation_payload is not None:
                 hook_dict, activation_dict = get_activation_capture_hook_dict(
                     generator.model,
@@ -393,20 +403,22 @@ class Model(AbstractModel):
                 )
                 start_time = time.time()
                 with apply_forward_hook(generator.model, hook_dict):
-                    generation = generator.generate(
+                    generation, logprobs = generator.generate(
                         request_object.prompts,
                         request_object.max_gen_len,
                         request_object.temperature,
                         request_object.top_p,
+                        logprobs=True
                     )
 
             else:
                 start_time = time.time()
-                generation = generator.generate(
+                generation, logprobs = generator.generate(
                     request_object.prompts,
                     request_object.max_gen_len,
                     request_object.temperature,
                     request_object.top_p,
+                    logprobs=True
                 )
 
             logger.info(f"Rank{torch.distributed.get_rank()}: Generation took "
@@ -425,6 +437,7 @@ class Model(AbstractModel):
 
             ret_obj = ResponseObject(
                 generations=generation,
+                logprobs=logprobs,
                 activations=ret_dict,
             )
 

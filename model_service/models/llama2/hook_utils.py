@@ -137,7 +137,7 @@ def generic_forward_hook_fn(
     editing, etc.
     """
 
-    logger.info(f"Rank {torch.distributed.get_rank()}: Starting layer {registered_name} fwd hook")
+    #logger.info(f"Rank {torch.distributed.get_rank()}: Starting layer {registered_name} fwd hook")
 
     activation = activation_utils.ShardedActivation(
         registered_name=registered_name,

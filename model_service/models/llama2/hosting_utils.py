@@ -12,7 +12,7 @@ import transformers
 import torch
 from torch import Tensor
 from fairscale.nn.model_parallel.initialize import initialize_model_parallel
-from llama import ModelArgs, Transformer, Tokenizer, LLaMA
+from llama import ModelArgs, Transformer, Tokenizer, Llama
 
 
 @dataclass
@@ -30,6 +30,7 @@ class RequestObject:
 class ResponseObject:
     """OpenAI API response-like object."""
     generations: List[str]
+    logprobs: List[float]
     activations: Dict[str, Tensor]
 
     def __post_init__(self):
@@ -42,12 +43,12 @@ class ResponseObject:
             "id": self._response_id,
             "object": "text_completion",
             "created": self._created,
-            "model": "LLaMA-30b",
+            "model": "llama2",
             "choices": [
                 # TODO: Impl rest of keys under logprobs
                 {
                     "text": self.generations,
-                    "logprobs": None,
+                    "logprobs": self.logprobs,
                     "activations": self.activations,
                 }
             ]
@@ -62,7 +63,7 @@ def build_host_logger():
         level=os.environ.get("LOGLEVEL", "INFO").upper(),
         stream=sys.stdout,
     )
-    _logger = logging.getLogger("llama.host_model")
+    _logger = logging.getLogger("llama2.host_model")
     return _logger
 
 
@@ -88,7 +89,8 @@ def load_llama(
     world_size: int,
     max_seq_len: int,
     max_batch_size: int,
-) -> LLaMA:
+) -> Llama:
+    logger = build_host_logger()
     checkpoints = sorted(Path(ckpt_dir).glob("*.pth"))
     if torch.distributed.is_initialized():
         assert torch.distributed.get_world_size() == len(
@@ -104,11 +106,14 @@ def load_llama(
         max_seq_len=max_seq_len, max_batch_size=max_batch_size, **params
     )
     tokenizer = Tokenizer(model_path=tokenizer_path)
+    logger.info(f"Hosting utils tokenizer: {tokenizer}")
+    logger.info(f"Hosting utils dir(tokenizer): {dir(tokenizer)}")
     model_args.vocab_size = tokenizer.n_words
     torch.set_default_tensor_type(torch.cuda.HalfTensor)
+    logger.info(f"Hosting utils model_args: {model_args}")
     model = Transformer(model_args)
     torch.set_default_tensor_type(torch.FloatTensor)
     model.load_state_dict(checkpoint, strict=False)
 
-    generator = LLaMA(model, tokenizer)
+    generator = Llama(model, tokenizer)
     return generator
