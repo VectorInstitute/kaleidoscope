@@ -4,8 +4,8 @@
         "temperature": {
             "type": "float",
             "default": {
-                "generate": 0.7,
-                "activations": 0.7
+                "generate": 0.6,
+                "activations": 0.6
             },
             "description": "Temperature of the sampling distribution."
         },
