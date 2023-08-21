@@ -29,7 +29,7 @@
             "type": "int",
             "default": {
                 "generate": 32,
-                "activations": 0
+                "activations": 32
             },
             "description": "Maximum number of tokens to generate."
         },
