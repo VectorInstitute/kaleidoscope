@@ -75,10 +75,16 @@ class TritonClient():
     def __init__(self, host):
         self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True)
 
-    def infer(self, model_name, inputs, task="generate"):
+    def infer(self, model_name, inputs, task=Task.GENERATE):
         task_config = self._client.get_model_config(model_name)
         
-        inputs['task'] = Task[task].value
+        try:
+            current_app.logger.info(f"task={task}")
+            current_app.logger.info(f"task.value=task.value")
+        except Exception as err:
+            current_app.logger.info(f"Failed to display task details: {err}")
+
+        inputs['task'] = task.value
         inputs_wrapped = prepare_inputs(inputs, task_config['input'])
         if isinstance(inputs_wrapped, tuple):
             return inputs_wrapped
@@ -104,6 +110,11 @@ class TritonClient():
         # Logprobs need special treatment because they are encoded as bytes
         # Regular np float arrays don't work, each element has a different number of items
         for i in range(len(logprobs)):
+            # Dirty hack for opt models
+            # TODO: Fix this in the model service side so logprobs are consistent with other models
+            if model_name in ["opt-6.7b", "opt-175b"]:
+                if len(logprobs) > 1:
+                    logprobs[i] = logprobs[i][1:-1].split(', ')
             logprobs[i] = [float(prob) if prob!="None" else None for prob in logprobs[i]]
 
         result = {
@@ -112,7 +123,7 @@ class TritonClient():
             "logprobs": logprobs
         }
         
-        if task in ["get_activations", "edit_activations"]:
+        if task in [Task.GET_ACTIVATIONS, Task.EDIT_ACTIVATIONS]:
             activations = np.char.decode(response.as_numpy("activations").astype("bytes"), "utf-8").tolist()
             for idx in range(len(activations)):
                 activations[idx] = ast.literal_eval(activations[idx])
