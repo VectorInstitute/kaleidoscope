@@ -17,7 +17,7 @@ import time
 import torch
 from typing import Dict, Callable
 
-from ..abstract_model import AbstractModel
+from ..abstract_model import AbstractModel, Task
 from pytriton.decorators import batch, group_by_values
 from pytriton.model_config import ModelConfig, Tensor
 
@@ -107,7 +107,7 @@ class Model(AbstractModel):
             model_name=f"{self.model_type}-{self.model_variant}",
             infer_func=self.infer,
             inputs=[
-                Tensor(name="task", dtype=bytes, shape=(1,)),
+                Tensor(name="task", dtype=np.int64, shape=(1,)),
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
                 Tensor(name="modules", dtype=bytes, shape=(1,), optional=True),
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
@@ -141,11 +141,11 @@ class Model(AbstractModel):
     def infer(self, **inputs):
         """Dispatch request to a handler function based on the task"""
         self.load_default_args("generate")
-        task = inputs['task'][0][0].decode()
 
-        if task == "get_activations":
+        task = Task(inputs['task'][0][0])
+        if task == Task.GET_ACTIVATIONS:
             response = self.get_activations(inputs)
-        elif task == "edit_activations":
+        elif task == Task.EDIT_ACTIVATIONS:
             response = self.edit_activations(inputs)
         else:
             response = self.generate(inputs)

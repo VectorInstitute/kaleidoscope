@@ -15,7 +15,6 @@ import time
 import torch
 from typing import Dict, Callable
 import pprint
-from enum import Enum
 
 from metaseq import options
 from metaseq.dataclass.configs import MetaseqConfig
@@ -37,15 +36,10 @@ from metaseq.service.responses import OAIResponse
 from metaseq_cli.activation_utils import ActivationPayload
 from metaseq_cli.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
 
-from ..abstract_model import AbstractModel
+from ..abstract_model import AbstractModel, Task
 from pytriton.decorators import batch, group_by_values
 from pytriton.model_config import ModelConfig, Tensor
 
-class Task(Enum):
-    """Task enum"""
-    GENERATE = 0
-    GET_ACTIVATIONS = 1
-    EDIT_ACTIVATIONS = 2
 
 # global state (mutable!)
 cfg = None
