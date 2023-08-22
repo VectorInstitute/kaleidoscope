@@ -4,7 +4,13 @@ import tritonclient.http as httpclient
 from tritonclient.utils import np_to_triton_dtype, triton_to_np_dtype
 import typing
 import ast
+from enum import Enum
 
+class Task(Enum):
+    """Task enum"""
+    GENERATE = 0
+    GET_ACTIVATIONS = 1
+    EDIT_ACTIVATIONS = 2
 
 def _param(dtype, value, batch_size):
     if bool(value):
@@ -71,7 +77,8 @@ class TritonClient():
 
     def infer(self, model_name, inputs, task="generate"):
         task_config = self._client.get_model_config(model_name)
-        inputs['task'] = task
+        
+        inputs['task'] = Task[task].value
         inputs_wrapped = prepare_inputs(inputs, task_config['input'])
         if isinstance(inputs_wrapped, tuple):
             return inputs_wrapped
