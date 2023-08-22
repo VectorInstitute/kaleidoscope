@@ -154,8 +154,7 @@ class Model(AbstractModel):
         """ Dispatch request to a handler function based on the task """
         self.load_default_args("generate")
 
-        # task = inputs['task'][0][0].decode()
-        task = Task[inputs['task'][0][0]]
+        task = Task(inputs['task'][0][0])
         if task == Task.GET_ACTIVATIONS:
             response = self.get_activations(inputs)
         elif task == Task.EDIT_ACTIVATIONS:
