@@ -11,7 +11,7 @@ from typing import Callable, Dict, List, Optional
 from config import Config
 
 
-from utils.triton import TritonClient
+from utils.triton import Task, TritonClient
 
 
 def get_available_models() -> List:
@@ -116,7 +116,7 @@ def shutdown(model_instance_id: str) -> None:
 def generate(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    generation = triton_client.infer(model_name, inputs, task="generate")
+    generation = triton_client.infer(model_name, inputs, task=Task.GENERATE)
     return generation
 
     # # Only for GPT-J
@@ -141,9 +141,9 @@ def generate(host: str, model_name: str, inputs: Dict) -> Dict:
 def get_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, task="get_activations")
+    return triton_client.infer(model_name, inputs, task=Task.GET_ACTIVATIONS)
 
 def edit_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, task="edit_activations")
+    return triton_client.infer(model_name, inputs, task=Task.EDIT_ACTIVATIONS)
