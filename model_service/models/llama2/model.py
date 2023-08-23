@@ -250,7 +250,7 @@ class Model(AbstractModel):
 
         # Compile the results into a structure consistent with other kaleidoscope models
         activations = results["choices"][0]["activations"]
-        generated_sequences = GENERATOR.tokenizer.decode(results["choices"][0]["text"][0])
+        generated_sequences = GENERATOR.tokenizer.decode(results["choices"][0]["text"])
         tokens = []
         for sequence in results["choices"][0]["text"]:
             tokens.append([GENERATOR.tokenizer.decode(token) for token in sequence])
