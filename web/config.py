@@ -41,4 +41,5 @@ class Config:
 
     MODEL_INSTANCE_ACTIVATION_TIMEOUT = datetime.timedelta(minutes=int(os.environ["MODEL_INSTANCE_ACTIVATION_TIMEOUT"]))
     MODEL_INSTANCE_TIMEOUT = datetime.timedelta(minutes=int(os.environ["MODEL_INSTANCE_TIMEOUT"]))
+    TRITON_INFERENCE_TIMEOUT = float(os.environ["TRITON_INFERENCE_TIMEOUT"])
     BATCH_REQUEST_LIMIT = os.environ["BATCH_REQUEST_LIMIT"]

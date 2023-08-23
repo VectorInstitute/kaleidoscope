@@ -5,6 +5,8 @@ from tritonclient.utils import np_to_triton_dtype, triton_to_np_dtype
 import typing
 import ast
 from enum import Enum
+from config import Config
+
 
 class Task(Enum):
     """Task enum"""
@@ -34,11 +36,8 @@ def prepare_prompts_tensor(prompts):
     return tensor
 
 def prepare_param_tensor(input, inputs_config, batch_size):
-    current_app.logger.info(f"Preparing param tensor, input={input}, inputs_config={inputs_config}, batch_size={batch_size}")
     name, value = input
-    current_app.logger.info(f"Preparing param tensor, name={name}, value={value}")
     input_config = [input_config for input_config in inputs_config if input_config['name'] == name][0]
-    current_app.logger.info(f"Preparing param tensor, input_config={input_config}")
     triton_dtype = input_config['data_type'].split('_')[1]
     if triton_dtype == "STRING":
         triton_dtype = "BYTES"
@@ -73,17 +72,11 @@ def prepare_inputs(inputs, inputs_config):
 class TritonClient():
 
     def __init__(self, host):
-        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True)
+        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, network_timeout=Config.TRITON_INFERENCE_TIMEOUT)
 
     def infer(self, model_name, inputs, task=Task.GENERATE):
         task_config = self._client.get_model_config(model_name)
         
-        try:
-            current_app.logger.info(f"task={task}")
-            current_app.logger.info(f"task.value=task.value")
-        except Exception as err:
-            current_app.logger.info(f"Failed to display task details: {err}")
-
         inputs['task'] = task.value
         inputs_wrapped = prepare_inputs(inputs, task_config['input'])
         if isinstance(inputs_wrapped, tuple):
