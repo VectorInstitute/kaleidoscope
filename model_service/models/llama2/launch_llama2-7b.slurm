@@ -12,7 +12,7 @@
 model_service_dir=$1
 gateway_host=$2
 gateway_port=$3
-model_path="/ssd005/projects/llm/Llama-2-7b-chat"
+model_path="/model-weights/Llama-2-7b"
 
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
@@ -29,7 +29,7 @@ srun -q llm \
 	-c 16 \
 	singularity exec \
 	--nv \
-	--bind /checkpoint,/scratch,/ssd003,/ssd005 \
+	--bind /checkpoint,/scratch,/ssd003,/model-weights \
 	/ssd005/projects/llm/llama2-latest.sif \
 	torchrun \
 	--nnodes 1 \
