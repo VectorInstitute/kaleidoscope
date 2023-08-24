@@ -12,7 +12,7 @@
 model_service_dir=$1
 gateway_host=$2
 gateway_port=$3
-model_path="/model-weights/Llama-2-13b"
+model_path="/model-weights/Llama-2-13b-chat"
 
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
