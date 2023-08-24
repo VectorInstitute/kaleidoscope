@@ -1,6 +1,6 @@
 """A module to abstract the models' functionality"""
 import abc
-
+from enum import Enum
 from pytriton.decorators import batch
 
 
@@ -37,3 +37,10 @@ class AbstractModel(abc.ABC):
     @abc.abstractmethod
     def edit_activations(self, request):
         pass
+
+
+class Task(Enum):
+    """Task enum"""
+    GENERATE = 0
+    GET_ACTIVATIONS = 1
+    EDIT_ACTIVATIONS = 2
