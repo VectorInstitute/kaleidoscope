@@ -1,13 +1,21 @@
 #!/bin/bash
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mem=167G
+#SBATCH --mem=0
 #SBATCH --partition=a40
 #--qos=llm
 #SBATCH --nodes=1
+#SBATCH --ntasks=1
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=32
 #SBATCH --output=falcon-40b_service.%j.out
 #SBATCH --error=falcon-40b_service.%j.err
+
+echo "SLURM_JOB_NODELIST"=$SLURM_JOB_NODELIST
+echo "SLURM_JOB_PARTITION"=$SLURM_JOB_PARTITION
+echo "SLURM_NNODES"=$SLURM_NNODES
+echo "SLURM_GPUS_ON_NODE"=$SLURM_GPUS_ON_NODE
+echo "SLURM_CPUS_ON_NODE"=$SLURM_CPUS_ON_NODE
+echo "SLURM_PROCID"=$SLURM_PROCID
 
 model_service_dir=$1
 gateway_host=$2
@@ -18,14 +26,38 @@ model_path="/model_checkpoint"
 
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
-export MASTER_ADDR=$(hostname -I | awk '{print $1}')
-export CUDA_VISIBLE_DEVICES=0,1,2,3 # Add 2 and 3 if changed to 4 gpus
-# export NCCL_IB_DISABLE=1
+
+NODES=( $( scontrol show hostnames ${SLURM_JOB_NODELIST} ) )
+NODES_ARRAY=(${NODES})
+HEAD_NODE=${NODES_ARRAY[0]}
+MASTER_ADDR=$(srun --nodes=1 --ntasks=1 -w "${HEAD_NODE}" hostname --ip-address)
+MASTER_PORT=8855
+
+export PYTHONPATH=/usr/bin/python3
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+
+GPUS_PER_NODE=4
+NNODES=$SLURM_NNODES
+NUM_PROCESSES=$(expr $NNODES \* $GPUS_PER_NODE)
+echo "NNODES"=$NNODES
+echo "NUM_PROCESSES"=$NUM_PROCESSES
 
 # Send registration request to gateway 
 curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':50112"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
 echo $MASTER_ADDR
 
-singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf.sif \
-/usr/bin/python3 -s \
-    $model_service_dir/model_service.py --model_type falcon --model_variant 40b --model_path $model_path --model_instance_id $SLURM_JOB_NAME --gateway_host $gateway_host --gateway_port $gateway_port --master_host $MASTER_ADDR --master_port 50112
+(while true; do nvidia-smi; top -b -n 1 | head -20; sleep 10; done) &
+
+singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
+    accelerate launch \
+        --config_file $model_service_dir/models/falcon/accelerate_config.yaml \
+        --main_process_ip $MASTER_ADDR \
+        --main_process_port $MASTER_PORT \
+        --machine_rank $SLURM_PROCID \
+        --num_processes $NUM_PROCESSES \
+        --num_machines $NNODES \
+            $model_service_dir/model_service.py \
+                --model_type falcon --model_variant 40b --model_path $model_path \
+                --model_instance_id $SLURM_JOB_NAME \
+                --gateway_host $gateway_host --gateway_port $gateway_port \
+                --master_host $MASTER_ADDR --master_port 50112

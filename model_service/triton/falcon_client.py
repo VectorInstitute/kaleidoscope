@@ -63,7 +63,7 @@ def main():
     logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
    
     
-    num_tokens = 200
+    num_tokens = 256
     
     # Using TritonClient
     prompts = ["William Shakespeare was a great writer"]*8 
@@ -75,11 +75,11 @@ def main():
     batch_size = len(prompts)
     host = args.url.lstrip("http://")
     
-#    triton_client = TritonClient(host)
-#    start_time = time.time()
-#    generation = triton_client.infer(model_name, inputs, task="generation")
-#    print(generation)
-#    time_taken = time.time() - start_time
+    triton_client = TritonClient(host)
+    start_time = time.time()
+    generation = triton_client.infer(model_name, inputs, task="generation")
+    print(generation)
+    time_taken = time.time() - start_time
 
 
 #    # Using pytriton ModelClient
@@ -117,32 +117,32 @@ def main():
 #            logger.info(f"Result: {result_dict} for request ({req_idx}).")
 #    time_taken = time.time() - start_time
     
-#    # Common logging for both methods
-#    logger.info(f"Total time taken: {time_taken:.2f} secs")
-#    token_per_sec = (num_tokens*batch_size)/time_taken
-#    logger.info(f"tokens/sec: {token_per_sec:.2f}")
+    # Common logging for both methods
+    logger.info(f"Total time taken: {time_taken:.2f} secs")
+    token_per_sec = (num_tokens*batch_size)/time_taken
+    logger.info(f"tokens/sec: {token_per_sec:.2f}")
 
 
-    # benchmark
-    n_runs = 5
-    run_times = []
-    for run_idx in range(n_runs):
-        start_time = time.time()
+#     # benchmark
+#     n_runs = 5
+#     run_times = []
+#     for run_idx in range(n_runs):
+#         start_time = time.time()
 
-        # Using TritonClient
-        triton_client = TritonClient(host)
-        generation = triton_client.infer(model_name, inputs, task="generation")
+#         # Using TritonClient
+#         triton_client = TritonClient(host)
+#         generation = triton_client.infer(model_name, inputs, task="generation")
 
-#        # Using pytriton ModelClient
-#        with ModelClient(args.url, model_name, init_timeout_s=args.init_timeout_s) as client:
-#            for req_idx in range(1, args.iterations + 1):
-#                logger.info(f"Sending request ({req_idx}).")
-#                result_dict = client.infer_batch(
-#                    prompts=sequence, **gen_params)
+# #        # Using pytriton ModelClient
+# #        with ModelClient(args.url, model_name, init_timeout_s=args.init_timeout_s) as client:
+# #            for req_idx in range(1, args.iterations + 1):
+# #                logger.info(f"Sending request ({req_idx}).")
+# #                result_dict = client.infer_batch(
+# #                    prompts=sequence, **gen_params)
 
-        run_times.append(time.time() - start_time)
-    mean_token_per_sec = np.mean([(num_tokens*batch_size)/elm for elm in run_times])
-    logger.info(f"seq_len: {num_tokens}, tokens/sec: {mean_token_per_sec:.2f}")
+#         run_times.append(time.time() - start_time)
+#     mean_token_per_sec = np.mean([(num_tokens*batch_size)/elm for elm in run_times])
+#     logger.info(f"seq_len: {num_tokens}, tokens/sec: {mean_token_per_sec:.2f}")
 
 if __name__ == "__main__":
     main()
