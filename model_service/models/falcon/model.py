@@ -16,8 +16,6 @@ from accelerate.utils.modeling import get_balanced_memory
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 from accelerate import Accelerator
 
-# test deepspeed
-from deepspeed.runtime.engine import DeepSpeedEngine
 
 logger = logging.getLogger("kaleidoscope.model_service.falcon")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
@@ -58,7 +56,6 @@ class Model(AbstractModel):
 
         # Load model on main device for each node
         if local_rank == 0:
-            # if (self.model_variant == "40b") or (self.model_variant == "7b"):
 
             config = AutoConfig.from_pretrained(
                 model_path, trust_remote_code=self.model_cfg["trust_remote_code"], torch_dtype=self.model_cfg["torch_dtype"])
@@ -90,7 +87,6 @@ class Model(AbstractModel):
 
         logger.debug(f"Deepspeed?: {os.environ.get('ACCELERATE_USE_DEEPSPEED', False)}")
         logger.debug(f"Deepspeed Zero Stage?: {os.environ.get('ACCELERATE_DEEPSPEED_ZERO_STAGE', None)}")
-        # logger.debug(f"DS Config: {os.environ['ACCELERATE_CONFIG_DS_FIELDS']}")
 
 
     def load_model_cfg(self, cfg_file):
