@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mem=0
-#SBATCH --partition=a40 # a40
-#--qos=llm
+#SBATCH --partition=a40
+#SBATCH --qos=llm
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-node=2
