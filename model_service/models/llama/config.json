@@ -1,8 +1,0 @@
-{
-    "type": "llama",
-    "parameters": {},
-    "variants": {
-        "7b": {},
-        "30b": {}
-    }
-}

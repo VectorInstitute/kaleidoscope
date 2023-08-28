@@ -5,7 +5,15 @@ from tritonclient.utils import np_to_triton_dtype, triton_to_np_dtype
 from ..config import Config
 import typing
 import ast
+from enum import Enum
+from config import Config
 
+
+class Task(Enum):
+    """Task enum"""
+    GENERATE = 0
+    GET_ACTIVATIONS = 1
+    EDIT_ACTIVATIONS = 2
 
 def _param(dtype, value, batch_size):
     if bool(value):
@@ -29,11 +37,8 @@ def prepare_prompts_tensor(prompts):
     return tensor
 
 def prepare_param_tensor(input, inputs_config, batch_size):
-    #current_app.logger.info(f"Preparing param tensor, input={input}, inputs_config={inputs_config}, batch_size={batch_size}")
     name, value = input
-    #current_app.logger.info(f"Preparing param tensor, name={name}, value={value}")
     input_config = [input_config for input_config in inputs_config if input_config['name'] == name][0]
-    #current_app.logger.info(f"Preparing param tensor, input_config={input_config}")
     triton_dtype = input_config['data_type'].split('_')[1]
     if triton_dtype == "STRING":
         triton_dtype = "BYTES"
@@ -70,9 +75,10 @@ class TritonClient():
     def __init__(self, host):
         self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, network_timeout=Config.TRITON_INFERENCE_TIMEOUT)
 
-    def infer(self, model_name, inputs, task="generate"):
+    def infer(self, model_name, inputs, task=Task.GENERATE):
         task_config = self._client.get_model_config(model_name)
-        inputs['task'] = task
+        
+        inputs['task'] = task.value
         inputs_wrapped = prepare_inputs(inputs, task_config['input'])
         if isinstance(inputs_wrapped, tuple):
             return inputs_wrapped
@@ -81,7 +87,6 @@ class TritonClient():
             response = self._client.infer(model_name, inputs_wrapped)
         except Exception as err:
             return err
-
         sequences = np.char.decode(response.as_numpy("sequences").astype("bytes"), "utf-8").tolist()
         tokens = []
         logprobs = []
@@ -99,8 +104,9 @@ class TritonClient():
         # Logprobs need special treatment because they are encoded as bytes
         # Regular np float arrays don't work, each element has a different number of items
         for i in range(len(logprobs)):
-            if model_name not in ["falcon-7b", "falcon-40b"]:
-                # They are also formatted differently for >1 sequences
+            # Dirty hack for opt models
+            # TODO: Fix this in the model service side so logprobs are consistent with other models
+            if model_name in ["opt-6.7b", "opt-175b"]:
                 if len(logprobs) > 1:
                     logprobs[i] = logprobs[i][1:-1].split(', ')
             logprobs[i] = [float(prob) if prob!="None" else None for prob in logprobs[i]]
@@ -111,7 +117,7 @@ class TritonClient():
             "logprobs": logprobs
         }
         
-        if task in ["get_activations", "edit_activations"]:
+        if task in [Task.GET_ACTIVATIONS, Task.EDIT_ACTIVATIONS]:
             activations = np.char.decode(response.as_numpy("activations").astype("bytes"), "utf-8").tolist()
             for idx in range(len(activations)):
                 activations[idx] = ast.literal_eval(activations[idx])

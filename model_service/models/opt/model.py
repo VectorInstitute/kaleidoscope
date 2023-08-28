@@ -36,7 +36,7 @@ from metaseq.service.responses import OAIResponse
 from metaseq_cli.activation_utils import ActivationPayload
 from metaseq_cli.hook_utils import get_activation_capture_hook_dict, apply_forward_hook
 
-from ..abstract_model import AbstractModel
+from ..abstract_model import AbstractModel, Task
 from pytriton.decorators import batch, group_by_values
 from pytriton.model_config import ModelConfig, Tensor
 
@@ -118,7 +118,7 @@ class Model(AbstractModel):
             model_name=f"{self.model_type}-{self.model_variant}",
             infer_func=self.infer,
             inputs=[
-                Tensor(name="task", dtype=bytes, shape=(1,)),
+                Tensor(name="task", dtype=np.int64, shape=(1,)),
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
                 Tensor(name="modules", dtype=bytes, shape=(1,), optional=True),
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
@@ -148,10 +148,10 @@ class Model(AbstractModel):
         """ Dispatch request to a handler function based on the task """
         self.load_default_args("generate")
 
-        task = inputs['task'][0][0].decode()
-        if task == "get_activations":
+        task = Task(inputs['task'][0][0])
+        if task == Task.GET_ACTIVATIONS:
             response = self.get_activations(inputs)
-        elif task == "edit_activations":
+        elif task == Task.EDIT_ACTIVATIONS:
             response = self.edit_activations(inputs)
         else:
             response = self.generate(inputs)
@@ -283,6 +283,7 @@ class Model(AbstractModel):
             "tokens": np.array(tokens, dtype=object),
             "logprobs": np.array(logprobs, dtype=object)
         }
+
         return return_val
 
 
