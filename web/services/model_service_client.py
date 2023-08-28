@@ -13,28 +13,33 @@ from config import Config
 
 from utils.triton import TritonClient
 
-# UPDATE (1406): Inserted model_type arg to fetch config for specific model. Set default as None to preserve original function.
-def get_model_config(model_type: str=None) -> List:
-    config = []
-    try:
-        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_model_config --model_instance_id 0"
-        #print(f"Get model config SSH command: {ssh_command}")
-        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
-        #print(f"Get model config SSH output: {ssh_output}")
-        config = ast.literal_eval(ssh_output)
 
-        if model_type is not None:
-            for model_cfg in config:
-                if model_cfg["type"] == model_type:
-                    config = [model_cfg]
+def get_available_models() -> List:
+    available_models = []
+    try:
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_available_models --model_instance_id 0"
+        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
+        available_models = ast.literal_eval(ssh_output)
     except Exception as err:
         print(f"Failed to issue SSH command to job manager: {err}")
-    return config
+    return available_models
 
-def launch(model_instance_id: str, model_type: str, model_variant: str, model_path: str) -> None:
-    current_app.logger.info(f"Model service client: launching {model_type} with ID {model_instance_id}")
+
+def get_module_names(model_name) -> List:
+    module_names = []
     try:
-        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_type {model_type} --model_variant {model_variant} --model_instance_id {model_instance_id} --model_path {model_path} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
+        ssh_command = f"ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} python3 {Config.JOB_SCHEDULER_BIN} --action get_module_names --model_name {model_name} --model_instance_id 0"
+        ssh_output = subprocess.check_output(ssh_command, shell=True).decode("utf-8")
+        module_names = ast.literal_eval(ssh_output)
+    except Exception as err:
+        print(f"Failed to issue SSH command to job manager: {err}")
+    return module_names
+
+
+def launch(model_instance_id: str, model_name: str) -> None:
+    current_app.logger.info(f"Model service client: launching {model_name} with ID {model_instance_id}")
+    try:
+        ssh_command = f"""ssh {Config.JOB_SCHEDULER_USER}@{Config.JOB_SCHEDULER_HOST} {Config.JOB_SCHEDULER_BIN} --action launch --model_name {model_name} --model_instance_id {model_instance_id} --gateway_host {Config.GATEWAY_ADVERTISED_HOST} --gateway_port {Config.GATEWAY_PORT}"""
         current_app.logger.info(f"Launch SSH command: {ssh_command}")
 
         # System job scheduler needs ssh to keep running in the background
@@ -83,7 +88,7 @@ def verify_job_health(model_instance_id: str) -> bool:
 def verify_model_instance_active(host: str, model_name: str) -> bool:
     try:
         triton_client = TritonClient(host)
-        return triton_client.is_model_ready(model_name, task="generation")
+        return triton_client.is_model_ready(model_name)
 
     except Exception as err:
         current_app.logger.error(f"Model active check failed: {err}")
@@ -92,7 +97,7 @@ def verify_model_instance_active(host: str, model_name: str) -> bool:
 def verify_model_health(host: str, model_name: str) -> bool:
     try:
         triton_client = TritonClient(host)
-        return triton_client.is_model_ready(model_name, task="generation")
+        return triton_client.is_model_ready(model_name)
 
     except Exception as err:
         current_app.logger.error(f"Model health failed check: {err}")
@@ -111,7 +116,7 @@ def shutdown(model_instance_id: str) -> None:
 def generate(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    generation = triton_client.infer(model_name, inputs, task="generation")
+    generation = triton_client.infer(model_name, inputs, task="generate")
     return generation
 
     # # Only for GPT-J
@@ -133,12 +138,12 @@ def generate(host: str, model_name: str, inputs: Dict) -> Dict:
     # print(output0.shape)
     # print(output0)
 
-def generate_activations(host: str, model_name: str, inputs: Dict) -> Dict:
+def get_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, task="activations")
+    return triton_client.infer(model_name, inputs, task="get_activations")
 
 def edit_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
     triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, task="activations")
+    return triton_client.infer(model_name, inputs, task="edit_activations")
