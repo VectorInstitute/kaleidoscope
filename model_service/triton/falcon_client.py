@@ -63,7 +63,7 @@ def main():
     logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
    
     
-    num_tokens = 256
+    num_tokens = 32
     
     # Using TritonClient
     prompts = ["William Shakespeare was a great writer"]*8 
@@ -71,7 +71,7 @@ def main():
             "prompts": prompts,
             "max_tokens": num_tokens
             }
-    model_name = "falcon-40b"
+    model_name = "falcon-7b"
     batch_size = len(prompts)
     host = args.url.lstrip("http://")
     
