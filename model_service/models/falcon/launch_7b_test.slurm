@@ -4,9 +4,9 @@
 #SBATCH --partition=rtx6000
 #--qos=llm
 #SBATCH --nodes=2
-#SBATCH --ntasks-per-node=1
+#--ntasks-per-node=1
 #--gpus-per-node=1
-#SBATCH --gres=gpu:1
+#SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=8
 #SBATCH --output=falcon-7b_service.%j.out
 #SBATCH --error=falcon-7b_service.%j.err
@@ -39,7 +39,7 @@ MASTER_PORT=8855
 
 export PYTHONPATH=/usr/bin/python3
 
-GPUS_PER_NODE=1
+GPUS_PER_NODE=2
 NNODES=$SLURM_NNODES
 NUM_PROCESSES=$(expr $NNODES \* $GPUS_PER_NODE)
 echo "NNODES"=$NNODES
@@ -65,26 +65,26 @@ export SINGULARITY="singularity exec \
                     --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
                   "
 
-# export LAUNCHER="accelerate launch \
-#         --config_file $model_service_dir/models/falcon/accelerate_config_multi_node.yaml \
-#         --main_process_ip $MASTER_ADDR \
-#         --main_process_port $MASTER_PORT \
-#         --machine_rank \$SLURM_PROCID \
-#         --num_processes $NUM_PROCESSES \
-#         --num_machines $NNODES \
-#         "
-
 export LAUNCHER="accelerate launch \
+        --config_file $model_service_dir/models/falcon/accelerate_config_multi_node.yaml \
         --main_process_ip $MASTER_ADDR \
         --main_process_port $MASTER_PORT \
         --machine_rank \$SLURM_PROCID \
         --num_processes $NUM_PROCESSES \
         --num_machines $NNODES \
-        --use_deepspeed \
-        --zero_stage 3 \
-        --zero3_init_flag true \
-        --deepspeed_multinode_launcher standard \
         "
+
+# export LAUNCHER="accelerate launch \
+#         --main_process_ip $MASTER_ADDR \
+#         --main_process_port $MASTER_PORT \
+#         --machine_rank \$SLURM_PROCID \
+#         --num_processes $NUM_PROCESSES \
+#         --num_machines $NNODES \
+#         --use_deepspeed \
+#         --zero_stage 3 \
+#         --zero3_init_flag true \
+#         --deepspeed_multinode_launcher standard \
+#         "
 
 # export LAUNCHER="torchrun \
 #         --nnodes $NNODES \
@@ -116,4 +116,18 @@ echo $MASTER_ADDR
 
 (while true; do nvidia-smi; top -b -n 1 | head -20; sleep 10; done) &
 
-srun --mem=0 --gres=gpu:1 -c $SLURM_CPUS_ON_NODE -N 2 -n 2 bash -c "$CMD"
+srun --mem=0 --gres=gpu:2 -c $SLURM_CPUS_ON_NODE -N 2 -n 2 bash -c "$CMD"
+
+# singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
+#     accelerate launch \
+#         --config_file $model_service_dir/models/falcon/accelerate_config_multi_node.yaml \
+#         --main_process_ip $MASTER_ADDR \
+#         --main_process_port $MASTER_PORT \
+#         --machine_rank $SLURM_PROCID \
+#         --num_processes $NUM_PROCESSES \
+#         --num_machines $NNODES \
+#             $model_service_dir/model_service.py \
+#                 --model_type falcon --model_variant 7b --model_path $model_path \
+#                 --model_instance_id $SLURM_JOB_NAME \
+#                 --gateway_host $gateway_host --gateway_port $gateway_port \
+#                 --master_host $MASTER_ADDR --master_port 50116

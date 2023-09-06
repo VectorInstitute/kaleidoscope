@@ -72,6 +72,7 @@ class Model(AbstractModel):
 
             self.model = load_checkpoint_and_dispatch(
                 model, model_path, device_map=device_map, dtype=self.model_cfg["torch_dtype"], no_split_module_classes=["MLP", "DecoderLayer"])
+            
             # else:
             #     self.model = self.model_class.from_pretrained(model_path, **self.model_cfg) # TODO: .eval()?
             #     logger.debug(self.device)
