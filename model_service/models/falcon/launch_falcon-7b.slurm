@@ -33,7 +33,7 @@ HEAD_NODE=${NODES_ARRAY[0]}
 MASTER_ADDR=$(srun --nodes=1 --ntasks=1 -w "${HEAD_NODE}" hostname --ip-address)
 MASTER_PORT=8855
 
-export PYTHONPATH=/usr/bin/python3
+#export PYTHONPATH=/usr/bin/python3
 export CUDA_VISIBLE_DEVICES=0,1
 
 GPUS_PER_NODE=2
@@ -45,8 +45,6 @@ echo "NUM_PROCESSES"=$NUM_PROCESSES
 # Send registration request to gateway 
 curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':50116"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
 echo $MASTER_ADDR
-
-(while true; do nvidia-smi; top -b -n 1 | head -20; sleep 10; done) &
 
 singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
     accelerate launch \
