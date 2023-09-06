@@ -33,7 +33,7 @@ HEAD_NODE=${NODES_ARRAY[0]}
 MASTER_ADDR=$(srun --nodes=1 --ntasks=1 -w "${HEAD_NODE}" hostname --ip-address)
 MASTER_PORT=8855
 
-#export PYTHONPATH=/usr/bin/python3
+export PYTHONPATH=/usr/bin/python3
 export CUDA_VISIBLE_DEVICES=0,1
 
 GPUS_PER_NODE=2
