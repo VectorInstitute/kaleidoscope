@@ -71,5 +71,4 @@ singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_di
                 --model_type falcon --model_variant 7b --model_path $model_path \
                 --model_instance_id $SLURM_JOB_NAME \
                 --gateway_host $gateway_host --gateway_port $gateway_port \
-     
-     
+				--master_host $MASTER_ADDR --master_port 50116
