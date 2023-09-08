@@ -63,7 +63,7 @@ echo $MASTER_ADDR
      
      
 singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
-	torchrun \
+	/usr/bin/python3 -s -m torch.distributed.launch \
 		--nnodes $NNODES \
 		--nproc-per-node $GPUS_PER_NODE \
         --node_rank $SLURM_PROCID \
