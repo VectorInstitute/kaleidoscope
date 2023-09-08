@@ -59,7 +59,6 @@ def prepare_inputs(inputs, inputs_config):
 
     inputs_wrapped = [prepare_prompts_tensor(prompts)]
     
-    current_app.logger.info(f"Input args: {inputs}")
     for input in inputs.items():
         try:
             inputs_wrapped.append(prepare_param_tensor(input, inputs_config, batch_size))
@@ -72,7 +71,7 @@ def prepare_inputs(inputs, inputs_config):
 class TritonClient():
 
     def __init__(self, host):
-        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, network_timeout=Config.TRITON_INFERENCE_TIMEOUT)
+        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=False, network_timeout=Config.TRITON_INFERENCE_TIMEOUT)
 
     def infer(self, model_name, inputs, task=Task.GENERATE):
         task_config = self._client.get_model_config(model_name)
@@ -103,11 +102,10 @@ class TritonClient():
         # Logprobs need special treatment because they are encoded as bytes
         # Regular np float arrays don't work, each element has a different number of items
         for i in range(len(logprobs)):
-            # Dirty hack for opt models
-            # TODO: Fix this in the model service side so logprobs are consistent with other models
-            if model_name in ["opt-6.7b", "opt-175b"]:
-                if len(logprobs) > 1:
-                    logprobs[i] = logprobs[i][1:-1].split(', ')
+            # Logprobs sometime get returned as a single string of floats, instead of a list of byte objects
+            # If this is the case, reformat them
+            if isinstance(logprobs[i], str):
+                logprobs[i] = logprobs[i][1:-1].split(', ')
             logprobs[i] = [float(prob) if prob!="None" else None for prob in logprobs[i]]
 
         result = {
