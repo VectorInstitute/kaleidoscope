@@ -48,12 +48,14 @@ echo $MASTER_ADDR
 
 singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
     /usr/bin/python3 -s -m accelerate.commands.launch \
-        --config_file $model_service_dir/models/falcon/accelerate_config.yaml \
         --main_process_ip $MASTER_ADDR \
         --main_process_port $MASTER_PORT \
         --machine_rank $SLURM_PROCID \
         --num_processes $NUM_PROCESSES \
         --num_machines $NNODES \
+		--use_deepspeed \
+		--zero_stage 3 \
+		--zero3_init_flag true \
             $model_service_dir/model_service.py \
                 --model_type falcon --model_variant 7b --model_path $model_path \
                 --model_instance_id $SLURM_JOB_NAME \
