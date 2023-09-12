@@ -3,9 +3,8 @@
 #SBATCH --mem=0
 #SBATCH --partition=rtx6000
 #--qos=llm
-#SBATCH --nodes=2
-#--ntasks-per-node=1
-#--gpus-per-node=1
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
 #SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=8
 #SBATCH --output=falcon-7b_service.%j.out
@@ -19,7 +18,7 @@ echo "SLURM_CPUS_ON_NODE"=$SLURM_CPUS_ON_NODE
 echo "SLURM_PROCID"=$SLURM_PROCID
 
 export NCCL_DEBUG=INFO
-export NCCL_IB_DISABLE=1
+# export NCCL_IB_DISABLE=1
 
 model_service_dir=$1
 gateway_host=$2
@@ -38,6 +37,7 @@ MASTER_ADDR=$(srun --nodes=1 --ntasks=1 -w "${HEAD_NODE}" hostname --ip-address)
 MASTER_PORT=8855
 
 export PYTHONPATH=/usr/bin/python3
+export CUDA_VISIBLE_DEVICES=0,1
 
 GPUS_PER_NODE=2
 NNODES=$SLURM_NNODES
@@ -61,18 +61,18 @@ echo "NUM_PROCESSES"=$NUM_PROCESSES
 # cat $hostfile
 
 
-export SINGULARITY="singularity exec \
-                    --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
-                  "
+# export SINGULARITY="singularity exec \
+#                     --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
+#                   "
 
-export LAUNCHER="accelerate launch \
-        --config_file $model_service_dir/models/falcon/accelerate_config_multi_node.yaml \
-        --main_process_ip $MASTER_ADDR \
-        --main_process_port $MASTER_PORT \
-        --machine_rank \$SLURM_PROCID \
-        --num_processes $NUM_PROCESSES \
-        --num_machines $NNODES \
-        "
+# export LAUNCHER="accelerate launch \
+#         --config_file $model_service_dir/models/falcon/accelerate_config_multi_node.yaml \
+#         --main_process_ip $MASTER_ADDR \
+#         --main_process_port $MASTER_PORT \
+#         --machine_rank \$SLURM_PROCID \
+#         --num_processes $NUM_PROCESSES \
+#         --num_machines $NNODES \
+#         "
 
 # export LAUNCHER="accelerate launch \
 #         --main_process_ip $MASTER_ADDR \
@@ -102,12 +102,12 @@ export LAUNCHER="accelerate launch \
 # --rdzv_conf rdzv_backend=c10d \
 
 
-export SCRIPT="$model_service_dir/model_service.py \
-            --model_type falcon --model_variant 7b --model_path $model_path --model_instance_id $SLURM_JOB_NAME \
-            --gateway_host $gateway_host --gateway_port $gateway_port --master_host $MASTER_ADDR --master_port 50116 \
-            "
+# export SCRIPT="$model_service_dir/model_service.py \
+#             --model_type falcon --model_variant 7b --model_path $model_path --model_instance_id $SLURM_JOB_NAME \
+#             --gateway_host $gateway_host --gateway_port $gateway_port --master_host $MASTER_ADDR --master_port 50116 \
+#             "
 
-export CMD="$SINGULARITY $LAUNCHER $SCRIPT"
+# export CMD="$SINGULARITY $LAUNCHER $SCRIPT"
 # export CMD="$SINGULARITY $LAUNCHER $SCRIPT --deepspeed $model_service_dir/models/falcon/ds_config.json"
 
 # Send registration request to gateway 
@@ -116,18 +116,20 @@ echo $MASTER_ADDR
 
 (while true; do nvidia-smi; top -b -n 1 | head -20; sleep 10; done) &
 
-srun --mem=0 --gres=gpu:2 -c $SLURM_CPUS_ON_NODE -N 2 -n 2 bash -c "$CMD"
+# srun --mem=0 --gres=gpu:2 -c $SLURM_CPUS_ON_NODE -N 2 -n 2 bash -c "$CMD"
 
-# singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
-#     accelerate launch \
-#         --config_file $model_service_dir/models/falcon/accelerate_config_multi_node.yaml \
-#         --main_process_ip $MASTER_ADDR \
-#         --main_process_port $MASTER_PORT \
-#         --machine_rank $SLURM_PROCID \
-#         --num_processes $NUM_PROCESSES \
-#         --num_machines $NNODES \
-#             $model_service_dir/model_service.py \
-#                 --model_type falcon --model_variant 7b --model_path $model_path \
-#                 --model_instance_id $SLURM_JOB_NAME \
-#                 --gateway_host $gateway_host --gateway_port $gateway_port \
-#                 --master_host $MASTER_ADDR --master_port 50116
+singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
+        deepspeed --num_gpus 2 \
+            $model_service_dir/model_service.py \
+                --model_type falcon --model_variant 7b --model_path $model_path \
+                --model_instance_id $SLURM_JOB_NAME \
+                --gateway_host $gateway_host --gateway_port $gateway_port \
+                --master_host $MASTER_ADDR --master_port 50116
+
+# torchrun \
+#         --nnodes $NNODES \
+#         --nproc-per-node $GPUS_PER_NODE \
+#         --node-rank $SLURM_PROCID \
+#         --rdzv_id 6969 \
+#         --rdzv_backend c10d \
+#         --rdzv_endpoint ${MASTER_ADDR}:${MASTER_PORT} \
