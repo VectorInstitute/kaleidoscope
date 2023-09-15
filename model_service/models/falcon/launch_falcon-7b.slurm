@@ -33,7 +33,6 @@ HEAD_NODE=${NODES_ARRAY[0]}
 MASTER_ADDR=$(srun --nodes=1 --ntasks=1 -w "${HEAD_NODE}" hostname --ip-address)
 MASTER_PORT=8855
 
-export PYTHONPATH=/usr/bin/python3
 export CUDA_VISIBLE_DEVICES=0,1
 
 GPUS_PER_NODE=2
@@ -46,9 +45,10 @@ echo "NUM_PROCESSES"=$NUM_PROCESSES
 curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':50116"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
 echo $MASTER_ADDR
 
-singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
-    /usr/bin/python3 -s -m accelerate.commands.launch \
-        --main_process_ip $MASTER_ADDR \
+# Use --containall flag to avoid using host python env
+singularity exec --containall --nv --bind /checkpoint,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
+    accelerate launch \
+		--main_process_ip $MASTER_ADDR \
         --main_process_port $MASTER_PORT \
         --machine_rank $SLURM_PROCID \
         --num_processes $NUM_PROCESSES \
@@ -61,15 +61,3 @@ singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_di
                 --model_instance_id $SLURM_JOB_NAME \
                 --gateway_host $gateway_host --gateway_port $gateway_port \
 				--master_host $MASTER_ADDR --master_port 50116
-     
-     
-#singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
-#	/usr/bin/python3 -s -m torch.distributed.launch \
-#		--nnodes $NNODES \
-#		--nproc-per-node $GPUS_PER_NODE \
-#        --node_rank $SLURM_PROCID \
-#            $model_service_dir/model_service.py \
-#                --model_type falcon --model_variant 7b --model_path $model_path \
-#                --model_instance_id $SLURM_JOB_NAME \
-#                --gateway_host $gateway_host --gateway_port $gateway_port \
-#				--master_host $MASTER_ADDR --master_port 50116
