@@ -46,7 +46,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':
 echo $MASTER_ADDR
 
 # Use --containall flag to avoid using host python env
-singularity exec --nv --bind /checkpoint,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/llama2-hf-ds.sif \
+singularity --containall exec --nv --bind /checkpoint,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/llama2-hf-ds.sif \
     accelerate launch \
 		--main_process_ip $MASTER_ADDR \
         --main_process_port $MASTER_PORT \
