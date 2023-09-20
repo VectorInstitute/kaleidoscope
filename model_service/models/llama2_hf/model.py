@@ -17,7 +17,7 @@ from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, Genera
 from accelerate import Accelerator
 
 
-logger = logging.getLogger("kaleidoscope.model_service.llama2-hf")
+logger = logging.getLogger("kaleidoscope.model_service.llama2_hf")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
 

@@ -57,7 +57,7 @@ singularity exec --nv --bind /checkpoint,/ssd003,/ssd005,$model_chkp_dir:$model_
 		--zero_stage 3 \
 		--zero3_init_flag true \
             $model_service_dir/model_service.py \
-                --model_type llama2-hf --model_variant 7b --model_path $model_path \
+                --model_type llama2_hf --model_variant 7b --model_path $model_path \
                 --model_instance_id $SLURM_JOB_NAME \
                 --gateway_host $gateway_host --gateway_port $gateway_port \
 				--master_host $MASTER_ADDR --master_port 50116
