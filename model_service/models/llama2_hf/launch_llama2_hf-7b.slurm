@@ -42,11 +42,11 @@ echo "NNODES"=$NNODES
 echo "NUM_PROCESSES"=$NUM_PROCESSES
 
 # Send registration request to gateway 
-curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':50116"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
+curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':50126"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
 echo $MASTER_ADDR
 
 # Use --containall flag to avoid using host python env
-singularity --containall exec --nv --bind /checkpoint,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/llama2-hf-ds.sif \
+singularity exec --containall --nv --bind /checkpoint,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/llama2-hf-ds.sif \
     accelerate launch \
 		--main_process_ip $MASTER_ADDR \
         --main_process_port $MASTER_PORT \
@@ -60,4 +60,4 @@ singularity --containall exec --nv --bind /checkpoint,/ssd003,/ssd005,$model_chk
                 --model_type llama2_hf --model_variant 7b --model_path $model_path \
                 --model_instance_id $SLURM_JOB_NAME \
                 --gateway_host $gateway_host --gateway_port $gateway_port \
-				--master_host $MASTER_ADDR --master_port 50116
+				--master_host $MASTER_ADDR --master_port 50126
