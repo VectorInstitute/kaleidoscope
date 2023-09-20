@@ -1,5 +1,5 @@
 {
-    "llama2-hf-7b": {
+    "llama2_hf-7b": {
         "model": {
             "torch_dtype": "bfloat16",
             "trust_remote_code": true,

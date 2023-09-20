@@ -1,5 +1,5 @@
 {
-    "type": "llama2-hf",
+    "type": "llama2_hf",
     "path": "/hardcoded/in/launch/file",
     "parameters": {
         "max_tokens": {
