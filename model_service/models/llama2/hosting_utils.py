@@ -106,11 +106,8 @@ def load_llama(
         max_seq_len=max_seq_len, max_batch_size=max_batch_size, **params
     )
     tokenizer = Tokenizer(model_path=tokenizer_path)
-    logger.info(f"Hosting utils tokenizer: {tokenizer}")
-    logger.info(f"Hosting utils dir(tokenizer): {dir(tokenizer)}")
     model_args.vocab_size = tokenizer.n_words
     torch.set_default_tensor_type(torch.cuda.HalfTensor)
-    logger.info(f"Hosting utils model_args: {model_args}")
     model = Transformer(model_args)
     torch.set_default_tensor_type(torch.FloatTensor)
     model.load_state_dict(checkpoint, strict=False)
