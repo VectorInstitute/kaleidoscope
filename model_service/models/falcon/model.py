@@ -63,23 +63,11 @@ class Model(AbstractModel):
                 model = self.model_class.from_config(config, trust_remote_code=self.model_cfg["trust_remote_code"], torch_dtype=self.model_cfg["torch_dtype"])
             model.tie_weights()
 
-            # max_memory = {idx: ("5GiB" if idx==0 else "15GiB") for idx in range(world_size)}
-            # max_memory.update({"cpu": "120GiB"})
-            # logging.debug(f"Max memory: {max_memory}")
-            # device_map = infer_auto_device_map(model, max_memory, no_split_module_classes=["MLP", "DecoderLayer"])
-            # logging.debug(f"Device map: {device_map}")
             device_map = "balanced_low_0"
 
             self.model = load_checkpoint_and_dispatch(
                 model, model_path, device_map=device_map, dtype=self.model_cfg["torch_dtype"], no_split_module_classes=["MLP", "DecoderLayer"])
-            # else:
-            #     self.model = self.model_class.from_pretrained(model_path, **self.model_cfg) # TODO: .eval()?
-            #     logger.debug(self.device)
-            #     self.model.to(self.device)
  
-            # logger.debug(f"Model parameters on worker {world_rank}")
-            # logger.debug(sum(p.numel() for p in self.model.parameters() if p.requires_grad))
-
         self.tokenizer = self.tokenizer_class.from_pretrained(model_path, **self.tokenizer_cfg)
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
@@ -89,6 +77,7 @@ class Model(AbstractModel):
         logger.debug(f"Deepspeed Zero Stage?: {os.environ.get('ACCELERATE_DEEPSPEED_ZERO_STAGE', None)}")
 
 
+    B
     def load_model_cfg(self, cfg_file):
         """Load model and tokenzer config"""
         model_name = f"{self.model_type}-{self.model_variant}"
