@@ -33,7 +33,7 @@ module load singularity-ce/3.8.2
 MASTER_ADDR=$(hostname -I | awk '{print $1}')
 MASTER_PORT=8855
 
-export PYTHONPATH=/usr/bin/python3
+# export PYTHONPATH=/usr/bin/python3
 export CUDA_VISIBLE_DEVICES=0
 
 GPUS_PER_NODE=1

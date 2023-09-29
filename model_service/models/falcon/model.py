@@ -248,8 +248,6 @@ class Model(AbstractModel):
         encoded_obj = self.tokenizer(prompts, return_tensors="pt", padding=True)
         encoded_prompts = encoded_obj.input_ids
         attn_mask = encoded_obj.attention_mask
-        # encoded_prompts = encoded_prompts.to(self.device)
-        # attn_mask = attn_mask.to(self.device)
         print(f"[DEBUG] Inside generate(), cuda current device: {torch.cuda.current_device()}")
         encoded_prompts = encoded_prompts.to(torch.cuda.current_device())
         attn_mask = attn_mask.to(torch.cuda.current_device())
@@ -305,74 +303,6 @@ class Model(AbstractModel):
             "tokens": np.array(tokens, dtype=object),
             "logprobs": np.array(logprobs, dtype=np.float)
         }
-
-        # # ========== Using native deepspeed ========== #
-        # # Encode prompts and get attention mask
-        # prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
-        # prompts = np.squeeze(prompts, axis=-1).tolist()
-        # logger.debug(f"Prompts: {prompts}")
-        # logger.debug(f"Prompts type: {type(prompts)}")
-
-        # encoded_prompts = self.tokenizer.batch_encode_plus(prompts, return_tensors="pt", padding=True)
-        # for t in encoded_prompts:
-        #     if torch.is_tensor(encoded_prompts[t]):
-        #         encoded_prompts[t] = encoded_prompts[t].to(torch.cuda.current_device())
-
-        # logger.debug(f"Encoded input: {encoded_prompts}")
-
-        # # Create generation config: Check the input parameters, and set default values if not present
-        # gen_cfg = dict(
-        #     min_new_tokens=inputs["min_tokens"][0][0] if "min_tokens" in inputs else self.default_args["min_tokens"],
-        #     max_new_tokens=inputs["max_tokens"][0][0] if "max_tokens" in inputs else self.default_args["max_tokens"],
-        #     temperature=inputs["temperature"][0][0] if "temperature" in inputs else self.default_args["temperature"],
-        #     top_p=inputs["top_p"][0][0] if "top_p" in inputs else self.default_args["top_p"],
-        #     top_k=int(inputs["top_k"][0][0]) if "top_k" in inputs else self.default_args["top_k"],
-        #     do_sample=bool(inputs["do_sample"][0][0]) if "do_sample" in inputs else self.default_args["do_sample"]
-        # )
-        
-        # # Run the generation
-        # outputs = self.model.generate(encoded_prompts.input_ids, **gen_cfg)
-        # generations = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
-        # logger.debug(f"Generations: {generations}")
-        # # dummy tokens and logprobs
-        # tokens = ['']*len(generations)
-        # logprobs = [0.0]*len(generations)
-        
-        # # input_tokens_size = encoded_prompts.size()[-1]
-        # # input_ids = encoded_prompts if input_tokens_size != 0 else None
-        # # outputs = self.model.generate(
-        # #     input_ids, 
-        # #     gen_cfg, 
-        # #     attention_mask=attn_mask, 
-        # #     return_dict_in_generate=True, output_scores=True)
-        # # transition_scores = self.model.compute_transition_scores(
-        # #     outputs.sequences, outputs.scores, normalize_logits=True)
-        # # generated_ids = outputs.sequences
-        # # # remove input tokens
-        # # generated_ids = generated_ids[:, input_tokens_size:]
-        # # # replace token_id 0 with a special token so that it is removed while decoding - EOS
-        # # generated_ids[generated_ids==0] = int(self.tokenizer.eos_token_id)
-        # # generations = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-
-        # # # Get logprobs of generated tokens
-        # # tokens = []
-        # # logprobs = []
-        # # for sequence, probs in zip(generated_ids, transition_scores):
-        # #     sequence_tokens = []
-        # #     sequence_logprobs = []
-        # #     for token, prob in zip(sequence, probs):
-        # #         if token not in self.tokenizer.all_special_ids:
-        # #             sequence_tokens.append(self.tokenizer.decode(token))
-        # #             sequence_logprobs.append(prob.item())
-        # #     tokens.append(sequence_tokens)
-        # #     logprobs.append(sequence_logprobs)
-        
-
-        # return {
-        #     "sequences": np.array(generations, dtype=object),
-        #     "tokens": np.array(tokens, dtype=object),
-        #     "logprobs": np.array(logprobs, dtype=np.float)
-        # }
 
 
     @batch

@@ -2,11 +2,10 @@
 import numpy as np
 import tritonclient.http as httpclient
 from tritonclient.utils import np_to_triton_dtype, triton_to_np_dtype
-from ..config import Config
 import typing
 import ast
 from enum import Enum
-from config import Config
+# from config import Config
 
 
 class Task(Enum):
@@ -73,7 +72,7 @@ def prepare_inputs(inputs, inputs_config):
 class TritonClient():
 
     def __init__(self, host):
-        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, network_timeout=Config.TRITON_INFERENCE_TIMEOUT)
+        self._client = httpclient.InferenceServerClient(host, concurrency=1, verbose=True, network_timeout=600.0) # Config.TRITON_INFERENCE_TIMEOUT
 
     def infer(self, model_name, inputs, task=Task.GENERATE):
         task_config = self._client.get_model_config(model_name)
@@ -83,10 +82,12 @@ class TritonClient():
         if isinstance(inputs_wrapped, tuple):
             return inputs_wrapped
 
+        print("[DEBUG] Inside infer(), before calling self._client.infer()")
         try:
             response = self._client.infer(model_name, inputs_wrapped)
         except Exception as err:
             return err
+        print("[DEBUG] Inside infer(), after the call")
         sequences = np.char.decode(response.as_numpy("sequences").astype("bytes"), "utf-8").tolist()
         tokens = []
         logprobs = []
