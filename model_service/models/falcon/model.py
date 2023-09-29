@@ -149,8 +149,6 @@ class Model(AbstractModel):
         attn_mask = encoded_obj.attention_mask
         encoded_prompts = encoded_prompts.to(self.device)
         attn_mask = attn_mask.to(self.device)
-        # encoded_prompts = encoded_prompts.to(self.accelerator.device)
-        # attn_mask = attn_mask.to(self.accelerator.device)
 
         # Create generation config: Check the input parameters, and set default values if not present
         gen_cfg = GenerationConfig(
@@ -173,9 +171,9 @@ class Model(AbstractModel):
         transition_scores = self.model.compute_transition_scores(
             outputs.sequences, outputs.scores, normalize_logits=True)
         generated_ids = outputs.sequences
-        # remove input tokens
+        # Remove input tokens
         generated_ids = generated_ids[:, input_tokens_size:]
-        # replace token_id 0 with a special token so that it is removed while decoding - EOS
+        # Replace token_id 0 with a special token so that it is removed while decoding - EOS
         generated_ids[generated_ids==0] = int(self.tokenizer.eos_token_id)
         generations = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 

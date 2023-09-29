@@ -27,10 +27,6 @@ model_path="/model_checkpoint"
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
 
-#NODES=( $( scontrol show hostnames ${SLURM_JOB_NODELIST} ) )
-#NODES_ARRAY=(${NODES})
-#HEAD_NODE=${NODES_ARRAY[0]}
-#MASTER_ADDR=$(srun --nodes=1 --ntasks=1 -w "${HEAD_NODE}" hostname --ip-address)
 MASTER_ADDR=$(hostname -I | awk '{print $1}')
 MASTER_PORT=8855
 
