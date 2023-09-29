@@ -1,4 +1,3 @@
-#from flask import current_app
 import numpy as np
 import tritonclient.http as httpclient
 from tritonclient.utils import np_to_triton_dtype, triton_to_np_dtype
@@ -29,7 +28,6 @@ def prepare_prompts_tensor(prompts):
 
     triton_dtype = "BYTES"
     input = _str_list2numpy(value)
-    # np.array(value, dtype=bytes)
 
     tensor = httpclient.InferInput(name, input.shape, triton_dtype)
     tensor.set_data_from_numpy(input)
@@ -59,7 +57,6 @@ def prepare_inputs(inputs, inputs_config):
 
     inputs_wrapped = [prepare_prompts_tensor(prompts)]
     
-    #current_app.logger.info(f"Input args: {inputs}")
     for input in inputs.items():
         try:
             inputs_wrapped.append(prepare_param_tensor(input, inputs_config, batch_size))
