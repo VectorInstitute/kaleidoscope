@@ -27,10 +27,7 @@ model_path="/model_checkpoint"
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
 
-NODES=( $( scontrol show hostnames ${SLURM_JOB_NODELIST} ) )
-NODES_ARRAY=(${NODES})
-HEAD_NODE=${NODES_ARRAY[0]}
-MASTER_ADDR=$(srun --nodes=1 --ntasks=1 -w "${HEAD_NODE}" hostname --ip-address)
+MASTER_ADDR=$(hostname -I | awk '{print $1}')
 MASTER_PORT=8855
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3
@@ -47,16 +44,8 @@ echo $MASTER_ADDR
 
 # Use --containall flag to avoid using host python env
 singularity exec --containall --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
-    accelerate launch \
-        --main_process_ip $MASTER_ADDR \
-        --main_process_port $MASTER_PORT \
-        --machine_rank $SLURM_PROCID \
-        --num_processes $NUM_PROCESSES \
-        --num_machines $NNODES \
-		--use_deepspeed \
-		--zero_stage 3 \
-		--zero3_init_flag true \
-            $model_service_dir/model_service.py \
+	accelerate launch --config_file $model_service_dir/models/falcon/accelerate_config.yaml \            
+			$model_service_dir/model_service.py \
                 --model_type falcon --model_variant 40b --model_path $model_path \
                 --model_instance_id $SLURM_JOB_NAME \
                 --gateway_host $gateway_host --gateway_port $gateway_port \

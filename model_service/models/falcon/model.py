@@ -77,7 +77,6 @@ class Model(AbstractModel):
         logger.debug(f"Deepspeed Zero Stage?: {os.environ.get('ACCELERATE_DEEPSPEED_ZERO_STAGE', None)}")
 
 
-    B
     def load_model_cfg(self, cfg_file):
         """Load model and tokenzer config"""
         model_name = f"{self.model_type}-{self.model_variant}"
