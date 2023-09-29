@@ -22,9 +22,17 @@ import numpy as np
 from pytriton.client import ModelClient
 
 from web.utils.triton import TritonClient
+from enum import Enum
 
 
 logger = logging.getLogger("triton.falcon_client")
+
+
+class Task(Enum):
+    """Task enum"""
+    GENERATE = 0
+    GET_ACTIVATIONS = 1
+    EDIT_ACTIVATIONS = 2
 
 
 def main():
@@ -77,7 +85,7 @@ def main():
     
     triton_client = TritonClient(host)
     start_time = time.time()
-    generation = triton_client.infer(model_name, inputs, task="generation")
+    generation = triton_client.infer(model_name, inputs, task=Task.GENERATE)
     print(generation)
     time_taken = time.time() - start_time
 

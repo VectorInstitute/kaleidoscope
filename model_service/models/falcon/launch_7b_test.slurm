@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mem=0
-#SBATCH --partition=rtx6000
+#SBATCH --partition=a40
 #--qos=llm
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gpus-per-node=2
+#SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --output=falcon-7b_service.%j.out
 #SBATCH --error=falcon-7b_service.%j.err
@@ -30,16 +30,13 @@ model_path="/model_checkpoint"
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
 
-NODES=( $( scontrol show hostnames ${SLURM_JOB_NODELIST} ) )
-NODES_ARRAY=(${NODES})
-HEAD_NODE=${NODES_ARRAY[0]}
-MASTER_ADDR=$(srun --nodes=1 --ntasks=1 -w "${HEAD_NODE}" hostname --ip-address)
+MASTER_ADDR=$(hostname -I | awk '{print $1}')
 MASTER_PORT=8855
 
 export PYTHONPATH=/usr/bin/python3
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0
 
-GPUS_PER_NODE=2
+GPUS_PER_NODE=1
 NNODES=$SLURM_NNODES
 NUM_PROCESSES=$(expr $NNODES \* $GPUS_PER_NODE)
 echo "NNODES"=$NNODES
@@ -116,10 +113,8 @@ echo $MASTER_ADDR
 
 (while true; do nvidia-smi; top -b -n 1 | head -20; sleep 10; done) &
 
-# srun --mem=0 --gres=gpu:2 -c $SLURM_CPUS_ON_NODE -N 2 -n 2 bash -c "$CMD"
-
 singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
-        deepspeed --num_gpus 2 \
+        deepspeed --num_gpus 1 \
             $model_service_dir/model_service.py \
                 --model_type falcon --model_variant 7b --model_path $model_path \
                 --model_instance_id $SLURM_JOB_NAME \

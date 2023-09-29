@@ -50,7 +50,6 @@ echo $MASTER_ADDR
 
 singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf-ds.sif \
     accelerate launch \
-        --config_file $model_service_dir/models/falcon/accelerate_config.yaml \
         --main_process_ip $MASTER_ADDR \
         --main_process_port $MASTER_PORT \
         --machine_rank $SLURM_PROCID \
@@ -60,4 +59,4 @@ singularity exec --nv --bind /checkpoint,/scratch,/ssd003,/ssd005,$model_chkp_di
                 --model_type falcon --model_variant 7b --model_path $model_path \
                 --model_instance_id $SLURM_JOB_NAME \
                 --gateway_host $gateway_host --gateway_port $gateway_port \
-                --master_host $MASTER_ADDR --master_port 50116
+				--master_host $MASTER_ADDR --master_port 50116

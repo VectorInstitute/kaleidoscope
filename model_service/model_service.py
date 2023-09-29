@@ -24,7 +24,7 @@ class ModelService():
     ''' Model service is responsible for loading and serving a model.
     '''
 
-    def __init__(self, model_instance_id: str, model_type: str, model_variant: str, model_path: str, gateway_host: str, gateway_port: int, master_host: str, master_port: int) -> None:
+    def __init__(self, model_instance_id: str, model_type: str, model_variant: str, model_path: str, gateway_host: str, gateway_port: int, master_host: str, master_port: int, local_rank: int) -> None:
         """
         Args:
             model_instance_id (str): Unique identifier for model instance
@@ -92,6 +92,9 @@ def main():
     )
     parser.add_argument(
         "--gateway_port", required=False, type=int, help="Port of gateway service", default=None
+    )
+    parser.add_argument(
+        "--local_rank", required=False, type=int, help="Used by dist launchers", default=None
     )
     args = parser.parse_args()
 

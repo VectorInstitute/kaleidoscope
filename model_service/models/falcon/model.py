@@ -127,24 +127,24 @@ class Model(AbstractModel):
         train_batch_size = 1 * world_size
 
         ds_config = {
-        "fp16": {
-            "enabled": self.model_cfg["torch_dtype"] == torch.float16,
-        },
-        "bf16": {
-            "enabled": self.model_cfg["torch_dtype"] == torch.bfloat16,
-        },
-        "zero_optimization": {
-            "stage": 3,
-            "overlap_comm": True,
-            "contiguous_gradients": True,
-            "reduce_bucket_size": model_hidden_size * model_hidden_size,
-            "stage3_prefetch_bucket_size": 0.9 * model_hidden_size * model_hidden_size,
-            "stage3_param_persistence_threshold": 0,
-        },
-        "steps_per_print": 2000,
-        "train_batch_size": train_batch_size,
-        "train_micro_batch_size_per_gpu": 1,
-        "wall_clock_breakdown": False,
+            "fp16": {
+                "enabled": self.model_cfg["torch_dtype"] == torch.float16,
+            },
+            "bf16": {
+                "enabled": self.model_cfg["torch_dtype"] == torch.bfloat16,
+            },
+            "zero_optimization": {
+                "stage": 3,
+                "overlap_comm": True,
+                "contiguous_gradients": True,
+                "reduce_bucket_size": model_hidden_size * model_hidden_size,
+                "stage3_prefetch_bucket_size": 0.9 * model_hidden_size * model_hidden_size,
+                "stage3_param_persistence_threshold": 0,
+            },
+            "steps_per_print": 2000,
+            "train_batch_size": train_batch_size,
+            "train_micro_batch_size_per_gpu": 1,
+            "wall_clock_breakdown": False,
         }
         # cpu offload
         ds_config["zero_optimization"]["offload_param"] = dict(device="cpu", pin_memory=True)
@@ -234,11 +234,14 @@ class Model(AbstractModel):
     @batch
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
+        print("[DEBUG] Inside model.infer(), start of model.infer()")
         self.load_default_args(os.path.join(self.model_cfg_path, "config.json"), "generate")
+        print("[DEBUG] Inside model.infer(), default args loaded")
         return self.generate(inputs)
 
 
     def generate(self, inputs):
+        print("[DEBUG] Inside generate(), start of generate()")
         # Encode prompts and get attention mask
         prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
         prompts = np.squeeze(prompts, axis=-1).tolist()
@@ -247,8 +250,10 @@ class Model(AbstractModel):
         attn_mask = encoded_obj.attention_mask
         # encoded_prompts = encoded_prompts.to(self.device)
         # attn_mask = attn_mask.to(self.device)
+        print(f"[DEBUG] Inside generate(), cuda current device: {torch.cuda.current_device()}")
         encoded_prompts = encoded_prompts.to(torch.cuda.current_device())
         attn_mask = attn_mask.to(torch.cuda.current_device())
+        print(f"[DEBUG] Inside generate(), after setting device")
 
         # Create generation config: Check the input parameters, and set default values if not present
         gen_cfg = GenerationConfig(
@@ -263,13 +268,16 @@ class Model(AbstractModel):
         # Run the generation
         input_tokens_size = encoded_prompts.size()[-1]
         input_ids = encoded_prompts if input_tokens_size != 0 else None
+        print("[DEBUG] Inside generate(), before calling self.model.generate()")
         outputs = self.model.generate(
             input_ids, 
             gen_cfg, 
             attention_mask=attn_mask, 
             return_dict_in_generate=True, output_scores=True)
+        print("[DEBUG] Inside generate(), after self.model.generate()")
         transition_scores = self.model.compute_transition_scores(
             outputs.sequences, outputs.scores, normalize_logits=True)
+        print("[DEBUG] Inside generate(), after getting transition_scores")
         generated_ids = outputs.sequences
         # remove input tokens
         generated_ids = generated_ids[:, input_tokens_size:]
@@ -277,6 +285,7 @@ class Model(AbstractModel):
         generated_ids[generated_ids==0] = int(self.tokenizer.eos_token_id)
         generations = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 
+        print("[DEBUG] Inside generate(), before logprobs")
         # Get logprobs of generated tokens
         tokens = []
         logprobs = []
@@ -289,6 +298,7 @@ class Model(AbstractModel):
                     sequence_logprobs.append(prob.item())
             tokens.append(sequence_tokens)
             logprobs.append(sequence_logprobs)
+        print("[DEBUG] Inside generate(), after logprobs")
 
         return {
             "sequences": np.array(generations, dtype=object),
