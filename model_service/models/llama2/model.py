@@ -150,13 +150,13 @@ class Model(AbstractModel):
         else:
             response = self.generate(inputs)
 
-        logger.info(f"Infer function returning response: {response}")
         return response
 
 
     def get_activations(self, inputs):
         """Retrieve activations for a list of prompts and list of module names"""
         self.load_default_args("activations")
+        reponse = {}
 
         # If the modules are base-64 encoded, this is a manipulation request
         try:
@@ -168,11 +168,9 @@ class Model(AbstractModel):
 
         # Handle all other errors
         except Exception as err:
-            response = {}
             response["activations"] = torch.empty(0)
             response["error"] = f"Error with activations request: {err}"
 
-        response = self.generate(inputs)
         return response
 
 
@@ -262,7 +260,6 @@ class Model(AbstractModel):
             "tokens": np.array(tokens, dtype=object),
             "logprobs": np.array(logprobs, dtype=object)
         }
-        logger.info(f"Generate returning return_val: {return_val}")
         return return_val
 
 
