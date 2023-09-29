@@ -361,5 +361,4 @@ class Model(AbstractModel):
             "tokens": np.array(tokens, dtype=object),
             "logprobs": np.array(logprobs, dtype=object)
         }
-
         return return_val
