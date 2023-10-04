@@ -211,7 +211,7 @@ class Model(AbstractModel):
     def get_activations(self, inputs):
         """Retrieve activations for a list of prompts and list of module names"""
         self.load_default_args("activations")
-        reponse = {}
+        response = {}
 
         # If the modules are base-64 encoded, this is a manipulation request
         try:
