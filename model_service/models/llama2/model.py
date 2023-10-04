@@ -60,8 +60,6 @@ def get_free_port():
 
 
 # global state (mutable!)
-REQUEST_QUEUE = None
-RESPONSE_QUEUE = None
 MAX_REQUESTS = None
 GENERATOR = None
 PORT = get_free_port()
@@ -85,7 +83,64 @@ class Model(AbstractModel):
     def load(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model_path = model_path
-        self.worker_main()
+        global GENERATOR
+        rank, world_size = setup_model_parallel()
+
+        GENERATOR = load_llama(
+            local_rank=rank,
+            world_size=world_size,
+            max_seq_len=512,
+            max_batch_size=32,
+            ckpt_dir=f"{self.model_path}",
+            tokenizer_path=f"{self.model_path}/tokenizer.model",
+        )
+
+        # Non rank-0 workers continuously wait for work
+        if rank != 0:
+            while True:
+                try:
+                    request_object = distributed_utils.broadcast_object(
+                        None,
+                        src_rank=0,
+                        group=distributed_utils.get_global_group(),
+                    )
+
+                    encoded_activation_payload = request_object.encoded_activation_payload
+                    act_retrieval_aux = request_object._aux
+                    if encoded_activation_payload is not None:
+                        hook_dict, _ = get_activation_capture_hook_dict(
+                            GENERATOR.model,
+                            encoded_activation_payload,
+                            aux=act_retrieval_aux,
+                        )
+
+                        with apply_forward_hook(GENERATOR.model, hook_dict):
+                            _, _ = GENERATOR.generate(
+                                request_object.prompts,
+                                request_object.max_gen_len,
+                                request_object.temperature,
+                                request_object.top_p,
+                                logprobs=True
+                            )
+                    else:
+                        _, _ = GENERATOR.generate(
+                            request_object.prompts,
+                            request_object.max_gen_len,
+                            request_object.temperature,
+                            request_object.top_p,
+                            logprobs=True
+                        )
+
+                    logger.info(f"Rank{torch.distributed.get_rank()}: worker generating on args {request_object}")
+                    _, _ = GENERATOR.generate(
+                        request_object.prompts,
+                        request_object.max_gen_len,
+                        request_object.temperature,
+                        request_object.top_p,
+                        logprobs=True
+                    )
+                except Exception as err:
+                    logger.info(f"Rank{torch.distributed.get_rank()} caught exception: {err}")
 
 
     def load_default_args(self, task_name):
@@ -209,19 +264,16 @@ class Model(AbstractModel):
 
     def generate(self, request):
         """Generate sequences from a prompt"""
-        logger.info(f"Generate function called with request: {request}")
-        logger.info(f"Self generation args: {self.generation_args}")
+        logger.info(f"Rank{torch.distributed.get_rank()} Generate function called with request: {request}")
         global GENERATOR
 
         prompts = [
             p[0].decode("utf-8") for p in request["prompts"]
         ]
 
-        logger.info(f"Rank{torch.distributed.get_rank()}: completions")
-
         # Tokenize the prompts (needs to be done manually now)
         prompt_tokens = [GENERATOR.tokenizer.encode(s=prompt, bos=True, eos=False) for prompt in prompts]
-        
+
         # Recv request and enqueue
         request_object = RequestObject(
             prompts=prompt_tokens,
@@ -230,19 +282,66 @@ class Model(AbstractModel):
             top_p=float(request["top_p"]) if "top_p" in request else float(self.generation_args["top_p"]),
             encoded_activation_payload=request["encoded_activation_payload"] if "encoded_activation_payload" in request else None
         )
+        request_object._aux = (len(request_object.prompts),)
 
-        logger.info(f"Rank{torch.distributed.get_rank()}: completions - made "
-                    f"RequestObject: {request_object}")
+        logger.info(f"Rank{torch.distributed.get_rank()}: generation RequestObject: {request_object}")
 
-        REQUEST_QUEUE.put(request_object)
-        logger.info(f"Rank{torch.distributed.get_rank()}: completions - "
-                    f"RequestObject enqueued")
+        if torch.distributed.get_rank() == 0:
+            distributed_utils.broadcast_object(
+                request_object,
+                src_rank=0,
+                group=distributed_utils.get_global_group(),
+            )
 
-        # Recv response and parse
-        response_object = RESPONSE_QUEUE.get()
+        activation_dict = {}
+        encoded_activation_payload = request_object.encoded_activation_payload
+        act_retrieval_aux = request_object._aux
 
-        logger.info(f"Rank{torch.distributed.get_rank()}: completions - response "
-                    f"recv")
+        start_time = time.time()
+        if encoded_activation_payload is not None:
+            hook_dict, activation_dict = get_activation_capture_hook_dict(
+                GENERATOR.model,
+                encoded_activation_payload,
+                aux=act_retrieval_aux,
+            )
+            with apply_forward_hook(GENERATOR.model, hook_dict):
+                generation, logprobs = GENERATOR.generate(
+                    request_object.prompts,
+                    request_object.max_gen_len,
+                    request_object.temperature,
+                    request_object.top_p,
+                    logprobs=True
+                )
+        else:
+            generation, logprobs = GENERATOR.generate(
+                request_object.prompts,
+                request_object.max_gen_len,
+                request_object.temperature,
+                request_object.top_p,
+                logprobs=True
+            )
+
+        logger.info(f"Rank{torch.distributed.get_rank()}: Generation took "
+                    f"{time.time() - start_time} seconds")
+
+        ret_dict = {}
+        for k, v in activation_dict.items():
+            logger.info(f"Rank{torch.distributed.get_rank()}: Module "
+                        f"{k} activation shape: {v.shape}")
+            ret_dict[k] = codecs.encode(
+                pickle.dumps(v.clone()),
+                "base64",
+            ).decode("utf-8")
+
+        del activation_dict
+
+        response_object = ResponseObject(
+            generations=generation,
+            logprobs=logprobs,
+            activations=ret_dict,
+        )
+
+        logger.info(f"Rank{torch.distributed.get_rank()}: generation ResponseObject: {response_object}")
 
         results = response_object.json()
 
@@ -261,183 +360,3 @@ class Model(AbstractModel):
             "logprobs": np.array(logprobs, dtype=object)
         }
         return return_val
-
-
-    def worker_main(self):
-        """
-        Hosted version of the web UI for generation.
-        """
-        global REQUEST_QUEUE
-        global RESPONSE_QUEUE
-        global GENERATOR
-
-        rank, world_size = setup_model_parallel()
-
-        load_fn = load_llama
-
-        start_time = time.time()
-        GENERATOR = load_fn(
-            local_rank=rank,
-            world_size=world_size,
-            max_seq_len=512,
-            max_batch_size=32,
-            ckpt_dir=f"{self.model_path}",
-            tokenizer_path=f"{self.model_path}/tokenizer.model",
-        )
-
-        logger.info(f"Rank {torch.distributed.get_rank()} loaded in "
-                    f"{time.time() - start_time:.2f} seconds")
-
-        if torch.distributed.is_initialized():
-            request_object = distributed_utils.broadcast_object(
-                None, src_rank=0, group=distributed_utils.get_global_group(),
-            )
-        else:
-            raise Exception("Please initialize torch distributed.")
-
-        # Rank0 launches server on new thread
-        if torch.distributed.get_rank() == 0:
-            REQUEST_QUEUE = queue.Queue()
-            RESPONSE_QUEUE = queue.Queue()
-            logger.info(f"Worker engaged! {get_my_ip()}:{PORT}")
-            thread = threading.Thread(
-                target=self.batching_loop, args=(GENERATOR,), daemon=True,
-            )
-            thread.start()
-            #app.run(host="0.0.0.0", port=PORT, threaded=True)
-
-        # Other ranks continuously wait for work
-        else:
-            logger.info(
-                f"Rank{torch.distributed.get_rank()} Looping engaged! "
-                f"{get_my_ip()}:{PORT}"
-            )
-            while True:
-                try:
-                    request_object = distributed_utils.broadcast_object(
-                        None,
-                        src_rank=0,
-                        group=distributed_utils.get_global_group(),
-                    )
-
-
-                    encoded_activation_payload = request_object.encoded_activation_payload
-                    act_retrieval_aux = request_object._aux
-                    if encoded_activation_payload is not None:
-                        hook_dict, _ = get_activation_capture_hook_dict(
-                            GENERATOR.model,
-                            encoded_activation_payload,
-                            aux=act_retrieval_aux,
-                        )
-
-                        with apply_forward_hook(GENERATOR.model, hook_dict):
-                            _, _ = GENERATOR.generate(
-                                request_object.prompts,
-                                request_object.max_gen_len,
-                                request_object.temperature,
-                                request_object.top_p,
-                                logprobs=True
-                            )
-                    else:
-                        _, _ = GENERATOR.generate(
-                            request_object.prompts,
-                            request_object.max_gen_len,
-                            request_object.temperature,
-                            request_object.top_p,
-                            logprobs=True
-                        )
-
-                    logger.info(f"Rank{torch.distributed.get_rank()}: Batching "
-                                f"loop - generating on args {request_object}")
-                    _, _ = GENERATOR.generate(
-                        request_object.prompts,
-                        request_object.max_gen_len,
-                        request_object.temperature,
-                        request_object.top_p,
-                        logprobs=True
-                    )
-                except Exception as err:
-                    logger.info(f"Worker main caught exception: {err}")
-
-
-    def batching_loop(self, generator):
-        """
-        Until forever, execute generations once we reach the max threshold of
-        request objects. This runs only on the head node rank0. LLaMA works on
-        batched prompt inputs, so we just implement batching naiively here.
-        """
-        logger.info(f"Rank{torch.distributed.get_rank()}: Batching loop")
-        while True:
-            request_object = REQUEST_QUEUE.get()
-            logger.info(f"Rank{torch.distributed.get_rank()}: Batching loop - "
-                        f"got RequestObject")
-
-            # aux data needed for act retrieval
-            # TODO: Surely a better way to impl this?
-            request_object._aux = (len(request_object.prompts),)
-
-
-            distributed_utils.broadcast_object(
-                request_object,
-                src_rank=0,
-                group=distributed_utils.get_global_group(),
-            )
-            logger.info(f"Rank{torch.distributed.get_rank()}: Batching loop - "
-                        f"broadcasted RequestObject")
-
-            logger.info(f"Rank{torch.distributed.get_rank()}: Batching "
-                        f"loop - generating on args {request_object}")
-
-            activation_dict = {}
-            encoded_activation_payload = request_object.encoded_activation_payload
-            act_retrieval_aux = request_object._aux
-
-            if encoded_activation_payload is not None:
-                hook_dict, activation_dict = get_activation_capture_hook_dict(
-                    generator.model,
-                    encoded_activation_payload,
-                    aux=act_retrieval_aux,
-                )
-                start_time = time.time()
-                with apply_forward_hook(generator.model, hook_dict):
-                    generation, logprobs = generator.generate(
-                        request_object.prompts,
-                        request_object.max_gen_len,
-                        request_object.temperature,
-                        request_object.top_p,
-                        logprobs=True
-                    )
-
-            else:
-                start_time = time.time()
-                generation, logprobs = generator.generate(
-                    request_object.prompts,
-                    request_object.max_gen_len,
-                    request_object.temperature,
-                    request_object.top_p,
-                    logprobs=True
-                )
-
-            logger.info(f"Rank{torch.distributed.get_rank()}: Generation took "
-                        f"{time.time() - start_time} seconds")
-
-            ret_dict = {}
-            for k, v in activation_dict.items():
-                logger.info(f"Rank{torch.distributed.get_rank()}: Module "
-                            f"{k} activation shape: {v.shape}")
-                ret_dict[k] = codecs.encode(
-                    pickle.dumps(v.clone()),
-                    "base64",
-                ).decode("utf-8")
-
-            del activation_dict
-
-            ret_obj = ResponseObject(
-                generations=generation,
-                logprobs=logprobs,
-                activations=ret_dict,
-            )
-
-            RESPONSE_QUEUE.put(ret_obj)
-            logger.info(f"Rank{torch.distributed.get_rank()}: Batching loop - "
-                        f"send response")
