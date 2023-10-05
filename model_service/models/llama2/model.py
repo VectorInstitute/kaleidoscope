@@ -107,6 +107,7 @@ class Model(AbstractModel):
 
                     encoded_activation_payload = request_object.encoded_activation_payload
                     act_retrieval_aux = request_object._aux
+                    logger.info(f"Rank{torch.distributed.get_rank()}: worker generating on args {request_object}")
                     if encoded_activation_payload is not None:
                         hook_dict, _ = get_activation_capture_hook_dict(
                             GENERATOR.model,
@@ -131,14 +132,6 @@ class Model(AbstractModel):
                             logprobs=True
                         )
 
-                    logger.info(f"Rank{torch.distributed.get_rank()}: worker generating on args {request_object}")
-                    _, _ = GENERATOR.generate(
-                        request_object.prompts,
-                        request_object.max_gen_len,
-                        request_object.temperature,
-                        request_object.top_p,
-                        logprobs=True
-                    )
                 except Exception as err:
                     logger.info(f"Rank{torch.distributed.get_rank()} caught exception: {err}")
 
