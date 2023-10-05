@@ -10,10 +10,11 @@ import pprint
 from ..abstract_model import AbstractModel
 
 from pytriton.decorators import batch
-from pytriton.model_config import ModelConfig, Tensor
+from pytriton.model_config import ModelConfig, Tensor # DynamicBatcher, QueuePolicy
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch, infer_auto_device_map
 from accelerate.utils.modeling import get_balanced_memory
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, GenerationConfig
+from accelerate import Accelerator
 
 
 logger = logging.getLogger("kaleidoscope.model_service.falcon")
@@ -43,39 +44,37 @@ class Model(AbstractModel):
 
 
     def load(self, model_path):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        world_rank = int(os.getenv("RANK"))
+        local_rank = int(os.getenv("LOCAL_RANK"))
+        world_size = int(os.getenv("WORLD_SIZE"))
+        logger.info(f"Rank: {world_rank}")
+        logger.info(f"Local rank: {local_rank}")
+        logger.info(f"World size: {world_size}")
+
+        self.device = torch.device("cuda:{}".format(local_rank) if torch.cuda.is_available() else "cpu")
         self.load_model_cfg(os.path.join(self.model_cfg_path, "model_config.json"))
 
-        if self.model_variant == "40b":
-            local_rank = int(os.getenv("LOCAL_RANK", "0"))
-            world_size = torch.cuda.device_count()
-            logger.info(f"Rank: {local_rank}")
-            logger.info(f"World size: {world_size}")
+        # Load model on main device for each node
+        if local_rank == 0:
 
-            logger.debug(f"Torch dtype: {self.model_cfg['torch_dtype']}")
             config = AutoConfig.from_pretrained(
-               model_path, trust_remote_code=self.model_cfg["trust_remote_code"], torch_dtype=self.model_cfg["torch_dtype"])
+                model_path, trust_remote_code=self.model_cfg["trust_remote_code"], torch_dtype=self.model_cfg["torch_dtype"])
             with init_empty_weights():
-               model = self.model_class.from_config(config, trust_remote_code=self.model_cfg["trust_remote_code"], torch_dtype=self.model_cfg["torch_dtype"])
+                model = self.model_class.from_config(config, trust_remote_code=self.model_cfg["trust_remote_code"], torch_dtype=self.model_cfg["torch_dtype"])
             model.tie_weights()
 
-            # Configure memory per device and get device map
-            max_memory = {idx: "40GiB" for idx in range(world_size)}
-            max_memory.update({"cpu": "120GiB"})
-            device_map = infer_auto_device_map(model, max_memory, no_split_module_classes=["MLP", "DecoderLayer"])
-            logging.debug(f"Max memory: {max_memory}")
-            logging.debug(f"Device map: {device_map}")
+            device_map = "balanced_low_0"
 
             self.model = load_checkpoint_and_dispatch(
-               model, model_path, device_map=device_map, dtype=self.model_cfg["torch_dtype"]) 
-        else:
-            self.model = self.model_class.from_pretrained(model_path, **self.model_cfg) # TODO: .eval()?
-            self.model.to(self.device)
-
+                model, model_path, device_map=device_map, dtype=self.model_cfg["torch_dtype"], no_split_module_classes=["MLP", "DecoderLayer"])
+ 
         self.tokenizer = self.tokenizer_class.from_pretrained(model_path, **self.tokenizer_cfg)
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 
         self.model_path = model_path
+
+        logger.debug(f"Deepspeed?: {os.environ.get('ACCELERATE_USE_DEEPSPEED', False)}")
+        logger.debug(f"Deepspeed Zero Stage?: {os.environ.get('ACCELERATE_DEEPSPEED_ZERO_STAGE', None)}")
 
 
     def load_model_cfg(self, cfg_file):
@@ -131,7 +130,7 @@ class Model(AbstractModel):
 
     @property
     def rank(self):
-        return 0
+        return int(os.getenv("RANK"))
 
 
     @batch
@@ -172,9 +171,9 @@ class Model(AbstractModel):
         transition_scores = self.model.compute_transition_scores(
             outputs.sequences, outputs.scores, normalize_logits=True)
         generated_ids = outputs.sequences
-        # remove input tokens
+        # Remove input tokens
         generated_ids = generated_ids[:, input_tokens_size:]
-        # replace token_id 0 with a special token so that it is removed while decoding - EOS
+        # Replace token_id 0 with a special token so that it is removed while decoding - EOS
         generated_ids[generated_ids==0] = int(self.tokenizer.eos_token_id)
         generations = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
 

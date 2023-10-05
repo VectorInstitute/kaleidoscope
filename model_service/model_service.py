@@ -27,6 +27,7 @@ class ModelService():
     def __init__(self, model_instance_id: str, model_type: str, model_variant: str, model_path: str, gateway_host: str, gateway_port: int, master_host: str, master_port: int) -> None:
         """
         Args:
+            B
             model_instance_id (str): Unique identifier for model instance
             model_type (str): Type of model to load
             model_variant (str): Variant of model to load
@@ -59,7 +60,7 @@ class ModelService():
         if model.rank == 0:
             logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
 
-            #Placeholder static triton config for now
+            # Placeholder static triton config for now
             triton_config = TritonConfig(http_address="0.0.0.0", http_port=self.master_port, log_verbose=4)
             triton_workspace = Path("/tmp") / Path("pytriton") / Path("".join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=16)))
             with Triton(config=triton_config, workspace=triton_workspace) as triton:
