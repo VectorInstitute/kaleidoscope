@@ -111,7 +111,6 @@ class Model(AbstractModel):
                     if encoded_activation_payload is not None:
                         hook_dict, _ = get_activation_capture_hook_dict(
                             GENERATOR.model,
-                            B
                             encoded_activation_payload,
                             aux=act_retrieval_aux,
                         )
