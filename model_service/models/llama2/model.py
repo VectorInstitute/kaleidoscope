@@ -111,6 +111,7 @@ class Model(AbstractModel):
                     if encoded_activation_payload is not None:
                         hook_dict, _ = get_activation_capture_hook_dict(
                             GENERATOR.model,
+                            B
                             encoded_activation_payload,
                             aux=act_retrieval_aux,
                         )
@@ -270,10 +271,10 @@ class Model(AbstractModel):
         # Recv request and enqueue
         request_object = RequestObject(
             prompts=prompt_tokens,
-            max_gen_len=int(request["max_tokens"]) if "max_tokens" in request else int(self.generation_args["max_tokens"]),
-            temperature=float(request["temperature"]) if "temperature" in request else float(self.generation_args["temperature"]),
-            top_p=float(request["top_p"]) if "top_p" in request else float(self.generation_args["top_p"]),
-            encoded_activation_payload=request["encoded_activation_payload"] if "encoded_activation_payload" in request else None
+            max_gen_len=int(request["max_tokens"][0][0]) if "max_tokens" in request else int(self.generation_args["max_tokens"]),
+            temperature=float(request["temperature"][0][0]) if "temperature" in request else float(self.generation_args["temperature"]),
+            top_p=float(request["top_p"][0][0]) if "top_p" in request else float(self.generation_args["top_p"]),
+            encoded_activation_payload=request["encoded_activation_payload"][0][0] if "encoded_activation_payload" in request else None
         )
         request_object._aux = (len(request_object.prompts),)
 
