@@ -40,7 +40,7 @@ srun -q llm \
 	-c 16 \
 	singularity exec \
 	--nv \
-	--bind /checkpoint,/scratch,/ssd003,/model-weights \
+	--bind /checkpoint,/scratch,/fs01,/model-weights \
 	/ssd005/projects/llm/llama2-latest.sif \
 	torchrun \
 	--nnodes 2 \
