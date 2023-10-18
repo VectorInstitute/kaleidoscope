@@ -13,6 +13,7 @@ services:
     volumes:
       - ~/.ssh:/root/.ssh
       - .:/app
+    restart: always
   web-worker:
     depends_on:
       - "db"
@@ -26,6 +27,7 @@ services:
     volumes:
       - ~/.ssh:/root/.ssh
       - .:/app
+    restart: always
   db:
     image: postgres
     volumes:
@@ -36,12 +38,14 @@ services:
       - POSTGRES_DB=test
     ports:
       - 5432:5432
+    restart: always
   nginx:
     build: ./nginx
     ports:
       - 1337:80
     depends_on:
       - web
+    restart: always
 
 volumes:
   postgres_data:
