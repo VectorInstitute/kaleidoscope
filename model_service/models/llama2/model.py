@@ -216,7 +216,7 @@ class Model(AbstractModel):
 
         # Handle all other errors
         except Exception as err:
-            response["activations"] = torch.empty(0)
+            response["activations"] = torch.empty(0, dtype=torch.float32)
             response["error"] = f"Error with activations request: {err}"
 
         return response
@@ -249,7 +249,7 @@ class Model(AbstractModel):
         # Handle all other errors
         except Exception as err:
             response = {}
-            response["activations"] = torch.empty(0)
+            response["activations"] = torch.empty(0, dtype=torch.float32)
             response["error"] = f"Error with activations request: {err}"
 
         return response
@@ -273,7 +273,7 @@ class Model(AbstractModel):
             max_gen_len=int(request["max_tokens"][0][0]) if "max_tokens" in request else int(self.generation_args["max_tokens"]),
             temperature=float(request["temperature"][0][0]) if "temperature" in request else float(self.generation_args["temperature"]),
             top_p=float(request["top_p"][0][0]) if "top_p" in request else float(self.generation_args["top_p"]),
-            encoded_activation_payload=request["encoded_activation_payload"][0][0] if "encoded_activation_payload" in request else None
+            encoded_activation_payload=request["encoded_activation_payload"] if "encoded_activation_payload" in request else None
         )
         request_object._aux = (len(request_object.prompts),)
 
