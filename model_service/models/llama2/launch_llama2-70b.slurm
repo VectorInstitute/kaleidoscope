@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=a40
 #SBATCH --qos=llm
+#SBATCH --time=3-00:00
 #SBATCH --mem=0
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1

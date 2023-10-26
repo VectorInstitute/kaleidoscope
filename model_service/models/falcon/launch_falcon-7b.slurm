@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --mail-type=END,FAIL
+#SBATCH --time=3-00:00
 #SBATCH --mem=128G
 #SBATCH --partition=a40
 #SBATCH --qos=llm

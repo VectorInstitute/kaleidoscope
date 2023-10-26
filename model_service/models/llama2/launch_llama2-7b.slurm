@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH --partition=a40
 #SBATCH --qos=llm
-#SBATCH --mem=0
+#SBATCH --time=3-00:00
+#SBATCH --mem=32G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
