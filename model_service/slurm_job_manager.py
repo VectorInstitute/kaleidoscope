@@ -63,13 +63,23 @@ def get_available_models(args):
     print(available_models)
 
 def get_module_names(args):
+    # Extract model type and variant (if applicable)
     model_type = args.model_name.split('-')[0]
+    model_variant = None
+    try:
+        model_variant = args.model_name.split('-')[1]
+    except:
+        pass
+    # Extract module names from config
     cwd = os.path.dirname(os.path.realpath(__file__))
     try:
         with open(f"{cwd}/models/{model_type}/config.json", "r") as config:
             model_config = json.load(config)
-        print(model_config["module_names"])                        
-    except:
+        if model_variant:
+            print(model_config["variants"][model_variant]["module_names"])
+        else:
+            print(model_config["module_names"])
+    except Exception as err:
         pass
 
 job_manager_actions = {

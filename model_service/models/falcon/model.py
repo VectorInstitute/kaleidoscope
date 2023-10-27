@@ -44,8 +44,8 @@ class Model(AbstractModel):
 
     def load(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.load_model_cfg(os.path.join(self.model_cfg_path, "model_config.json"))
 
+        self.load_model_cfg(os.path.join(self.model_cfg_path, "config.json"))
         if self.model_variant == "40b":
             local_rank = int(os.getenv("LOCAL_RANK", "0"))
             world_size = torch.cuda.device_count()
@@ -69,7 +69,12 @@ class Model(AbstractModel):
             self.model = load_checkpoint_and_dispatch(
                model, model_path, device_map=device_map, dtype=self.model_cfg["torch_dtype"]) 
         else:
-            self.model = self.model_class.from_pretrained(model_path, **self.model_cfg) # TODO: .eval()?
+            pretrained_config = {
+                "torch_dtype": self.model_cfg["torch_dtype"],
+                "trust_remote_code": self.model_cfg["trust_remote_code"],
+                "device_map": self.model_cfg["device_map"]
+            }
+            self.model = self.model_class.from_pretrained(model_path, **pretrained_config) # TODO: .eval()?
             self.model.to(self.device)
 
         self.tokenizer = self.tokenizer_class.from_pretrained(model_path, **self.tokenizer_cfg)
@@ -84,11 +89,11 @@ class Model(AbstractModel):
         try:
             with open(cfg_file, "r") as cfg_f:
                 cfg = json.load(cfg_f)
-            self.model_cfg = cfg[model_name]["model"]
-            self.tokenizer_cfg = cfg[model_name]["tokenizer"]
+            self.model_cfg = cfg
+            self.tokenizer_cfg = cfg["tokenizer"]
             self.model_cfg["torch_dtype"] = TORCH_DTYPE_MAP.get(self.model_cfg["torch_dtype"], torch.float32)
-            logger.info(self.model_cfg)
-            logger.info(self.tokenizer_cfg)
+            logger.info(f"Model config: {self.model_cfg}")
+            logger.info(f"Tokenizer config: {self.tokenizer_cfg}")
         except Exception as err:
             logger.error(f"Failed to load model configuration: {err}")
 
