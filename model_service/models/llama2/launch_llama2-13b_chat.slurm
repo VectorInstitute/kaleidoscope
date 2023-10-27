@@ -37,7 +37,7 @@ srun -q llm \
 	--nproc_per_node 2 \
 	${model_service_dir}/model_service.py \
 	--model_type llama2 \
-	--model_variant 13b \
+	--model_variant 13b_chat \
 	--model_path $model_path \
 	--model_instance_id $SLURM_JOB_NAME \
 	--gateway_host $gateway_host \
