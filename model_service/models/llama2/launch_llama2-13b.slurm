@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH --partition=a40
 #SBATCH --qos=llm
-#SBATCH --mem=0
+#SBATCH --time=3-00:00
+#SBATCH --mem=64G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:2
@@ -12,7 +13,7 @@
 model_service_dir=$1
 gateway_host=$2
 gateway_port=$3
-model_path="/model-weights/Llama-2-13b-chat"
+model_path="/model-weights/Llama-2-13b"
 
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2

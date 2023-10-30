@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --mail-type=END,FAIL
-#SBATCH --mem=128G
+#SBATCH --time=3-00:00
+#SBATCH --mem=32G
 #SBATCH --partition=a40
 #SBATCH --qos=llm
 #SBATCH --nodes=1
