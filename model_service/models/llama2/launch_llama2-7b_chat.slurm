@@ -13,7 +13,7 @@
 model_service_dir=$1
 gateway_host=$2
 gateway_port=$3
-model_path="/model-weights/Llama-2-7b"
+model_path="/model-weights/Llama-2-7b-chat"
 
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
@@ -37,7 +37,7 @@ srun -q llm \
 	--nproc_per_node 1 \
 	${model_service_dir}/model_service.py \
 	--model_type llama2 \
-	--model_variant 7b \
+	--model_variant 7b_chat \
 	--model_path $model_path \
 	--model_instance_id $SLURM_JOB_NAME \
 	--gateway_host $gateway_host \

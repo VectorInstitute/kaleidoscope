@@ -1,6 +1,13 @@
 {
     "type": "falcon",
-    "path": "/hardcoded/in/launch/file",
+    "torch_dtype": "bfloat16",
+    "trust_remote_code": true,
+    "device_map": "auto",
+    "tokenizer": {
+        "use_fast": false,
+        "padding_side": "left",
+        "return_attention_mask": true
+    },
     "parameters": {
         "max_tokens": {
             "type": "int",
@@ -46,7 +53,11 @@
         }
     },
     "variants": {
-	"7b": {},
-	"40b": {}
-    }	
+        "7b": {
+            "module_names": []
+        },
+        "40b": {
+            "module_names": []
+        }
+    }    
 }
