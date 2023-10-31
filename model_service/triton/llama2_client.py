@@ -5,6 +5,7 @@ import time
 import numpy as np
 
 # from pytriton.client import ModelClient
+from model_service.models.llama2.model import Model
 
 from web.utils.triton import TritonClient
 from enum import Enum
@@ -54,26 +55,47 @@ def main():
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
+    
+    model_type, model_variant = "llama2", "7b_chat"
+    model_path = "/model-weights/Llama-2-7b-chat"
+    llama2_model = Model(model_type, model_variant)
+    llama2_model.load(model_path)
 
-    num_tokens = 1
-    
-    # Using TritonClient
+    # get activations
     batch_size = 1
-    prompts = ["William Shakespeare was a great writer"]*batch_size
-    modules = ["layers.20"]*batch_size
-    inputs = {
-            "prompts": prompts,
-            "modules": modules,
-            "max_tokens": num_tokens
-            }
-    model_name = "llama2-7b_chat"
-    host = args.url.lstrip("http://")
+    num_tokens = 1
+    layer = "layers.20"
+    prompts = [["William Shakespeare was a great writer"]]*batch_size
+    prompts = np.char.encode(np.array(prompts), "utf-8")
+    modules = [[layer]]*batch_size
+    modules = np.char.encode(np.array(modules), "utf-8")
+
+    def _param(dtype, value):
+        if bool(value):
+            return np.ones((batch_size, 1), dtype=dtype) * value
+        else:
+            return np.zeros((batch_size, 1), dtype=dtype)
     
-    triton_client = TritonClient(host)
-    start_time = time.time()
-    generation = triton_client.infer(model_name, inputs, task=Task.GET_ACTIVATIONS)
-    print(generation)
-    time_taken = time.time() - start_time
+    inputs = {
+        "prompts": prompts,
+        "modules": modules,
+        "max_tokens": _param(np.int64, num_tokens),
+    }
+
+    activations = llama2_model.get_activations(inputs)
+    print(activations)
+
+    
+    
+    # # Using TritonClient
+    # model_name = "llama2-7b_chat"
+    # host = args.url.lstrip("http://")
+    
+    # triton_client = TritonClient(host)
+    # start_time = time.time()
+    # generation = triton_client.infer(model_name, inputs, task=Task.GET_ACTIVATIONS)
+    # print(generation)
+    # time_taken = time.time() - start_time
 
 
 #    # Using pytriton ModelClient
