@@ -62,8 +62,8 @@ def main():
     llama2_model.load(model_path)
 
     # get activations
-    batch_size = 1
-    num_tokens = 1
+    batch_size = 8
+    num_tokens = 16
     layer = "layers.20"
     prompts = [["William Shakespeare was a great writer"]]*batch_size
     prompts = np.char.encode(np.array(prompts), "utf-8")
@@ -82,83 +82,24 @@ def main():
         "max_tokens": _param(np.int64, num_tokens),
     }
 
-    activations = llama2_model.get_activations(inputs)
-    print(activations)
+    # activations = llama2_model.get_activations(inputs)
+    # print(activations)
 
+    # Benchmarking over iterations
+    num_iters = 1000
+    mean_window = 50
+    time_taken = []
+    mean_time_taken = []
+    for idx in range(num_iters):
+        start_time = time.time()
+        activations = llama2_model.get_activations(inputs)
+        time_taken.append(time.time() - start_time)
+        print(f"Time taken for iteration {idx+1}: {time_taken[-1]}")
+        if (idx + 1) % mean_window == 0:
+            mean_time_taken.append(np.mean(time_taken[-mean_window:]))
+            print(f"Mean time taken for last {mean_window} iterations: {mean_time_taken[-1]}")
+    print(f"Mean time taken every {mean_window} iterations: {mean_time_taken}")
     
-    
-    # # Using TritonClient
-    # model_name = "llama2-7b_chat"
-    # host = args.url.lstrip("http://")
-    
-    # triton_client = TritonClient(host)
-    # start_time = time.time()
-    # generation = triton_client.infer(model_name, inputs, task=Task.GET_ACTIVATIONS)
-    # print(generation)
-    # time_taken = time.time() - start_time
-
-
-#    # Using pytriton ModelClient
-#    sequence = np.array(
-#        [
-#            ["William Shakespeare was a great writer"],
-#        ]*6
-#    )
-#
-#    sequence = np.char.encode(sequence, "utf-8")
-#    logger.info(f"Sequence: {sequence}")
-#
-#    batch_size = sequence.shape[0]
-#    def _param(dtype, value):
-#        if bool(value):
-#            return np.ones((batch_size, 1), dtype=dtype) * value
-#        else:
-#            return np.zeros((batch_size, 1), dtype=dtype)
-#    
-#    gen_params = {
-#        "max_tokens": _param(np.int64, num_tokens),
-#        "do_sample": _param(np.bool_, False),
-#        "temperature": _param(np.float64, 0.7),
-#    }
-#    
-#    model_name = "falcon-40b_generation"
-#
-#    logger.info(f"Waiting for response...")
-#    start_time = time.time()
-#    with ModelClient(args.url, model_name, init_timeout_s=args.init_timeout_s, inference_timeout_s=600) as client:
-#        for req_idx in range(1, args.iterations + 1):
-#            logger.info(f"Sending request ({req_idx}).")
-#            result_dict = client.infer_batch(
-#                prompts=sequence, **gen_params)
-#            logger.info(f"Result: {result_dict} for request ({req_idx}).")
-#    time_taken = time.time() - start_time
-    
-    # # Common logging for both methods
-    # logger.info(f"Total time taken: {time_taken:.2f} secs")
-    # token_per_sec = (num_tokens*batch_size)/time_taken
-    # logger.info(f"tokens/sec: {token_per_sec:.2f}")
-
-
-#     # benchmark
-#     n_runs = 5
-#     run_times = []
-#     for run_idx in range(n_runs):
-#         start_time = time.time()
-
-#         # Using TritonClient
-#         triton_client = TritonClient(host)
-#         generation = triton_client.infer(model_name, inputs, task="generation")
-
-# #        # Using pytriton ModelClient
-# #        with ModelClient(args.url, model_name, init_timeout_s=args.init_timeout_s) as client:
-# #            for req_idx in range(1, args.iterations + 1):
-# #                logger.info(f"Sending request ({req_idx}).")
-# #                result_dict = client.infer_batch(
-# #                    prompts=sequence, **gen_params)
-
-#         run_times.append(time.time() - start_time)
-#     mean_token_per_sec = np.mean([(num_tokens*batch_size)/elm for elm in run_times])
-#     logger.info(f"seq_len: {num_tokens}, tokens/sec: {mean_token_per_sec:.2f}")
 
 if __name__ == "__main__":
     main()
