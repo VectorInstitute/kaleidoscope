@@ -143,14 +143,15 @@ class Model(AbstractModel):
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
         self.load_default_args(os.path.join(self.model_cfg_path, "config.json"), "generate")
+        logger.debug(f"Inputs to infer: {inputs}")
         return self.generate(inputs)
 
 
     def generate(self, inputs):
         # Encode prompts and get attention mask
         # prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
+        # prompts = np.squeeze(prompts, axis=-1).tolist()
         prompts = inputs.pop("prompts")
-        prompts = np.squeeze(prompts, axis=-1).tolist()
         encoded_obj = self.tokenizer(prompts, return_tensors="pt", padding=True)
         encoded_prompts = encoded_obj.input_ids
         attn_mask = encoded_obj.attention_mask
@@ -159,12 +160,12 @@ class Model(AbstractModel):
 
         # Create generation config: Check the input parameters, and set default values if not present
         gen_cfg = GenerationConfig(
-            min_new_tokens=inputs["min_tokens"][0][0] if "min_tokens" in inputs else self.default_args["min_tokens"],
-            max_new_tokens=inputs["max_tokens"][0][0] if "max_tokens" in inputs else self.default_args["max_tokens"],
-            temperature=inputs["temperature"][0][0] if "temperature" in inputs else self.default_args["temperature"],
-            top_p=inputs["top_p"][0][0] if "top_p" in inputs else self.default_args["top_p"],
-            top_k=int(inputs["top_k"][0][0]) if "top_k" in inputs else self.default_args["top_k"],
-            do_sample=bool(inputs["do_sample"][0][0]) if "do_sample" in inputs else self.default_args["do_sample"]
+            min_new_tokens=int(inputs["min_tokens"]) if "min_tokens" in inputs else self.default_args["min_tokens"],
+            max_new_tokens=int(inputs["max_tokens"]) if "max_tokens" in inputs else self.default_args["max_tokens"],
+            temperature=float(inputs["temperature"]) if "temperature" in inputs else self.default_args["temperature"],
+            top_p=float(inputs["top_p"]) if "top_p" in inputs else self.default_args["top_p"],
+            top_k=int(inputs["top_k"]) if "top_k" in inputs else self.default_args["top_k"],
+            do_sample=bool(inputs["do_sample"]) if "do_sample" in inputs else self.default_args["do_sample"]
         )
         
         # Run the generation
@@ -198,9 +199,9 @@ class Model(AbstractModel):
             logprobs.append(sequence_logprobs)
 
         return {
-            "sequences": np.array(generations, dtype=object),
-            "tokens": np.array(tokens, dtype=object),
-            "logprobs": np.array(logprobs, dtype=np.float)
+            "sequences": generations,
+            "tokens": tokens,
+            "logprobs": logprobs
         }
 
 

@@ -5,9 +5,12 @@ import importlib
 from pathlib import Path
 import random
 import string
+import time
 
 # from pytriton.triton import Triton, TritonConfig
+import ray
 from ray import serve
+from ray.serve.config import HTTPOptions
 
 from services.gateway_service import GatewayServiceClient
 
@@ -31,7 +34,11 @@ class ModelDeployment():
 
     def __call__(self, request):
         logger.debug(f"Type of request.query_params: {type(request.query_params)}")
-        return self.model.infer(**request.query_params)
+        try:
+            output = self.model.infer(**request.query_params)
+        except Exception as err:
+            output = {"Error": err, "Input": request.query_params}
+        return output
 
 
 class ModelService():
@@ -86,7 +93,13 @@ class ModelService():
             model_variant=self.model_variant, 
             model_path=self.model_path
             )
-        serve.run(model_app, host="0.0.0.0", port=self.master_port, route_prefix="/")
+        serve.start(
+            http_options=HTTPOptions(host="0.0.0.0", port=self.master_port)
+            )
+        handle = serve.run(model_app)
+        # Hack - Keep server active
+        while True:
+            time.sleep(0.001)
 
 
 def main():

@@ -44,25 +44,33 @@ def main():
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
-    sequence = [["William Shakespeare was a great writer"]]
+    sequence = "William Shakespeare"
+    # sequence = np.char.encode(sequence, "utf-8")
     logger.info(f"Sequence: {sequence}")
 
-    batch_size = len(sequence)
-    def _param(value):
-        return [[value]]*batch_size
+    # # batch_size = sequence.shape[0]
+    # batch_size = len(sequence)
+    # def _param(dtype, value):
+    #     if bool(value):
+    #         return np.ones((batch_size, 1), dtype=dtype) * value
+    #     else:
+    #         return np.zeros((batch_size, 1), dtype=dtype)
     
     num_tokens = 8
     gen_params = {
-        "max_tokens": _param(num_tokens),
-        "do_sample": _param(False),
-        "temperature": _param(0.7),
+        "max_tokens": num_tokens,
+        "do_sample": False,
+        "temperature": 1.0,
     }
     
     model_name = "falcon-7b_generation"
     params = {"prompts": sequence}
     params.update(gen_params)
+    logger.info(f"params: {params}")
 
-    response = requests.get(args.url, params=params).json()
+    response = requests.get(args.url, params=params)
+    logger.info(response)
+    response = response.json()
 
     logger.info(type(response))
     logger.info(response)
