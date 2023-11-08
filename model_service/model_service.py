@@ -32,13 +32,16 @@ class ModelDeployment():
         self.model = initialize_model(model_type, model_variant)
         self.model.load(model_path)
 
-    def __call__(self, request):
-        logger.debug(f"Type of request.query_params: {type(request.query_params)}")
-        try:
-            output = self.model.infer(**request.query_params)
-        except Exception as err:
-            output = {"Error": err, "Input": request.query_params}
+    @serve.batch(max_batch_size=5)
+    async def _handle_batch(self, inputs):
+        # Convert list of dict to dict with values as list
+        inputs = {k: [elm[k] for elm in inputs] for k in inputs[0].keys()}
+
+        output = self.model.infer(**inputs)
         return output
+
+    async def __call__(self, request):
+        return await self._handle_batch(request.query_params)
 
 
 class ModelService():
@@ -96,7 +99,7 @@ class ModelService():
         serve.start(
             http_options=HTTPOptions(host="0.0.0.0", port=self.master_port)
             )
-        handle = serve.run(model_app)
+        serve.run(model_app)
         # Hack - Keep server active
         while True:
             time.sleep(0.001)

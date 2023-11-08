@@ -160,12 +160,12 @@ class Model(AbstractModel):
 
         # Create generation config: Check the input parameters, and set default values if not present
         gen_cfg = GenerationConfig(
-            min_new_tokens=int(inputs["min_tokens"]) if "min_tokens" in inputs else self.default_args["min_tokens"],
-            max_new_tokens=int(inputs["max_tokens"]) if "max_tokens" in inputs else self.default_args["max_tokens"],
-            temperature=float(inputs["temperature"]) if "temperature" in inputs else self.default_args["temperature"],
-            top_p=float(inputs["top_p"]) if "top_p" in inputs else self.default_args["top_p"],
-            top_k=int(inputs["top_k"]) if "top_k" in inputs else self.default_args["top_k"],
-            do_sample=bool(inputs["do_sample"]) if "do_sample" in inputs else self.default_args["do_sample"]
+            min_new_tokens=int(inputs["min_tokens"][0]) if "min_tokens" in inputs else self.default_args["min_tokens"],
+            max_new_tokens=int(inputs["max_tokens"][0]) if "max_tokens" in inputs else self.default_args["max_tokens"],
+            temperature=float(inputs["temperature"][0]) if "temperature" in inputs else self.default_args["temperature"],
+            top_p=float(inputs["top_p"][0]) if "top_p" in inputs else self.default_args["top_p"],
+            top_k=int(inputs["top_k"][0]) if "top_k" in inputs else self.default_args["top_k"],
+            do_sample=bool(inputs["do_sample"][0]) if "do_sample" in inputs else self.default_args["do_sample"]
         )
         
         # Run the generation

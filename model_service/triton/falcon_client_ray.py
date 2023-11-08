@@ -3,6 +3,7 @@ import logging
 import time
 
 import numpy as np
+import ray
 
 import requests
 
@@ -44,36 +45,24 @@ def main():
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
 
-    sequence = "William Shakespeare"
-    # sequence = np.char.encode(sequence, "utf-8")
-    logger.info(f"Sequence: {sequence}")
-
-    # # batch_size = sequence.shape[0]
-    # batch_size = len(sequence)
-    # def _param(dtype, value):
-    #     if bool(value):
-    #         return np.ones((batch_size, 1), dtype=dtype) * value
-    #     else:
-    #         return np.zeros((batch_size, 1), dtype=dtype)
+    @ray.remote
+    def send_query(text):
+        params = {"prompts": text}
+        num_tokens = 8
+        gen_params = {
+            "max_tokens": num_tokens,
+            "do_sample": False,
+            "temperature": 1.0,
+        }
+        params.update(gen_params)
+        response = requests.get(args.url, params=params).json()
+        return response
     
-    num_tokens = 8
-    gen_params = {
-        "max_tokens": num_tokens,
-        "do_sample": False,
-        "temperature": 1.0,
-    }
-    
-    model_name = "falcon-7b_generation"
-    params = {"prompts": sequence}
-    params.update(gen_params)
-    logger.info(f"params: {params}")
+    batch_size=1
+    sequence = ["William Shakespeare"]*batch_size
 
-    response = requests.get(args.url, params=params)
-    logger.info(response)
-    response = response.json()
-
-    logger.info(type(response))
-    logger.info(response)
+    results = ray.get([send_query.remote(text) for text in sequence])
+    logger.info(results)
 
 
 if __name__ == "__main__":
