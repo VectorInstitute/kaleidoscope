@@ -11,7 +11,8 @@ from typing import Callable, Dict, List, Optional
 from config import Config
 
 
-from utils.triton import Task, TritonClient
+# from utils.triton import Task, TritonClient
+from utils.ray_utils import Task, RayClient
 
 
 def get_available_models() -> List:
@@ -87,8 +88,10 @@ def verify_job_health(model_instance_id: str) -> bool:
 
 def verify_model_instance_active(host: str, model_name: str) -> bool:
     try:
-        triton_client = TritonClient(host)
-        return triton_client.is_model_ready(model_name)
+        # triton_client = TritonClient(host)
+        # return triton_client.is_model_ready(model_name)
+        ray_client = RayClient(host)
+        return ray_client.is_model_ready(model_name)
 
     except Exception as err:
         current_app.logger.error(f"Model active check failed: {err}")
@@ -96,8 +99,10 @@ def verify_model_instance_active(host: str, model_name: str) -> bool:
 
 def verify_model_health(host: str, model_name: str) -> bool:
     try:
-        triton_client = TritonClient(host)
-        return triton_client.is_model_ready(model_name)
+        # triton_client = TritonClient(host)
+        # return triton_client.is_model_ready(model_name)
+        ray_client = RayClient(host)
+        return ray_client.is_model_ready(model_name)
 
     except Exception as err:
         current_app.logger.error(f"Model health failed check: {err}")
@@ -115,35 +120,22 @@ def shutdown(model_instance_id: str) -> None:
 
 def generate(host: str, model_name: str, inputs: Dict) -> Dict:
 
-    triton_client = TritonClient(host)
-    generation = triton_client.infer(model_name, inputs, task=Task.GENERATE)
+    # triton_client = TritonClient(host)
+    # generation = triton_client.infer(model_name, inputs, task=Task.GENERATE)
+    ray_client = RayClient(host)
+    generation = ray_client.infer(model_name, inputs, task=Task.GENERATE)
     return generation
-
-    # # Only for GPT-J
-    # MODEl_GPTJ_FASTERTRANSFORMER = "ensemble"
-
-    # client = httpclient.InferenceServerClient(host,
-    #                                           concurrency=1,
-    #                                           verbose=False)
-
-    # inputs = [[elm] for elm in prompts]
-    # param_config = json.load(open("../../models/GPT-J/config.json", "r")) # TODO - Query model service to fetch param config
-    # param_config = update_param_cfg(param_config, generation_config)
-    # from pprint import pprint
-    # pprint(param_config)
-    # inputs = prepare_inputs(inputs, param_config)
-
-    # result = client.infer(MODEl_GPTJ_FASTERTRANSFORMER, inputs)
-    # output0 = result.as_numpy("OUTPUT_0")
-    # print(output0.shape)
-    # print(output0)
 
 def get_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
-    triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, task=Task.GET_ACTIVATIONS)
+    # triton_client = TritonClient(host)
+    # return triton_client.infer(model_name, inputs, task=Task.GET_ACTIVATIONS)
+    ray_client = RayClient(host)  
+    return ray_client.infer(model_name, inputs, task=Task.GET_ACTIVATIONS)
 
 def edit_activations(host: str, model_name: str, inputs: Dict) -> Dict:
 
-    triton_client = TritonClient(host)
-    return triton_client.infer(model_name, inputs, task=Task.EDIT_ACTIVATIONS)
+    # triton_client = TritonClient(host)
+    # return triton_client.infer(model_name, inputs, task=Task.EDIT_ACTIVATIONS)
+    ray_client = RayClient(host)
+    return ray_client.infer(model_name, inputs, task=Task.EDIT_ACTIVATIONS)

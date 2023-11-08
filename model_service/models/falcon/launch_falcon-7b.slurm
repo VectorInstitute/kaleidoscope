@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --time=3-00:00
+#--time=3-00:00
 #SBATCH --mem=32G
 #SBATCH --partition=a40
-#SBATCH --qos=llm
+#--qos=llm
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus-per-node=1
@@ -26,6 +26,6 @@ export PYTHONPATH=/usr/bin/python3
 curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':50116"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
 echo $MASTER_ADDR
 
-singularity exec --nv --bind /checkpoint,/scratch,/fs01,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-hf.sif \
+singularity exec --nv --bind /checkpoint,/scratch,/fs01,/ssd005,$model_chkp_dir:$model_path /ssd005/projects/llm/falcon-ray-hf.sif \
     /usr/bin/python3 -s \
         $model_service_dir/model_service.py --model_type falcon --model_variant 7b --model_path $model_path --model_instance_id $SLURM_JOB_NAME --gateway_host $gateway_host --gateway_port $gateway_port --master_host $MASTER_ADDR --master_port 50116

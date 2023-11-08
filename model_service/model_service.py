@@ -6,7 +6,8 @@ from pathlib import Path
 import random
 import string
 
-from pytriton.triton import Triton, TritonConfig
+# from pytriton.triton import Triton, TritonConfig
+from ray import serve
 
 from services.gateway_service import GatewayServiceClient
 
@@ -19,6 +20,19 @@ def initialize_model(model_type, model_variant):
         model_type (str): Type of model to load
     """
     return importlib.import_module(f"models.{model_type}.model").Model(model_type, model_variant)
+
+# Using Ray: Create model deployment class and add the serve.deployment decorator
+@serve.deployment
+class ModelDeployment():
+
+    def __init__(self, model_type, model_variant, model_path):
+        self.model = initialize_model(model_type, model_variant)
+        self.model.load(model_path)
+
+    def __call__(self, request):
+        logger.debug(f"Type of request.query_params: {type(request.query_params)}")
+        return self.model.infer(**request.query_params)
+
 
 class ModelService():
     ''' Model service is responsible for loading and serving a model.
@@ -51,20 +65,28 @@ class ModelService():
         """Loads model and starts serving requests
         """
 
-        gateway_service = GatewayServiceClient(self.gateway_host, self.gateway_port)
+        # gateway_service = GatewayServiceClient(self.gateway_host, self.gateway_port)
 
-        model = initialize_model(self.model_type, self.model_variant)
-        model.load(self.model_path)
+        # model = initialize_model(self.model_type, self.model_variant)
+        # model.load(self.model_path)
 
-        if model.rank == 0:
-            logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
+        # if model.rank == 0:
+        #     logger.info(f"Starting model service for {self.model_type} on rank {model.rank}")
 
-            #Placeholder static triton config for now
-            triton_config = TritonConfig(http_address="0.0.0.0", http_port=self.master_port, log_verbose=4)
-            triton_workspace = Path("/tmp") / Path("pytriton") / Path("".join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=16)))
-            with Triton(config=triton_config, workspace=triton_workspace) as triton:
-                triton = model.bind(triton)
-                triton.serve()
+        #     #Placeholder static triton config for now
+        #     triton_config = TritonConfig(http_address="0.0.0.0", http_port=self.master_port, log_verbose=4)
+        #     triton_workspace = Path("/tmp") / Path("pytriton") / Path("".join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k=16)))
+        #     with Triton(config=triton_config, workspace=triton_workspace) as triton:
+        #         triton = model.bind(triton)
+        #         triton.serve()
+
+        # Using Ray: Deploy the Deployment class
+        model_app = ModelDeployment.bind(
+            model_type=self.model_type, 
+            model_variant=self.model_variant, 
+            model_path=self.model_path
+            )
+        serve.run(model_app, host="0.0.0.0", port=self.master_port, route_prefix="/")
 
 
 def main():

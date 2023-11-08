@@ -1,7 +1,7 @@
 """A module to abstract the models' functionality"""
 import abc
 from enum import Enum
-from pytriton.decorators import batch
+# from pytriton.decorators import batch
 
 
 class AbstractModel(abc.ABC):
@@ -12,9 +12,9 @@ class AbstractModel(abc.ABC):
         """An abstract method for loading a model"""
         pass
 
-    @abc.abstractmethod
-    def bind(self, triton):
-        pass
+    # @abc.abstractmethod
+    # def bind(self, triton):
+    #     pass
 
     @property
     @abc.abstractmethod
@@ -22,7 +22,7 @@ class AbstractModel(abc.ABC):
         pass
 
     @abc.abstractmethod
-    @batch
+    # @batch
     def infer(self, **inputs):
         pass
 

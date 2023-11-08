@@ -9,8 +9,8 @@ import pprint
 
 from ..abstract_model import AbstractModel
 
-from pytriton.decorators import batch
-from pytriton.model_config import ModelConfig, Tensor
+# from pytriton.decorators import batch
+# from pytriton.model_config import ModelConfig, Tensor
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch, infer_auto_device_map
 from accelerate.utils.modeling import get_balanced_memory
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, GenerationConfig
@@ -110,36 +110,36 @@ class Model(AbstractModel):
             logger.error(f"Failed to load model default generation configuration: {err}")
 
 
-    def bind(self, triton):
-        triton.bind(
-            model_name=f"{self.model_type}-{self.model_variant}",
-            infer_func=self.infer,
-            inputs=[
-                Tensor(name="task", dtype=np.int64, shape=(1,)),
-                Tensor(name="prompts", dtype=bytes, shape=(1,)),
-                Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='do_sample', dtype=np.bool_, shape=(1,), optional=True),
-            ],
-            outputs=[
-                Tensor(name="sequences", dtype=object, shape=(-1,)),
-                Tensor(name="tokens", dtype=object, shape=(-1,)),
-                Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
-            ],
-            config=ModelConfig(max_batch_size=8), # TODO: set based on device memory and model variant
-        )
-        return triton
+    # def bind(self, triton):
+    #     triton.bind(
+    #         model_name=f"{self.model_type}-{self.model_variant}",
+    #         infer_func=self.infer,
+    #         inputs=[
+    #             Tensor(name="task", dtype=np.int64, shape=(1,)),
+    #             Tensor(name="prompts", dtype=bytes, shape=(1,)),
+    #             Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
+    #             Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
+    #             Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
+    #             Tensor(name='top_p', dtype=np.float64, shape=(1,), optional=True),
+    #             Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
+    #             Tensor(name='do_sample', dtype=np.bool_, shape=(1,), optional=True),
+    #         ],
+    #         outputs=[
+    #             Tensor(name="sequences", dtype=object, shape=(-1,)),
+    #             Tensor(name="tokens", dtype=object, shape=(-1,)),
+    #             Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
+    #         ],
+    #         config=ModelConfig(max_batch_size=8), # TODO: set based on device memory and model variant
+    #     )
+    #     return triton
 
 
     @property
     def rank(self):
         return 0
 
-
-    @batch
+    # Using Ray: Remove triton batch decorator
+    # @batch
     def infer(self, **inputs):
         """Generate sequences from a prompt"""
         self.load_default_args(os.path.join(self.model_cfg_path, "config.json"), "generate")
@@ -148,7 +148,8 @@ class Model(AbstractModel):
 
     def generate(self, inputs):
         # Encode prompts and get attention mask
-        prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
+        # prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
+        prompts = inputs.pop("prompts")
         prompts = np.squeeze(prompts, axis=-1).tolist()
         encoded_obj = self.tokenizer(prompts, return_tensors="pt", padding=True)
         encoded_prompts = encoded_obj.input_ids
@@ -203,7 +204,7 @@ class Model(AbstractModel):
         }
 
 
-    @batch
+    # @batch
     def get_activations(self, request):
         """Retrieve intermediate activations from Falcon model"""
         response = self.generate(request)
@@ -212,7 +213,7 @@ class Model(AbstractModel):
         return response
 
 
-    @batch
+    # @batch
     def edit_activations(self, request):
         """Edit intermediate activations from Falcon model"""
         response = self.generate(request)
