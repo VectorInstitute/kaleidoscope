@@ -173,7 +173,7 @@ class Model(AbstractModel):
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
                 Tensor(name="logprobs", dtype=object, shape=(-1,)),
             ],
-            config=ModelConfig(max_batch_size=128),
+            config=ModelConfig(batching=False),
         )
 
         return triton
@@ -190,7 +190,7 @@ class Model(AbstractModel):
         """Dispatch request to a handler function based on the task"""
         self.load_default_args("generate")
 
-        task = Task(inputs['task'][0][0])
+        task = Task(inputs['task'][0])
         if task == Task.GET_ACTIVATIONS:
             response = self.get_activations(inputs)
         elif task == Task.EDIT_ACTIVATIONS:
@@ -208,7 +208,7 @@ class Model(AbstractModel):
 
         # If the modules are base-64 encoded, this is a manipulation request
         try:
-            module_names = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            module_names = np.char.decode(inputs["modules"][0], encoding="utf-8")
             inputs["encoded_activation_payload"] = ActivationPayload(
                 module_names_activation_retrieval=[module_names.tolist()],
             )
@@ -229,7 +229,7 @@ class Model(AbstractModel):
         # If the modules are base-64 encoded, this is a manipulation request
         try:
             # Extract modules + editing functions from encoded request
-            encoded_modules = np.char.decode(inputs["modules"][0][0], encoding="utf-8")
+            encoded_modules = np.char.decode(inputs["modules"][0], encoding="utf-8")
             # TODO: This only works for a single module name. Add code to handle multiple modules.
             decoded_modules = decode_str(str(encoded_modules))
             editing_fns: Dict[str, Callable] = {}
@@ -261,7 +261,7 @@ class Model(AbstractModel):
         global GENERATOR
 
         prompts = [
-            p[0].decode("utf-8") for p in request["prompts"]
+            p.decode("utf-8") for p in request["prompts"]
         ]
 
         # Tokenize the prompts (needs to be done manually now)
@@ -270,9 +270,9 @@ class Model(AbstractModel):
         # Recv request and enqueue
         request_object = RequestObject(
             prompts=prompt_tokens,
-            max_gen_len=int(request["max_tokens"][0][0]) if "max_tokens" in request else int(self.generation_args["max_tokens"]),
-            temperature=float(request["temperature"][0][0]) if "temperature" in request else float(self.generation_args["temperature"]),
-            top_p=float(request["top_p"][0][0]) if "top_p" in request else float(self.generation_args["top_p"]),
+            max_gen_len=int(request["max_tokens"][0]) if "max_tokens" in request else int(self.generation_args["max_tokens"]),
+            temperature=float(request["temperature"][0]) if "temperature" in request else float(self.generation_args["temperature"]),
+            top_p=float(request["top_p"][0]) if "top_p" in request else float(self.generation_args["top_p"]),
             encoded_activation_payload=request["encoded_activation_payload"] if "encoded_activation_payload" in request else None
         )
         request_object._aux = (len(request_object.prompts),)
@@ -334,7 +334,7 @@ class Model(AbstractModel):
             activations=ret_dict,
         )
 
-        logger.info(f"Rank{torch.distributed.get_rank()}: generation ResponseObject: {response_object}")
+        #logger.info(f"Rank{torch.distributed.get_rank()}: generation ResponseObject: {response_object}")
 
         results = response_object.json()
 
