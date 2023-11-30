@@ -16,9 +16,9 @@ class Task(Enum):
 
 def _param(dtype, value, batch_size):
     if bool(value):
-        return np.ones((batch_size, 1), dtype=dtype) * value
+        return np.ones((1), dtype=dtype) * value
     else:
-        return np.zeros((batch_size, 1), dtype=dtype) + value
+        return np.zeros((1), dtype=dtype) + value
 
 def _str_list2numpy(str_list: typing.List[str]) -> np.ndarray:
     str_ndarray = np.array(str_list)
@@ -29,6 +29,7 @@ def prepare_prompts_tensor(prompts):
 
     triton_dtype = "BYTES"
     input = _str_list2numpy(value)
+    input = input[0]
     # np.array(value, dtype=bytes)
 
     tensor = httpclient.InferInput(name, input.shape, triton_dtype)
