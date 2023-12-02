@@ -1,6 +1,7 @@
 """Module for Stable Diffusion SDXL configurations"""
 import logging
 import numpy as np
+from omegaconf import OmegaConf
 import random
 import re
 import sys
@@ -19,6 +20,7 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %
 class Model(AbstractModel):
 
     def __init__(self, model_type, model_variant):
+        self.model_config = None
         self.model_path = None
         self.model_type = model_type
         self.model_variant = model_variant
@@ -28,9 +30,35 @@ class Model(AbstractModel):
 
     def load(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = self.model_class.from_pretrained(model_path)
+        logger.info(f"Loading model, path: {model_path}")
+
+        # How does SDXL do these from_pretrained calls?
+        self.model_config = OmegaConf.load(f"{opt.config}")
+        self.model = self.load_model_from_config(model_path)
+
         self.model_path = model_path
         self.model.to(self.device)
+
+
+    # Code from https://github.com/CompVis/stable-diffusion/scripts/txt2img.py
+    def load_model_from_config(config, ckpt, verbose=False):
+        logger.info(f"Loading model from {ckpt}")
+        pl_sd = torch.load(ckpt, map_location="cpu")
+        if "global_step" in pl_sd:
+            logger.info(f"Global Step: {pl_sd['global_step']}")
+        sd = pl_sd["state_dict"]
+        model = instantiate_from_config(config.model)
+        m, u = model.load_state_dict(sd, strict=False)
+        if len(m) > 0 and verbose:
+            logger.info("missing keys:")
+            logger.info(m)
+        if len(u) > 0 and verbose:
+            logger.info("unexpected keys:")
+            logger.info(u)
+
+        model.cuda()
+        model.eval()
+        return model
 
 
     def bind(self, triton):
@@ -42,7 +70,7 @@ class Model(AbstractModel):
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
             ],
             outputs=[
-                Tensor(name="imagees", dtype=np.bytes_, shape=(-1,)),
+                Tensor(name="images", dtype=np.bytes_, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -101,3 +129,21 @@ class Model(AbstractModel):
         return {
             "images": np.array(generated_images, dtype=np.bytes_),
         }
+
+
+    @batch
+    def get_activations(self, request):
+        """Retrieve intermediate activations from SDXL model"""
+        response = self.generate(request)
+        response["activations"] = torch.empty(0)
+        response["error"] = "Activation retrieval not implemented for SDXL model."
+        return response
+
+
+    @batch
+    def edit_activations(self, request):
+        """Edit intermediate activations from SDXL model"""
+        response = self.generate(request)
+        response["activations"] = torch.empty(0)
+        response["error"] = "Activation editing not implemented for SDXL model."
+        return response
