@@ -2,12 +2,14 @@
 import logging
 import numpy as np
 from omegaconf import OmegaConf
+from pathlib import Path
 import random
 import re
 import sys
 import torch
 
 from ..abstract_model import AbstractModel
+from .util import instantiate_from_config
 
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
@@ -32,19 +34,15 @@ class Model(AbstractModel):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info(f"Loading model, path: {model_path}")
 
-        # How does SDXL do these from_pretrained calls?
         self.model_config = OmegaConf.load(f"v1-inference.yaml")
-        cpkt_path = f"{model_path}/v2-1_768-ema-pruned.ckpt"
-        logger.info(f"Model checkpoint path: {cpkt_path}")
-        self.model = self.load_model_from_config(self.model_config, cpkt_path)
-
+        cpkt_path = f"{model_path}/sd_xl_turbo_1.0.safetensors"
+        self.model = self.load_model_from_config(self.model_config, cpkt_path, True)
         self.model_path = model_path
         self.model.to(self.device)
 
 
     # Code from https://github.com/CompVis/stable-diffusion/blob/main/scripts/txt2img.py
-    def load_model_from_config(config, ckpt, verbose=False):
-        logger.info(f"Called load_model_from_config: config={config}, ckpt={ckpt}")
+    def load_model_from_config(self, config, ckpt, verbose=False):
         logger.info(f"Loading model from {ckpt}")
         #pl_sd = torch.load(ckpt, map_location="cpu")
         pl_sd = torch.load(ckpt, map_location="cuda")
