@@ -33,17 +33,22 @@ class Model(AbstractModel):
         logger.info(f"Loading model, path: {model_path}")
 
         # How does SDXL do these from_pretrained calls?
-        self.model_config = OmegaConf.load(f"{opt.config}")
-        self.model = self.load_model_from_config(model_path)
+        self.model_config = OmegaConf.load(f"v1-inference.yaml")
+        cpkt_path = f"{model_path}/v2-1_768-ema-pruned.ckpt"
+        logger.info(f"Model checkpoint path: {cpkt_path}")
+        self.model = self.load_model_from_config(self.model_config, cpkt_path)
 
         self.model_path = model_path
         self.model.to(self.device)
 
 
-    # Code from https://github.com/CompVis/stable-diffusion/scripts/txt2img.py
+    # Code from https://github.com/CompVis/stable-diffusion/blob/main/scripts/txt2img.py
     def load_model_from_config(config, ckpt, verbose=False):
+        logger.info(f"Called load_model_from_config: config={config}, ckpt={ckpt}")
         logger.info(f"Loading model from {ckpt}")
-        pl_sd = torch.load(ckpt, map_location="cpu")
+        #pl_sd = torch.load(ckpt, map_location="cpu")
+        pl_sd = torch.load(ckpt, map_location="cuda")
+        logger.info(f"Now loading config and state dict")
         if "global_step" in pl_sd:
             logger.info(f"Global Step: {pl_sd['global_step']}")
         sd = pl_sd["state_dict"]
