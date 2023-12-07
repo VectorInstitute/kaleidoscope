@@ -9,7 +9,7 @@ import sys
 import torch
 
 from ..abstract_model import AbstractModel
-from .util import instantiate_from_config
+from .stable_diffusion.ldm.util import instantiate_from_config
 
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
@@ -35,7 +35,8 @@ class Model(AbstractModel):
         logger.info(f"Loading model, path: {model_path}")
 
         self.model_config = OmegaConf.load(f"v1-inference.yaml")
-        cpkt_path = f"{model_path}/sd_xl_turbo_1.0.safetensors"
+        #cpkt_path = f"{model_path}/sd_xl_turbo_1.0.safetensors"
+        cpkt_path = f"/model-weights/stable-diffusion-2-1/v2-1_768-ema-pruned.ckpt"
         self.model = self.load_model_from_config(self.model_config, cpkt_path, True)
         self.model_path = model_path
         self.model.to(self.device)
