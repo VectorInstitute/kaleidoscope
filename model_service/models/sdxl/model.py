@@ -1,15 +1,17 @@
 """Module for Stable Diffusion SDXL configurations"""
+import base64
+from diffusers import DiffusionPipeline
 import logging
 import numpy as np
-from omegaconf import OmegaConf
 from pathlib import Path
+from PIL import Image
 import random
 import re
 import sys
+import string
 import torch
 
 from ..abstract_model import AbstractModel
-from .stable_diffusion.ldm.util import instantiate_from_config
 
 from pytriton.decorators import batch
 from pytriton.model_config import ModelConfig, Tensor
@@ -31,38 +33,10 @@ class Model(AbstractModel):
 
 
     def load(self, model_path):
+        logger.info(f"Loading model from path: {model_path}")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logger.info(f"Loading model, path: {model_path}")
-
-        self.model_config = OmegaConf.load(f"v1-inference.yaml")
-        #cpkt_path = f"{model_path}/sd_xl_turbo_1.0.safetensors"
-        cpkt_path = f"/model-weights/stable-diffusion-2-1/v2-1_768-ema-pruned.ckpt"
-        self.model = self.load_model_from_config(self.model_config, cpkt_path, True)
-        self.model_path = model_path
-        self.model.to(self.device)
-
-
-    # Code from https://github.com/CompVis/stable-diffusion/blob/main/scripts/txt2img.py
-    def load_model_from_config(self, config, ckpt, verbose=False):
-        logger.info(f"Loading model from {ckpt}")
-        #pl_sd = torch.load(ckpt, map_location="cpu")
-        pl_sd = torch.load(ckpt, map_location="cuda")
-        logger.info(f"Now loading config and state dict")
-        if "global_step" in pl_sd:
-            logger.info(f"Global Step: {pl_sd['global_step']}")
-        sd = pl_sd["state_dict"]
-        model = instantiate_from_config(config.model)
-        m, u = model.load_state_dict(sd, strict=False)
-        if len(m) > 0 and verbose:
-            logger.info("missing keys:")
-            logger.info(m)
-        if len(u) > 0 and verbose:
-            logger.info("unexpected keys:")
-            logger.info(u)
-
-        model.cuda()
-        model.eval()
-        return model
+        self.pipeline = DiffusionPipeline.from_pretrained(model_path, torch_dtype=torch.float16)
+        self.pipeline.to(self.device)
 
 
     def bind(self, triton):
@@ -89,46 +63,32 @@ class Model(AbstractModel):
     @batch
     def infer(self, **inputs):
         """Generate images from a prompt"""
+        logger.info(f"Received inference request with inputs: {inputs}")
         return self.generate(inputs)
 
 
     def generate(self, inputs):
 
-        # Load the tokenizer and encode prompts
-        tokenizer = self.tokenizer_class.from_pretrained(self.model_path)
+        logger.info(f"Running generation with inputs: {inputs}")
         prompts = np.char.decode(inputs.pop("prompts").astype("bytes"), encoding="utf-8")
         prompts = np.squeeze(prompts, axis=-1).tolist()
-        encoded_prompt = tokenizer.encode(
-            prompts, add_special_tokens=False, return_tensors="pt"
-        )
-        encoded_prompt = encoded_prompt.to(self.device)
 
-        # Run the generation
-        input_ids = encoded_prompt if encoded_prompt.size()[-1] != 0 else None
-        output_images = self.model.generate(
-            input_ids=input_ids,
-            do_sample=True,
-            num_return_images=len(prompts),
-        )
-
-        # Remove the batch dimension when returning multiple images
-        if len(output_images.shape) > 2:
-            output_images.squeeze_()
-
+        # Iterate over the prompts and generate an image for each one
+        random_characters = string.ascii_letters + string.digits
         generated_images = []
+        for prompt in prompts:
+            image = self.pipeline(prompt).images[0]
 
-        logger.info(f"About to loop over output images...")
-        for generated_image_idx, generated_image in enumerate(output_images):
-            logger.info(f"=== GENERATED IMAGE {generated_image_idx + 1} ===")
-            generated_image = generated_image.tolist()
+            # Save the image to a temporary file, then store it as base64 encoding
+            random_filename = ''.join(random.choice(random_characters) for _ in range(16))
+            tmp_file = Path(f"/tmp/{random_filename}.png")
+            image = image.save(tmp_file)
+            with open(tmp_file, "rb") as f:
+                encoded_image = base64.b64encode(f.read())
+                generated_images.append(encoded_image)
 
-            # Decode text
-            text = tokenizer.decode(generated_image, clean_up_tokenization_spaces=True)
-
-            total_image = text[
-                len(tokenizer.decode(encoded_prompt[0], clean_up_tokenization_spaces=True)) :
-            ]
-            generated_images.append(total_image.encode('utf-8').strip())
+            # Now delete the temp image file
+            tmp_file.unlink()
 
         return {
             "images": np.array(generated_images, dtype=np.bytes_),
