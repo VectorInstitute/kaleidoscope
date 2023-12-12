@@ -41,14 +41,14 @@ class Model(AbstractModel):
 
     def bind(self, triton):
         triton.bind(
-            model_name=f"{self.model_type}{self.model_variant}",
+            model_name=f"{self.model_type}-{self.model_variant}",
             infer_func=self.infer,
             inputs=[
                 Tensor(name="task", dtype=np.int64, shape=(1,)),
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
             ],
             outputs=[
-                Tensor(name="images", dtype=np.bytes_, shape=(-1,)),
+                Tensor(name="sequences", dtype=np.bytes_, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -91,7 +91,7 @@ class Model(AbstractModel):
             tmp_file.unlink()
 
         return {
-            "images": np.array(generated_images, dtype=np.bytes_),
+            "sequences": np.array(generated_images, dtype=np.bytes_),
         }
 
 

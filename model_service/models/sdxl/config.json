@@ -2,7 +2,11 @@
     "type": "sdxl",
     "path": "/model-weights/sdxl-turbo",
     "parameters": {},
-	"module_names": [},
-		"not implemented"
-	]
+	"variants": {
+		"turbo": {
+			"module_names": [
+				"not implemented"
+			]
+		}
+	}
 }
