@@ -2,12 +2,15 @@
 import cloudpickle
 import codecs
 from collections import defaultdict
+from datetime import datetime
 import json
 import logging
 import numpy as np
+import os
 import pathlib
 import pickle
 import pprint
+import psutil
 import queue
 import requests
 import socket
@@ -89,8 +92,8 @@ class Model(AbstractModel):
         GENERATOR = load_llama(
             local_rank=rank,
             world_size=world_size,
+            max_batch_size=1,
             max_seq_len=512,
-            max_batch_size=32,
             ckpt_dir=f"{self.model_path}",
             tokenizer_path=f"{self.model_path}/tokenizer.model",
         )
@@ -188,6 +191,7 @@ class Model(AbstractModel):
     @group_by_values("task")
     def infer(self, **inputs):
         """Dispatch request to a handler function based on the task"""
+        start_time = datetime.now()
         self.load_default_args("generate")
 
         task = Task(inputs['task'][0])
@@ -197,6 +201,10 @@ class Model(AbstractModel):
             response = self.edit_activations(inputs)
         else:
             response = self.generate(inputs)
+
+        end_time = datetime.now()
+        function_time = end_time - start_time
+        print(f"PROFILER Infer function ran in {function_time}")
 
         return response
 
@@ -212,6 +220,7 @@ class Model(AbstractModel):
             inputs["encoded_activation_payload"] = ActivationPayload(
                 module_names_activation_retrieval=[module_names.tolist()],
             )
+            logger.info(f"Created ActivationPayload={ActivationPayload}, module_names={module_names}, inputs={inputs}")
             response = self.generate(inputs)
 
         # Handle all other errors
@@ -260,6 +269,9 @@ class Model(AbstractModel):
         logger.info(f"Rank{torch.distributed.get_rank()} Generate function called with request: {request}")
         global GENERATOR
 
+        mem_usage = psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2)
+        logger.info(f"PROFILER Start of generate function, memory usage: {mem_usage}")
+
         prompts = [
             p.decode("utf-8") for p in request["prompts"]
         ]
@@ -291,12 +303,16 @@ class Model(AbstractModel):
         act_retrieval_aux = request_object._aux
 
         start_time = time.time()
+        logger.info(f"Checking for activations...")
         if encoded_activation_payload is not None:
+            logger.info(f"Activations is not None! GENERATOR.model={GENERATOR.model}, encoded_activation_payload={encoded_activation_payload}, act_retrieval_aux={act_retrieval_aux}")
+            activation_start_time = datetime.now()
             hook_dict, activation_dict = get_activation_capture_hook_dict(
                 GENERATOR.model,
                 encoded_activation_payload,
                 aux=act_retrieval_aux,
             )
+            logger.info(f"Calling apply_forward_hook with hook_dict={hook_dict}")
             with apply_forward_hook(GENERATOR.model, hook_dict):
                 generation, logprobs = GENERATOR.generate(
                     request_object.prompts,
@@ -305,6 +321,9 @@ class Model(AbstractModel):
                     request_object.top_p,
                     logprobs=True
                 )
+            activation_end_time = datetime.now()
+            activation_time = end_time - start_time
+            print(f"PROFILER Activation retrieval ran in {activation_time}")
         else:
             generation, logprobs = GENERATOR.generate(
                 request_object.prompts,
@@ -334,7 +353,7 @@ class Model(AbstractModel):
             activations=ret_dict,
         )
 
-        #logger.info(f"Rank{torch.distributed.get_rank()}: generation ResponseObject: {response_object}")
+        logger.info(f"Rank{torch.distributed.get_rank()}: generation ResponseObject: {response_object}")
 
         results = response_object.json()
 
@@ -352,4 +371,8 @@ class Model(AbstractModel):
             "tokens": np.array(tokens, dtype=object),
             "logprobs": np.array(logprobs, dtype=object)
         }
+
+        mem_usage = psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2)
+        logger.info(f"PROFILER End of generate function, memory usage: {mem_usage}")
+
         return return_val
