@@ -1,6 +1,6 @@
 """Module for Stable Diffusion SDXL configurations"""
 import base64
-from diffusers import DiffusionPipeline
+from diffusers import DiffusionPipeline, StableDiffusionXLPipeline
 import logging
 import numpy as np
 from pathlib import Path
@@ -35,7 +35,9 @@ class Model(AbstractModel):
     def load(self, model_path):
         logger.info(f"Loading model from path: {model_path}")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.pipeline = DiffusionPipeline.from_pretrained(model_path, torch_dtype=torch.float16)
+        logger.info(f"Loading model to device: {self.device}")
+        #self.pipeline = DiffusionPipeline.from_pretrained(model_path, torch_dtype=torch.float16)
+        self.pipeline = StableDiffusionXLPipeline.from_pretrained(model_path, torch_dtype=torch.float16, use_safetensors=True)
         self.pipeline.to(self.device)
 
 
