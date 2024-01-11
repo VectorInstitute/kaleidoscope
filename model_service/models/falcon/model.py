@@ -129,7 +129,7 @@ class Model(AbstractModel):
                 Tensor(name="tokens", dtype=object, shape=(-1,)),
                 Tensor(name="logprobs", dtype=np.float64, shape=(-1,)),
             ],
-            config=ModelConfig(max_batch_size=8), # TODO: set based on device memory and model variant
+            config=ModelConfig(batching=False), # TODO: set based on device memory and model variant
         )
         return triton
 
@@ -158,12 +158,12 @@ class Model(AbstractModel):
 
         # Create generation config: Check the input parameters, and set default values if not present
         gen_cfg = GenerationConfig(
-            min_new_tokens=inputs["min_tokens"][0][0] if "min_tokens" in inputs else self.default_args["min_tokens"],
-            max_new_tokens=inputs["max_tokens"][0][0] if "max_tokens" in inputs else self.default_args["max_tokens"],
-            temperature=inputs["temperature"][0][0] if "temperature" in inputs else self.default_args["temperature"],
-            top_p=inputs["top_p"][0][0] if "top_p" in inputs else self.default_args["top_p"],
-            top_k=int(inputs["top_k"][0][0]) if "top_k" in inputs else self.default_args["top_k"],
-            do_sample=bool(inputs["do_sample"][0][0]) if "do_sample" in inputs else self.default_args["do_sample"]
+            min_new_tokens=inputs["min_tokens"][0] if "min_tokens" in inputs else self.default_args["min_tokens"],
+            max_new_tokens=inputs["max_tokens"][0] if "max_tokens" in inputs else self.default_args["max_tokens"],
+            temperature=inputs["temperature"][0] if "temperature" in inputs else self.default_args["temperature"],
+            top_p=inputs["top_p"][0] if "top_p" in inputs else self.default_args["top_p"],
+            top_k=int(inputs["top_k"][0]) if "top_k" in inputs else self.default_args["top_k"],
+            do_sample=bool(inputs["do_sample"][0]) if "do_sample" in inputs else self.default_args["do_sample"]
         )
         
         # Run the generation
