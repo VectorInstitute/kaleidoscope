@@ -334,8 +334,6 @@ class Model(AbstractModel):
             activations=ret_dict,
         )
 
-        logger.info(f"Rank{torch.distributed.get_rank()}: generation ResponseObject: {response_object}")
-
         results = response_object.json()
 
         # Compile the results into a structure consistent with other kaleidoscope models
