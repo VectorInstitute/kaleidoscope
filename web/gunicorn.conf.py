@@ -2,7 +2,7 @@ from config import Config
 import multiprocessing
 
 bind = f"{Config.GATEWAY_BIND_HOST}:{Config.GATEWAY_PORT}"
-workers = multiprocessing.cpu_count() * 2 + 1
+workers = 4
 timeout = 600
 wsgi_app = "gateway_service:app"
 accesslog = "-"

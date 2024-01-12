@@ -1,0 +1,12 @@
+{
+    "type": "sdxl",
+    "path": "/model-weights/sdxl-turbo",
+    "parameters": {},
+	"variants": {
+		"turbo": {
+			"module_names": [
+				"not implemented"
+			]
+		}
+	}
+}
