@@ -159,7 +159,10 @@ def generic_forward_hook_fn(
             activation.edit_activation(editing_fn)
 
         # Bind a copy of output to save dict
-        save_dict[registered_name] = activation.activations.detach().cpu()
+        if registered_name in save_dict:
+            save_dict[registered_name] = torch.cat((save_dict[registered_name], activation.activations.detach().cpu()), dim=1)
+        else:
+            save_dict[registered_name] = activation.activations.detach().cpu()
 
         # Undo the rearrange to perfectly reconstruct original full activation
         # post-gather
