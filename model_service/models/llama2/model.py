@@ -317,21 +317,33 @@ class Model(AbstractModel):
         logger.info(f"Rank{torch.distributed.get_rank()}: Generation took "
                     f"{time.time() - start_time} seconds")
 
-        ret_dict = {}
-        for k, v in activation_dict.items():
-            logger.info(f"Rank{torch.distributed.get_rank()}: Module "
-                        f"{k} activation shape: {v.shape}")
-            ret_dict[k] = codecs.encode(
-                pickle.dumps(v.clone()),
-                "base64",
-            ).decode("utf-8")
+        prompt_lens = [len(prompt) for prompt in prompt_tokens]
+        longest_prompt_len = max(prompt_lens)
+        logger.info(f"Number of tokens per prompt: {prompt_lens}")
+
+        act_list = []
+        for i in range(len(prompt_tokens)):
+            ret_dict = {}
+            offset = prompt_lens[i] - longest_prompt_len
+            for k in activation_dict.keys():
+                prompt_k_act = activation_dict[k][i].clone()
+                if offset != 0:
+                    prompt_k_act = prompt_k_act[:offset]
+                logger.info(f"Rank{torch.distributed.get_rank()}: Prompt "
+                            f"{i}, module {k} activation shape: "
+                            f"{prompt_k_act.shape}")
+                ret_dict[k] = codecs.encode(
+                    pickle.dumps(prompt_k_act),
+                    "base64",
+                ).decode("utf-8")
+            act_list.append(ret_dict)
 
         del activation_dict
 
         response_object = ResponseObject(
             generations=generation,
             logprobs=logprobs,
-            activations=ret_dict,
+            activations=act_list,
         )
 
         results = response_object.json()

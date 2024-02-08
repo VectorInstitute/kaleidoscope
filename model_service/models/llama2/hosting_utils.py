@@ -31,7 +31,7 @@ class ResponseObject:
     """OpenAI API response-like object."""
     generations: List[str]
     logprobs: List[float]
-    activations: Dict[str, Tensor]
+    activations: List[Dict[str, Tensor]]
 
     def __post_init__(self):
         self._response_id = str(uuid.uuid4())
