@@ -7,8 +7,8 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=16
-#SBATCH --output=llama2-13b_service.%j.out
-#SBATCH --error=llama2-13b_service.%j.err
+#SBATCH --output=llama2-13b_chat_service.%j.out
+#SBATCH --error=llama2-13b_chat_service.%j.err
 
 model_service_dir=$1
 gateway_host=$2
@@ -26,7 +26,7 @@ srun -q llm \
 	-p a40 \
 	-N "${SLURM_JOB_NUM_NODES}" \
 	--gres=gpu:2 \
-	--mem=0 \
+	--mem=64G \
 	-c 16 \
 	singularity exec \
 	--nv \

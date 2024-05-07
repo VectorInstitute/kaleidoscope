@@ -7,8 +7,8 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:4
 #SBATCH --cpus-per-task=16
-#SBATCH --output=llama2-70b_service.%j.out
-#SBATCH --error=llama2-70b_service.%j.err
+#SBATCH --output=llama2-70b_chat_service.%j.out
+#SBATCH --error=llama2-70b_chat_service.%j.err
 
 model_service_dir=$1
 gateway_host=$2
