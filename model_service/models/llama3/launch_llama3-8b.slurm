@@ -22,19 +22,11 @@ export MASTER_ADDR=$(hostname -I | awk '{print $1}')
 # Send registration request to gateway
 curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':51345"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
 
-srun -q llm \
-	-p a40 \
-	-N 1 \
-	--gres=gpu:1 \
-	--mem=0 \
-	-c 16 \
-	singularity exec \
+singularity exec \
 	--nv \
 	--bind /checkpoint,/scratch,/fs01,/model-weights \
 	/ssd005/projects/llm/llama3-latest.sif \
-	torchrun \
-	--nnodes 1 \
-	--nproc_per_node 1 \
+	python3 \
 	${model_service_dir}/model_service.py \
 	--model_type llama3 \
 	--model_variant 8b \

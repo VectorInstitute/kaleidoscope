@@ -58,7 +58,7 @@ def get_available_models(args):
                 else:
                     for variant in model_config["variants"].keys():
                         available_models.append(f"{model_config['type']}-{variant}")                        
-            except:
+            except Exception as err:
                 pass
     print(available_models)
 

@@ -38,6 +38,7 @@ def get_free_port():
 MAX_REQUESTS = None
 model = None
 PORT = get_free_port()
+tokenizer = None
 
 logger = logging.getLogger("kaleidoscope.model_service.llama3")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
@@ -56,6 +57,7 @@ class Model(AbstractModel):
 
     def load(self, model_path):
         global model
+        global tokenizer
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model_path = model_path
@@ -68,9 +70,7 @@ class Model(AbstractModel):
             device_map="auto",
         )
         print(f"Finished loading model")
-        #rank = 0
-        #world_size = 1
-        
+
 
     def load_default_args(self, task_name):
         """Load model config"""
@@ -103,8 +103,8 @@ class Model(AbstractModel):
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
-                Tensor(name="sequences", dtype=object, shape=(-1,)),
-                Tensor(name="tokens", dtype=object, shape=(-1,)),
+                Tensor(name="sequences", dtype=object, shape=(-1,))
+                #Tensor(name="tokens", dtype=object, shape=(-1,)),
             ],
             config=ModelConfig(max_batch_size=128),
         )
@@ -114,7 +114,7 @@ class Model(AbstractModel):
 
     @property
     def rank(self):
-        return torch.distributed.get_rank()
+        return 0
 
 
     @batch
@@ -128,11 +128,12 @@ class Model(AbstractModel):
 
     def generate(self, request):
         """Generate sequences from a prompt"""
-        logger.info(f"Rank{torch.distributed.get_rank()} Generate function called with request: {request}")
+        logger.info(f"Generate function called with request: {request}")
         global model
+        global tokenizer
 
         messages = [
-            {"role": "user", "content": request},
+            {"role": "user", "content": request['prompts'][0][0].decode()},
         ]
 
         input_ids = tokenizer.apply_chat_template(
@@ -142,7 +143,6 @@ class Model(AbstractModel):
 
         eos_token_id = tokenizer.eos_token_id
 
-        print(f"Sending generation request...")
         try:
             outputs = model.generate(
                 input_ids,
@@ -153,12 +153,12 @@ class Model(AbstractModel):
                 top_p=0.9,
             )
             response = outputs[0][input_ids.shape[-1]:]
+            logger.info(f"Generation returned response: {response}")
             decoded_response = tokenizer.decode(response, skip_special_tokens=True)
-            print(f"Result: {decoded_response}")
         except Exception as err:
-            print(f"Generation request failed: {err}")
+            logger.info(f"Generation request failed: {err}")
 
         return_val = {
-            "sequences": np.array(generated_sequences, dtype=object),
+            "sequences": np.array(decoded_response, dtype=str)
         }
         return return_val
