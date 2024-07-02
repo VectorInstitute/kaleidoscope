@@ -13,7 +13,7 @@
 model_service_dir=$1
 gateway_host=$2
 gateway_port=$3
-model_path="/model-weights/Meta-Llama-3-8B"
+model_path="/model-weights/Meta-Llama-3-8B/original"
 
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
@@ -22,11 +22,17 @@ export MASTER_ADDR=$(hostname -I | awk '{print $1}')
 # Send registration request to gateway
 curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':51345"}' http://$gateway_host:$gateway_port/models/instances/$SLURM_JOB_NAME/register
 
-singularity exec \
+srun -q llm \
+	-p a40 \
+	-N 1 \
+	--gres=gpu:1 \
+	--mem=0 \
+	-c 16 \
+	singularity exec \
 	--nv \
 	--bind /checkpoint,/scratch,/fs01,/model-weights \
 	/ssd005/projects/llm/llama3-latest.sif \
-	python3 \
+	torchrun \
 	${model_service_dir}/model_service.py \
 	--model_type llama3 \
 	--model_variant 8b \
