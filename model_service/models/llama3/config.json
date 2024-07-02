@@ -42,5 +42,5 @@
             "description": "Echo input text."
         }
     },
-    "variants": { "8b": [] }
+    "variants": { "8b": [], "8b_instruct": [] }
 }
