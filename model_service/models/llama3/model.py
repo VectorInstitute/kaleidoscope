@@ -21,27 +21,10 @@ from ..abstract_model import AbstractModel, Task
 from pytriton.decorators import batch, group_by_values
 from pytriton.model_config import ModelConfig, Tensor
 
-
-def get_my_ip():
-    """
-    returns ip / hostname of current host
-    """
-    return socket.gethostbyname(socket.gethostname())
-
-
-def get_free_port():
-    sock = socket.socket()
-    sock.bind(('', 0))
-    return sock.getsockname()[1]
-
-
-# global state (mutable!)
-MAX_REQUESTS = None
-model = None
-PORT = get_free_port()
-
 logger = logging.getLogger("kaleidoscope.model_service.llama3")
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
+
+model = None
 
 
 class Model(AbstractModel):
@@ -65,8 +48,8 @@ class Model(AbstractModel):
         model = Llama.build(
             ckpt_dir=self.model_path,
             tokenizer_path=f"{self.model_path}/tokenizer.model",
-            max_seq_len=128,
-            max_batch_size=128
+            max_seq_len=512,
+            max_batch_size=64
         )
         print(f"Finished loading model")
 
@@ -93,11 +76,8 @@ class Model(AbstractModel):
                 Tensor(name="task", dtype=np.int64, shape=(1,)),
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
                 Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
@@ -105,7 +85,7 @@ class Model(AbstractModel):
                 Tensor(name="tokens", dtype=bytes, shape=(-1,)),
                 Tensor(name="logprobs", dtype=np.float64, shape=(-1,))
             ],
-            config=ModelConfig(max_batch_size=128),
+            config=ModelConfig(max_batch_size=64),
         )
 
         return triton
@@ -134,16 +114,20 @@ class Model(AbstractModel):
         prompts = [
             p[0].decode("utf-8") for p in request["prompts"]
         ]
+        max_gen_len = int(request["max_tokens"][0][0]) if "max_tokens" in request else int(self.generation_args["max_tokens"])
+        temperature = float(request["temperature"][0][0]) if "temperature" in request else float(self.generation_args["temperature"])
+        top_p = float(request["top_p"][0][0]) if "top_p" in request else float(self.generation_args["top_p"])
+        echo = bool(request["echo"][0][0]) if "echo" in request else float(self.generation_args["echo"])
 
         try:
             results = model.text_completion(
                 prompts,
-                max_gen_len=128,
-                temperature=0.6,
-                top_p=0.9,
-                logprobs=True
+                max_gen_len=max_gen_len,
+                temperature=temperature,
+                top_p=top_p,
+                logprobs=True,
+                echo=echo
             )
-            #logger.info(f"Generation got results: {results}")
         except Exception as err:
             logger.info(f"ERROR: Generation request failed: {err}")
        
