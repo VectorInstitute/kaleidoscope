@@ -114,12 +114,6 @@ class TritonClient():
             "logprobs": logprobs
         }
         
-        if task in [Task.GET_ACTIVATIONS, Task.EDIT_ACTIVATIONS]:
-            activations = np.char.decode(response.as_numpy("activations").astype("bytes"), "utf-8").tolist()
-            for idx in range(len(activations)):
-                activations[idx] = ast.literal_eval(activations[idx])
-            result.update({"activations": activations})
-
         return result
 
     def is_model_ready(self, model_name):

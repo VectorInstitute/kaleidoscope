@@ -7,7 +7,7 @@
 ![DOI](https://img.shields.io/badge/DOI-in--progress-blue)
 [![Documentation](https://img.shields.io/badge/api-reference-lightgrey.svg)](https://kaleidoscope-sdk.readthedocs.io/en/latest/)
 
-A user toolkit for analyzing and interfacing with Large Language Models (LLMs)
+A fast inference service for serving and querying Large Language Models (LLMs)
 
 ## Overview
 
@@ -16,9 +16,6 @@ A user toolkit for analyzing and interfacing with Large Language Models (LLMs)
 * `model_instances` - Shows a list of all active LLMs instantiated by the model service
 * `load_model` - Loads an LLM via the model service
 * `generate` - Returns an LLM text generation based on prompt input
-* `module_names` - Returns all modules names in the LLM neural network
-* `get_activations` - Retrieves all activations for a set of modules
-* `edit_activations` - Manipulates activations for a set of modules
 
 ``kaleidoscope`` is composed of the following components:
 

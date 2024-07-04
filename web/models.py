@@ -39,14 +39,6 @@ class ModelInstanceState(ABC):
         """Send a generation request to a model"""
         raise InvalidStateError(self)
 
-    def get_activations(self, username, inputs):
-        """Retrieve intermediate activations from a model"""
-        raise InvalidStateError(self)
-
-    def get_module_names(self):
-        """Get names of layer modules"""
-        raise InvalidStateError(self)
-
     def shutdown(self):
         """Shutdown a model"""
         model_service_client.shutdown(self._model_instance.id)
@@ -135,38 +127,6 @@ class ActiveState(ModelInstanceState):
         )
         model_instance_generation.generation = generation_response
         return model_instance_generation
-
-    def get_module_names(self):
-        return model_service_client.get_module_names(self._model_instance.name)
-
-    def get_activations(self, username, inputs):
-
-        model_instance_generation = ModelInstanceGeneration.create(
-            model_instance_id=self._model_instance.id,
-            username=username,
-        )
-
-        activations_response = model_service_client.get_activations(
-            self._model_instance.host,
-            self._model_instance.name,
-            inputs
-        )
-        return activations_response
-
-    def edit_activations(self, username, inputs):
-
-        model_instance_generation = ModelInstanceGeneration.create(
-            model_instance_id=self._model_instance.id,
-            username=username,
-        )
-
-        activations_response = model_service_client.edit_activations(
-            self._model_instance.host,
-            self._model_instance.name,
-            inputs
-        )
-
-        return activations_response
 
     def is_healthy(self):
         return model_service_client.verify_model_health(self._model_instance.host, self._model_instance.name)
@@ -310,25 +270,6 @@ class ModelInstance(BaseMixin, db.Model):
 
     def generate(self, username: str, inputs: Dict) -> Dict:
         return self._state.generate(username, inputs)
-
-    def get_module_names(self):
-        """Retrieve module names"""
-        return self._state.get_module_names()
-
-    def get_activations(
-        self,
-        username: str,
-        inputs: Dict,
-    ) -> Dict:
-        """Retrieve intermediate activations for module name argument"""
-        return self._state.get_activations(username, inputs)
-
-    def edit_activations(
-        self,
-        username: str,
-        inputs: Dict = {},
-    ) -> Dict:
-        return self._state.edit_activations(username, inputs)
 
     def is_healthy(self) -> bool:
         """Retrieve health status"""

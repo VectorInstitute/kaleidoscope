@@ -30,14 +30,6 @@ class AbstractModel(abc.ABC):
     def generate(self, inputs):
         pass
 
-    @abc.abstractmethod
-    def get_activations(self, request):
-        pass
-
-    @abc.abstractmethod
-    def edit_activations(self, request):
-        pass
-
 
 class Task(Enum):
     """Task enum"""
