@@ -7,13 +7,13 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=16
-#SBATCH --output=llama2-7b_service.%j.out
-#SBATCH --error=llama2-7b_service.%j.err
+#SBATCH --output=llama3-8b_instruct_service.%j.out
+#SBATCH --error=llama3-8b_instruct_service.%j.err
 
 model_service_dir=$1
 gateway_host=$2
 gateway_port=$3
-model_path="/model-weights/Llama-2-7b"
+model_path="/model-weights/Meta-Llama-3-8B-Instruct/original"
 
 source /opt/lmod/lmod/init/profile
 module load singularity-ce/3.8.2
@@ -24,20 +24,18 @@ curl -X POST -H "Content-Type: application/json" -d '{"host": "'"$MASTER_ADDR"':
 
 srun -q llm \
 	-p a40 \
-	-N "${SLURM_JOB_NUM_NODES}" \
+	-N 1 \
 	--gres=gpu:1 \
 	--mem=0 \
 	-c 16 \
 	singularity exec \
 	--nv \
 	--bind /checkpoint,/scratch,/fs01,/model-weights \
-	/ssd005/projects/llm/llama2-latest.sif \
+	/ssd005/projects/llm/llama3-latest.sif \
 	torchrun \
-	--nnodes 1 \
-	--nproc_per_node 1 \
 	${model_service_dir}/model_service.py \
-	--model_type llama2 \
-	--model_variant 7b \
+	--model_type llama3 \
+	--model_variant 8b_instruct \
 	--model_path $model_path \
 	--model_instance_id $SLURM_JOB_NAME \
 	--gateway_host $gateway_host \
