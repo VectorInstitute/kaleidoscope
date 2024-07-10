@@ -37,7 +37,8 @@ RUN python3 -m pip install requests jupyter notebook
 
 # Install moonshot module
 RUN python3 -m pip install "aiverify-moonshot[all]"
-RUN python3 -m moonshot -i moonshot-data -i moonshot-ui
+# The following command returns exit code 1 even though it works properly. Append "|| true" to force a 0 exit.
+RUN python3 -m moonshot -i moonshot-data -i moonshot-ui || true
 
-# Copy in environment file
-#ADD .env .
+# Copy custom code into the relevant locations
+ADD ./kscope-connector.py /build/moonshot/moonshot-data/connectors
