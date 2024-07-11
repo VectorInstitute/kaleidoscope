@@ -118,19 +118,21 @@
           "Content-type": "application/json",
           "Authorization": "Bearer " + localStorage.getItem("accessToken")
         },
-        data: JSON.stringify(submitData),
+        data: submitData,
       }).done(function (data) {
-        console.log(data);
+	console.log("Generation successful: " + JSON.stringify(data));
         loadCompleteAnimation();
         var generationData= data['generation'];
         parseData(generationData, selectedModel);
       }).fail(function (data) {
-          console.log(data);
-          if (400 <= data.status && data.status <= 499) {
+      	  console.log("Generation failed: " + JSON.stringify(data));
+          /*
+	  if (400 <= data.status && data.status <= 499) {
             localStorage.removeItem("accessToken");
             location.href = '/login';
           }
           loadFailAnimation();
+	  */
       });
     });
   });
@@ -142,8 +144,13 @@
     }
     delete formData.prompt;
     var submitData = {"prompts":promptData, "generation_config":formData};
-    console.log(submitData);
-    return submitData;
+    var formattedData = JSON.parse(JSON.stringify(submitData));
+    // Numeric data types need to be explicitly converted to numbers
+    formattedData['generation_config']['max_tokens'] = Number(formattedData['generation_config']['max_tokens']);
+    formattedData['generation_config']['temperature'] = Number(formattedData['generation_config']['temperature']);
+    formattedData['generation_config']['top_p'] = Number(formattedData['generation_config']['top_p']);
+
+    return formattedData;
   };
 
   function getFormData() {
@@ -232,23 +239,6 @@
 
   function updateScrollValue(val, id) {
     document.getElementById(id).value = val;
-  };
-
-  function updateModuleNames(modelValue) {
-    $("#module-name-select").empty();
-    $.ajax({
-      url: "/models/instances/"+modelValue+"/module_names",
-      type: "GET",
-      headers: {
-        "Authorization": "Bearer " + localStorage.getItem("accessToken")
-      },
-      success: function(data) {
-        for(let i=0; i<data['module_names'].length; i++){
-          moduleNameOption= $("<option value="+data['module_names'][i]+"></option>").text(data['module_names'][i])
-          $("#module-name-select").append(moduleNameOption);
-        }
-      }
-    });
   };
 
   function copyAuthKey() {
@@ -369,7 +359,7 @@
             <label for="model-select">Model</label><i class="bi bi-info-circle small col" tabindex="0" data-toggle="popover" data-trigger="hover" title="Models"
             data-placement="auto"
             data-content="The large language model which will generate text. Some models are suitable for specified tasks."></i>
-            <select class="form-control" id="model-select" onchange="updateModuleNames(this.value);" required>
+            <select class="form-control" id="model-select" required>
               <option selected id="null-model" disabled value="">Select A Model</option>
               {% for types in all_models %}
                   <option disabled id="" value="{{ types }}" name="{{ types }}" title="Inactive model: please start its model service!">{{ types }} (INACTIVE)</option>
@@ -413,30 +403,6 @@
             data-placement="top"
             data-content="Words or sequences that will prevent the API from generating further"></i>
             <input type="text" class="form-control" id="stop-sequence-value" name="stop" placeholder="Enter stop sequence">
-          </div>
-          <!-- <div class="form-group">
-            <label for="repetition-penalty-select">Repetition Penalty</label><i class="bi bi-info-circle small col"  tabindex="0" data-toggle="popover" data-trigger="hover" title="Repetition Penalty"
-            data-placement="top"
-            data-content="The more frequently a token is used within text generation the more it is penalized to not be picked in successive generation passes."></i>
-            <input type="number" class="float-right rounded border text-center col-md-4" id="repetition-penalty-value" value=1.0 placeholder=1.0
-              max=2.0 step=0.01 min=0.0 oninput="updateScrollValue(this.value, 'repetition-penalty-select');">
-            <input type="range" class="form-control-range" id="repetition-penalty-select" value=1.0 name="repetition_penalty"
-              placeholder=1.0 max=2.0 step=0.01 min=0.0
-              oninput="updateScrollValue(this.value, 'repetition-penalty-value');">
-          </div>
-          <div class="form-group">
-            <label for="num-return-sequence-select">Number Return Sequence</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover"
-            title="Number Return Sequences" data-placement="top"
-            data-content="An integer to define the proposition that is desired to be returned."></i>
-            <input type="number" class="form-control" id="num-return-sequence-select" value=1 name="num_return_sequences"
-              placeholder=1 step=1 min=0>
-          </div> -->
-          <div class="form-group">
-            <label for="module-name-select">Module Name</label><i class="bi bi-info-circle small px-1" tabindex="0" data-toggle="popover" data-trigger="hover" title="Module Names"
-            data-placement="top"
-            data-content="Information to display how likely was a token to be generated."></i>
-            <select class="form-control" id="module-name-select" multiple>
-            </select>
           </div>
         </form>
       </div>

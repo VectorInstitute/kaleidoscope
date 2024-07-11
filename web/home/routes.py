@@ -1,5 +1,5 @@
 """Module to define the API routes for the web application"""
-from flask import Blueprint, render_template
+from flask import Blueprint, current_app, render_template
 
 import models
 
@@ -33,5 +33,4 @@ async def reference():
 @home_bp.route("/playground", methods=["GET"])
 async def playground():
     """Retrieves the playground page"""
-    #  return f"sample inference server for models: {set(ALL_MODELS.keys())}"
-    return render_template("playground.html", all_models=models.MODEL_CONFIG.keys())
+    return render_template("playground.html", all_models=models.AVAILABLE_MODELS)

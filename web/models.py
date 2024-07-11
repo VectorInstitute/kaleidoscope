@@ -14,7 +14,7 @@ from errors import InvalidStateError
 from services import model_service_client
 
 
-AVAIALBLE_MODELS = model_service_client.get_available_models()
+AVAILABLE_MODELS = model_service_client.get_available_models()
 
 
 class ModelInstanceState(ABC):
