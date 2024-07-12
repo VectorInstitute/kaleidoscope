@@ -33,7 +33,7 @@ WORKDIR /build/moonshot
 RUN python3 -m pip install -r requirements.txt
 
 # Install additional python libraries not included in requirements
-RUN python3 -m pip install requests jupyter notebook
+RUN python3 -m pip install requests jupyter notebook kscope
 
 # Install moonshot module
 RUN python3 -m pip install "aiverify-moonshot[all]"
