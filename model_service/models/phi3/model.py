@@ -72,7 +72,7 @@ class Model(AbstractModel):
             with open(self.config_path) as file:
                 json_data = file.read()
             default_args = json.loads(json_data)["parameters"]
-            logger.info(pprint.pformat(default_args))
+            logger.info(f"Default args: {default_args}")
             self.generation_args = {k: v["default"][task_name] for k, v in default_args.items() if v["default"][task_name] is not None}
         except Exception as err:
             logger.error(f"Failed to load model {task_name} default configuration: {err}")
@@ -87,12 +87,8 @@ class Model(AbstractModel):
                 Tensor(name="prompts", dtype=bytes, shape=(1,)),
                 Tensor(name="modules", dtype=bytes, shape=(1,), optional=True),
                 Tensor(name='max_tokens', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='min_tokens', dtype=np.int64, shape=(1,), optional=True),
                 Tensor(name='temperature', dtype=np.float64, shape=(1,), optional=True),
                 Tensor(name='top_p', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='top_k', dtype=np.int64, shape=(1,), optional=True),
-                Tensor(name='repetition_penalty', dtype=np.float32, shape=(1,), optional=True),
-                Tensor(name='echo', dtype=np.bool_, shape=(1,), optional=True)
             ],
             outputs=[
                 Tensor(name="sequences", dtype=object, shape=(-1,))
@@ -133,16 +129,17 @@ class Model(AbstractModel):
             return_tensors="pt"
         ).to(model.device)
 
-        eos_token_id = tokenizer.eos_token_id
+        generation_args = {}
+        generation_args['max_new_tokens'] = int(request["max_tokens"][0][0]) if "max_tokens" in request else int(self.generation_args["max_tokens"])
+        generation_args['temperature'] = float(request["temperature"][0][0]) if "temperature" in request else float(self.generation_args["temperature"])
+        generation_args['top_p'] = float(request["top_p"][0][0]) if "top_p" in request else float(self.generation_args["top_p"])
+        generation_args['eos_token_id'] = tokenizer.eos_token_id
 
         try:
             outputs = model.generate(
                 input_ids,
-                max_new_tokens=128,
-                eos_token_id=eos_token_id,
                 do_sample=True,
-                temperature=0.6,
-                top_p=0.9,
+                **generation_args
             )
             response = outputs[0][input_ids.shape[-1]:]
             logger.info(f"Generation returned response: {response}")

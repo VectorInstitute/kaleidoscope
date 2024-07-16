@@ -7,8 +7,8 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=16
-#SBATCH --output=llama3-8b_service.%j.out
-#SBATCH --error=llama3-8b_service.%j.err
+#SBATCH --output=phi3-medium_128k_instruct_service.%j.out
+#SBATCH --error=phi3-medium_128k_instruct_service.%j.err
 
 model_service_dir=$1
 gateway_host=$2
