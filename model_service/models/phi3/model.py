@@ -120,13 +120,12 @@ class Model(AbstractModel):
         global model
         global tokenizer
 
-        messages = [
-            {"role": "user", "content": request['prompts'][0][0].decode()},
-        ]
-
-        input_ids = tokenizer.apply_chat_template(
-            messages,
-            return_tensors="pt"
+        prompts = [prompt[0].decode() for prompt in request['prompts']]
+        tokenized_prompts = tokenizer.batch_encode_plus(
+            prompts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True
         ).to(model.device)
 
         generation_args = {}
@@ -134,20 +133,25 @@ class Model(AbstractModel):
         generation_args['temperature'] = float(request["temperature"][0][0]) if "temperature" in request else float(self.generation_args["temperature"])
         generation_args['top_p'] = float(request["top_p"][0][0]) if "top_p" in request else float(self.generation_args["top_p"])
         generation_args['eos_token_id'] = tokenizer.eos_token_id
+        generation_args['output_logits'] = True
 
+        # TODO: Should we include the attention masks here? Generate complains when we don't send them, but it fails silently when we do
         try:
+            logger.info(f"Sending generation request with tokenized_prompts: {tokenized_prompts}")
             outputs = model.generate(
-                input_ids,
+                tokenized_prompts['input_ids'],
                 do_sample=True,
                 **generation_args
             )
-            response = outputs[0][input_ids.shape[-1]:]
-            logger.info(f"Generation returned response: {response}")
-            decoded_response = tokenizer.decode(response, skip_special_tokens=True)
         except Exception as err:
             logger.info(f"Generation request failed: {err}")
 
+        try:
+            decoded_sequences = [tokenizer.decode(sequence, skip_special_tokens=True) for sequence in outputs]
+        except Exception as err:
+            logger.info(f"Decoding outputs failed: {err}")
+
         return_val = {
-            "sequences": np.array(decoded_response, dtype=str)
+            "sequences": np.array(decoded_sequences, dtype=str)
         }
         return return_val
