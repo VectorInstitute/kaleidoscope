@@ -1,0 +1,16 @@
+{
+  "id": "kscope-llama3-8b",
+  "name": "Kscope Llama3 8B",
+  "connector_type": "kscope-connector",
+  "uri": "http://llm.cluster.local:4001",
+  "token": "",
+  "max_calls_per_second": 10,
+  "max_concurrency": 1,
+  "params": {
+    "timeout": 300,
+    "allow_retries": true,
+    "num_of_retries": 3,
+    "temperature": 0.5,
+    "model": "llama3-8b"
+  }
+}

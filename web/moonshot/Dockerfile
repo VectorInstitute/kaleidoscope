@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 # Update + install apt packages
 RUN apt update
-RUN apt install -y wget vim less git curl iproute2 iputils-ping
+RUN apt install -y wget vim less git curl iproute2 iputils-ping sqlite3
 RUN apt install -y build-essential pkg-config
 RUN apt install -y zlib1g zlib1g-dev 
 RUN apt install -y gcc-10 gcc-10-base gcc-10-doc g++-10
@@ -42,3 +42,5 @@ RUN python3 -m moonshot -i moonshot-data -i moonshot-ui || true
 
 # Copy custom code into the relevant locations
 ADD ./kscope-connector.py /build/moonshot/moonshot-data/connectors
+ADD ./kscope-llama3-8b.json /build/moonshot/moonshot-data/connectors-endpoints
+ADD ./kscope-phi3-medium-128k-instruct.json /build/moonshot/moonshot-data/kscope-phi3-medium-128k-instruct.json
