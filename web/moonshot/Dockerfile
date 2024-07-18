@@ -43,4 +43,5 @@ RUN python3 -m moonshot -i moonshot-data -i moonshot-ui || true
 # Copy custom code into the relevant locations
 ADD ./kscope-connector.py /build/moonshot/moonshot-data/connectors
 ADD ./kscope-llama3-8b.json /build/moonshot/moonshot-data/connectors-endpoints
-ADD ./kscope-phi3-medium-128k-instruct.json /build/moonshot/moonshot-data/kscope-phi3-medium-128k-instruct.json
+ADD ./kscope-phi3-medium-128k-instruct.json /build/moonshot/moonshot-data/connectors-endpoints
+ADD ./package.json /build/moonshot/moonshot-ui

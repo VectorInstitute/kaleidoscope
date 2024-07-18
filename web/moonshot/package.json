@@ -1,0 +1,44 @@
+{
+  "name": "moonshot-ui",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start --port 4002",
+    "start-trace": "node --trace-warnings node_modules/.bin/next",
+    "lint": "next lint",
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "2.0.1",
+    "clsx": "2.0.0",
+    "formik": "2.4.5",
+    "next": "14.2.3",
+    "react": "18",
+    "react-dom": "18",
+    "react-redux": "9.0.4",
+    "react-select": "5.8.0",
+    "react-window": "1.8.10",
+    "yup": "1.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/react-virtualized": "^9.21.30",
+    "@types/react-window": "^1.8.8",
+    "@types/redux-logger": "^3.0.12",
+    "@typescript-eslint/eslint-plugin": "^5.52.0",
+    "@typescript-eslint/parser": "^5.52.0",
+    "autoprefixer": "^10.0.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.0.4",
+    "eslint-config-prettier": "^8.8.0",
+    "postcss": "^8",
+    "prettier": "^3.2.4",
+    "redux-logger": "^3.0.6",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5"
+  }
+}
