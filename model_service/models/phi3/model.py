@@ -134,6 +134,7 @@ class Model(AbstractModel):
         generation_args['top_p'] = float(request["top_p"][0][0]) if "top_p" in request else float(self.generation_args["top_p"])
         generation_args['eos_token_id'] = tokenizer.eos_token_id
         generation_args['output_logits'] = True
+        generation_args['output_scores'] = True
 
         # TODO: Should we include the attention masks here? Generate complains when we don't send them, but it fails silently when we do
         try:
@@ -145,6 +146,8 @@ class Model(AbstractModel):
             )
         except Exception as err:
             logger.info(f"Generation request failed: {err}")
+
+        logger.info(f"Generation request returned outputs: {outputs}")
 
         try:
             decoded_sequences = [tokenizer.decode(sequence, skip_special_tokens=True) for sequence in outputs]
