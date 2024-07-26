@@ -2,7 +2,8 @@ FROM ubuntu:22.04
 
 # Update + install apt packages
 RUN apt update
-RUN apt install -y wget vim less git curl iproute2 iputils-ping sqlite3
+RUN apt-get update
+RUN apt install -y wget vim less git iproute2 iputils-ping sqlite3
 RUN apt install -y build-essential pkg-config
 RUN apt install -y zlib1g zlib1g-dev 
 RUN apt install -y gcc-10 gcc-10-base gcc-10-doc g++-10
@@ -33,15 +34,31 @@ WORKDIR /build/moonshot
 RUN python3 -m pip install -r requirements.txt
 
 # Install additional python libraries not included in requirements
-RUN python3 -m pip install requests jupyter notebook kscope
+# TODO: These packages should really be pinned, but the dependencies are insane
+RUN python3 -m pip install requests jupyter notebook kscope prisma bcrypt
 
 # Install moonshot module
 RUN python3 -m pip install "aiverify-moonshot[all]"
 # The following command returns exit code 1 even though it works properly. Append "|| true" to force a 0 exit.
 RUN python3 -m moonshot -i moonshot-data -i moonshot-ui || true
 
-# Copy custom code into the relevant locations
+# Copy some custom code into the relevant locations
+WORKDIR /build/moonshot
 ADD ./kscope-connector.py /build/moonshot/moonshot-data/connectors
 ADD ./kscope-llama3-8b.json /build/moonshot/moonshot-data/connectors-endpoints
 ADD ./kscope-phi3-medium-128k-instruct.json /build/moonshot/moonshot-data/connectors-endpoints
-ADD ./package.json /build/moonshot/moonshot-ui
+
+# Add and install custom authentication code
+WORKDIR /build/moonshot/moonshot-ui
+RUN git remote add next-auth https://github.com/amrit110/moonshot-ui.git
+RUN git pull next-auth fix_routing
+RUN npm install
+RUN prisma migrate dev --name init
+RUN prisma generate
+RUN npm run build
+ADD ./package.json .
+RUN python3 ./add_user.py
+
+# Now start the moonshot interface
+WORKDIR /build/moonshot
+
