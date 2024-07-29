@@ -31,7 +31,7 @@ srun -q llm \
 	singularity exec \
 	--nv \
 	--bind /checkpoint,/scratch,/fs01,/model-weights \
-	/ssd005/projects/llm/llama3-latest.sif \
+	/ssd005/projects/llm/llama3_1-latest.sif \
 	torchrun \
 	${model_service_dir}/model_service.py \
 	--model_type llama3_1 \
