@@ -1,0 +1,47 @@
+{
+
+    "type": "llama3_1",
+    "parameters": {
+        "temperature": {
+            "type": "float",
+            "default": {
+                "generate": 0.6,
+                "activations": 0.6
+            },
+            "description": "Temperature of the sampling distribution."
+        },
+        "top_p": {
+            "type": "float",
+            "default": {
+                "generate": 0.9,
+                "activations": 0.9
+            },
+            "description": "Cumulative probability of top tokens to consider for sampling."
+        },
+        "min_tokens": {
+            "type": "int",
+            "default": {
+                "generate": null,
+                "activations": null
+            },
+            "description": "Minimum number of tokens to generate."
+        },
+        "max_tokens": {
+            "type": "int",
+            "default": {
+                "generate": 32,
+                "activations": 32
+            },
+            "description": "Maximum number of tokens to generate."
+        },
+        "echo": {
+            "type": "bool",
+            "default": {
+                "generate": false,
+                "activations": true
+            },
+            "description": "Echo input text."
+        }
+    },
+    "variants": { "8b": [], "8b_instruct": [] }
+}
