@@ -59,6 +59,12 @@ RUN npm run build
 ADD ./package.json .
 RUN python3 ./add_user.py
 
+# Do some repackaging
+WORKDIR /build/moonshot/moonshot-data/connectors-endpoints
+RUN rm -rf azure*.json claude*.json huggingface*.json llm-judge*.json ollama*.json openai-gpt35*.json together*.json
+WORKDIR /build/moonshot/moonshot-data/attack-modules
+RUN rm -rf *.py
+
 # Now start the moonshot interface
 WORKDIR /build/moonshot
 
