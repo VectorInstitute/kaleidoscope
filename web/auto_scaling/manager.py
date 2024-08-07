@@ -178,6 +178,9 @@ class AutoScalingManager:
             )
 
         self._logger.info(f"backends: {self._backends}")
+        self._logger.info(f"_backend_ids_by_model: {self._backend_ids_by_model}")
+        self._logger.info(f"requests_per_second: {self.requests_per_second}")
+
         # De-register all backends that are not valid.
         for backend, backend_status in zip(list(backends), backend_statuses):
             if not backend_status:
