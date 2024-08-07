@@ -2,6 +2,7 @@
 Logic for a state shared across web worker threads for auto-scaling.
 """
 
+import logging
 import os
 import threading
 from collections import Counter, defaultdict, deque
@@ -54,6 +55,8 @@ class AutoScalingManager:
         cli_executor = LocalShellCommandExecutor()
         self._backend_launcher = SLURMCLILauncher(cli_executor)
         self._max_query_concurrency = max_query_concurrency
+
+        self._logger = logging.getLogger(__name__)
 
     def _update_request_rate_stats(self) -> bool:
         """Update counter if time since previous update exceeds threshold.
@@ -174,6 +177,7 @@ class AutoScalingManager:
                 thread_pool.map(self._backend_launcher.get_backend_status, backends),
             )
 
+        self._logger.info(f"backends: {self._backends}")
         # De-register all backends that are not valid.
         for backend, backend_status in zip(backends, backend_statuses):
             if not backend_status:

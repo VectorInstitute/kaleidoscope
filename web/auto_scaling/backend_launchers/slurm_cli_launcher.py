@@ -149,7 +149,7 @@ class SLURMCLILauncher(AbstractLLMBackendLauncher):
         query_command = f"scontrol show job {backend.slurm_job_id}"
         query_args = query_command.split(" ")
 
-        self.logger.info(f"Invoking status check CLI command: \n{query_command}")
+        self.logger.debug(f"Invoking status check CLI command: \n{query_command}")
         executor_output = self.cli_executor.run_shell_command(query_args)
 
         # Extract job status from SLURM CLI output
