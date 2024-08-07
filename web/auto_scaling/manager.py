@@ -186,6 +186,7 @@ class AutoScalingManager:
         for backend, backend_status in zip(list(backends), backend_statuses):
             if not backend_status:
                 self._logger.info(f"Backend {backend.slurm_job_id} might be preempted.")
+                self._backend_launcher.delete_backend(backend)
                 self._deregister_backend(backend.slurm_job_id)
 
         with self._request_counter_lock:
