@@ -110,7 +110,7 @@ def reverse_proxy(_path):
     # stream request response (e.g., one token at a time) from backend to user
     response: requests.Response = requests.request(
         request.method,
-        url=request.url.replace(request.host_url, backend_base_url),
+        url=request.url.replace(request.host_url.rstrip("/") + "/v1", backend_base_url),
         data=request.get_data(),
         cookies=request.cookies,
         headers={k: v for k, v in request.headers if k.lower() != "host"},
