@@ -164,4 +164,4 @@ if __name__ == "__main__":
         args=(scaling_manager,),
     )
     auto_scaling_manager_thread.start()
-    app.run(host="0.0.0.0", port=25765)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PROXY_PORT", 25567)))
