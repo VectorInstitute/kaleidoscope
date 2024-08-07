@@ -51,6 +51,9 @@ class VectorInferenceModelConfig(NamedTuple):
         Returns:
             _VectorInferenceModelConfig or None, if not parsed
         """
+        # Delete leading model weight folder names if any.
+        model_name = model_name.split("/")[-1]
+
         for pattern_str, model_family in MODEL_FAMILIES.items():
             match = re.match(pattern_str, model_name)
             if match is not None:
