@@ -185,6 +185,7 @@ class AutoScalingManager:
         # De-register all backends that are not valid.
         for backend, backend_status in zip(list(backends), backend_statuses):
             if not backend_status:
+                self._logger.info(f"Backend {backend.slurm_job_id} might be preempted.")
                 self._deregister_backend(backend.slurm_job_id)
 
         with self._request_counter_lock:
@@ -206,6 +207,7 @@ class AutoScalingManager:
                         for backend_id in self._backend_ids_by_model[model_name]
                     ]
                     for backend in backends:
+                        self._logger.info(f"Preempting backend {backend} (inactivity).")
                         self._backend_launcher.delete_backend(backend)
 
                     self._backend_ids_by_model.pop(model_name)

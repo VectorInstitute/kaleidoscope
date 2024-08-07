@@ -160,6 +160,7 @@ class SLURMCLILauncher(AbstractLLMBackendLauncher):
         )
 
         if status_query_match is None:
+            self.logger.info(f"Status: {executor_output}; for backend {backend}")
             return False
 
         status = status_query_match.groupdict()["status"]
