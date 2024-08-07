@@ -23,10 +23,10 @@ from ..interfaces import (
 # Vector Inference "model variant"
 MODEL_FAMILIES: dict[str, str] = {
     r"^Mixtral-(?P<variant>[a-zA-Z0-9\.\-]+)$": "mixtral",
-    r"^Mistral-(?P<variant>[a-zA-Z0-9\-]+)$": "mistral",
-    r"^(Meta-)?Llama-3-(?P<variant>[a-zA-Z0-9\-]+)$": "llama3",
-    r"^(Meta-)?Llama-2-(?P<variant>[a-zA-Z0-9\-]+)$": "llama2",
-    r"^c4ai-command-r-(?P<variant>[a-zA-Z0-9\-]+)$": "command-r",
+    r"^Mistral-(?P<variant>[a-zA-Z0-9\.\-]+)$": "mistral",
+    r"^(Meta-)?Llama-3-(?P<variant>[a-zA-Z0-9\.\-]+)$": "llama3",
+    r"^(Meta-)?Llama-2-(?P<variant>[a-zA-Z0-9\.\-]+)$": "llama2",
+    r"^c4ai-command-r-(?P<variant>[a-zA-Z0-9\.\-]+)$": "command-r",
 }
 SLURM_JOB_SUBMIT_PATTERN = r".*Submitted batch job (?P<slurm_job_id>\d+)([\s\n].*)?"
 SLURM_JOB_STATUS_PATTERN = r".*JobState=(?P<status>\w+)\s.+"
