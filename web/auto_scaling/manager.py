@@ -73,6 +73,7 @@ class AutoScalingManager:
         for model_name, request_count in self.request_counter.items():
             requests_per_second = request_count / (time_since_update.microseconds / 1e6)
             self.requests_per_second[model_name].append(requests_per_second)
+            self.request_counter[model_name] = 0
 
         self._request_counter_lock.release()
         return True
