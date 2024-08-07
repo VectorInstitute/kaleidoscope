@@ -179,7 +179,7 @@ class AutoScalingManager:
 
         self._logger.info(f"backends: {self._backends}")
         # De-register all backends that are not valid.
-        for backend, backend_status in zip(backends, backend_statuses):
+        for backend, backend_status in zip(list(backends), backend_statuses):
             if not backend_status:
                 self._deregister_backend(backend.slurm_job_id)
 
