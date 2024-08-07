@@ -132,7 +132,7 @@ def response_log():
     return jsonify(example_response_log)
 
 
-@openai_proxy_bp.route("/worker_callback", methods=["POST"])
+@openai_proxy_bp.route("/vllm_worker_callback", methods=["POST"])
 def worker_callback():
     """Register worker API URL."""
     data = request.json

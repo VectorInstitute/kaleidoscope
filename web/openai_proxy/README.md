@@ -11,7 +11,7 @@ On a machine with SLURM access, run the following:
 ```bash
 PROXY_PORT=25567
 export PROXY_BASE_URL=http://`hostname`:${PROXY_PORT}
-export TELEMETRY_CALLBACK_URL=${PROXY_BASE_URL}/callback
+export TELEMETRY_CALLBACK_URL=${PROXY_BASE_URL}/vllm_worker_callback
 echo Set OpenAI API Base URL to ${PROXY_BASE_URL}/v1
 python3 -m web.openai_proxy.routes
 ```
