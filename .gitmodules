@@ -1,0 +1,3 @@
+[submodule "vendors/vector_inference"]
+	path = vendors/vector_inference
+	url = https://github.com/vectorInstitute/vector-inference
