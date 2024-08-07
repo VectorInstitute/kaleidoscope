@@ -179,7 +179,7 @@ class AutoScalingManager:
             if not backend_status:
                 self._deregister_backend(backend.slurm_job_id)
 
-        with self._backend_registry_lock:
+        with self._request_counter_lock:
             # Auto-scale-up backends
             for model_name, previous_request_stats in self.requests_per_second.items():
                 # TODO: modify to launch additional backends based on threshold.
@@ -187,7 +187,7 @@ class AutoScalingManager:
                     len(self._backend_ids_by_model[model_name]) == 0
                 ):
                     backend = self._backend_launcher.create_backend(model_name)
-                    self._backends[backend.slurm_job_id] = backend
+                    self.add_backend(backend)
 
             # Auto-scale-down backends
             models_cleared: list[ModelName] = []
