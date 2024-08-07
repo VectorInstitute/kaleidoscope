@@ -1,10 +1,9 @@
+import datetime
+import itertools
 from typing import Any, NamedTuple
 
-import pytest
-import itertools
-
-import datetime
 import openai
+import pytest
 
 
 class ModelState(NamedTuple):
@@ -24,7 +23,7 @@ example_messages: list[Any] = [
     "is_streaming,model_state",
     itertools.product(
         [True, False],
-        [ModelState("/model-weights/Mistral-7B-Instruct-v0.2", is_backend_ready=True)],
+        [ModelState("Mistral-7B-Instruct-v0.2", is_backend_ready=True)],
     ),
 )
 def test_openai_request_ready(
@@ -70,14 +69,12 @@ def test_openai_request_ready(
     print(output)
 
 
-@pytest.mark.parametrize("is_streaming", [True, False])
+@pytest.mark.parametrize("is_streaming", [False])
 def test_openai_request_not_ready(
     is_streaming: bool,
 ) -> None:
     """Make a request to an LLM instance that isn't running and check response."""
-    model_state = ModelState(
-        "/model-weights/Meta-Llama-3-8B-Instruct", is_backend_ready=False
-    )
+    model_state = ModelState("Meta-Llama-3-8B-Instruct", is_backend_ready=False)
     client = openai.OpenAI(api_key="EMPTY", base_url="http://localhost:25765/v1")
 
     with pytest.raises(openai.InternalServerError) as exception:

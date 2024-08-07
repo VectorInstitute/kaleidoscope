@@ -1,29 +1,26 @@
 import json
+import logging
+import os
 import re
-from threading import Lock
+from datetime import timedelta
+from threading import Lock, Thread
+from time import sleep
 from typing import Any, Generator, TypeVar
 
 import requests
 from flask import Blueprint, Flask, Response, jsonify, request
 
+from ..auto_scaling import AutoScalingManager
+
 openai_proxy_bp = Blueprint("v1", __name__)
+scaling_manager = AutoScalingManager(
+    min_update_interval=timedelta(seconds=10),
+    max_num_historic_records=10,
+)
 
-# Map model name to a list of host names
-EXAMPLE_MODELS: dict[str, list[str]] = {
-    "/model-weights/Mistral-7B-Instruct-v0.2": ["http://localhost:19132/"],
-    "/model-weights/Meta-Llama-3-8B-Instruct": [],
-}
+logging.basicConfig(level=logging.INFO)
+
 STREAMING_DATA_PATTERN = re.compile(r"(data: )?(?P<json_data>.+)\n*")
-
-
-def launch_model(model_name: str) -> None:
-    """
-    Trigger a model launch job.
-
-    TODO: Async? In the background?
-    """
-    print(f"Launching model in the background: {model_name}")
-
 
 example_response_log: list[str] = []
 response_log_lock = Lock()
@@ -105,14 +102,15 @@ def reverse_proxy(_path):
     model_name = request_json["model"]
 
     # Either find model instance URLs or launch model
-    upstream_urls = EXAMPLE_MODELS.get(model_name, [])
-    if len(upstream_urls) == 0:
+    model_backend = scaling_manager.get_llm_backend(model_name)
+    backend_base_url = model_backend.base_url if model_backend else None
+    if (model_backend is None) or (backend_base_url is None):
         return {"message": f"The requested model `{model_name}` is starting up."}, 503
 
     # stream request response (e.g., one token at a time) from backend to user
     response: requests.Response = requests.request(
         request.method,
-        url=request.url.replace(request.host_url, upstream_urls[0]),
+        url=request.url.replace(request.host_url, backend_base_url),
         data=request.get_data(),
         cookies=request.cookies,
         headers={k: v for k, v in request.headers if k.lower() != "host"},
@@ -134,7 +132,36 @@ def response_log():
     return jsonify(example_response_log)
 
 
+@openai_proxy_bp.route("/worker_callback", methods=["POST"])
+def worker_callback():
+    """Register worker API URL."""
+    data = request.json
+    assert data is not None
+
+    model_job_id = str(int(data["slurm_job_id"]))
+    api_base_url = data["api_base_url"]
+    scaling_manager.set_backend_url(model_job_id, api_base_url)
+
+    return jsonify({"status": "updated"}), 200
+
+
+def auto_scaling_manager_thread_fn(scaling_manager: AutoScalingManager):
+    while True:
+        scaling_manager.check()
+        sleep(10)
+
+
 if __name__ == "__main__":
     app = Flask(__name__)
     app.register_blueprint(openai_proxy_bp)
+    if "TELEMETRY_CALLBACK_URL" not in os.environ:
+        raise EnvironmentError(
+            "TELEMETRY_CALLBACK_URL must be set to collect callback from workers",
+        )
+
+    auto_scaling_manager_thread = Thread(
+        target=auto_scaling_manager_thread_fn,
+        args=(scaling_manager,),
+    )
+    auto_scaling_manager_thread.start()
     app.run(host="0.0.0.0", port=25765)

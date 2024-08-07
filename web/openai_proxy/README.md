@@ -1,5 +1,21 @@
 # OpenAI-compatible Proxy
 
+## Setup
+
+On a machine with SLURM access, run the following:
+
+- Set env var `TELEMETRY_CALLBACK_URL` and point to http://hostname:port/worker_callback
+- Launch proxy Flask application.
+- Point OpenAI client SDK to use http://hostname:port/v1 as API base.
+
+```bash
+PROXY_PORT=25567
+export PROXY_BASE_URL=http://`hostname`:${PROXY_PORT}
+export TELEMETRY_CALLBACK_URL=${PROXY_BASE_URL}/callback
+echo Set OpenAI API Base URL to ${PROXY_BASE_URL}/v1
+python3 -m web.openai_proxy.routes
+```
+
 ## Background
 
 vLLM provides support for OpenAI ChatCompletion API. Features and limitations:
