@@ -101,6 +101,9 @@ def reverse_proxy(_path):
     assert request_json is not None
     model_name = request_json["model"]
 
+    # Delete leading model weight folder names if any.
+    model_name = model_name.split("/")[-1]
+
     # Either find model instance URLs or launch model
     model_backend = scaling_manager.get_llm_backend(model_name)
     backend_base_url = model_backend.base_url if model_backend else None
