@@ -107,8 +107,19 @@ def reverse_proxy(_path):
     # Either find model instance URLs or launch model
     model_backend = scaling_manager.get_llm_backend(model_name)
     backend_base_url = model_backend.base_url if model_backend else None
-    if (model_backend is None) or (backend_base_url is None):
-        return {"message": f"The requested model `{model_name}` is starting up."}, 503
+    if (
+        (model_backend is None)
+        or (not model_backend.is_ready)
+        or (backend_base_url is None)
+    ):
+        return {
+            "message": f"The requested model `{model_name}` is starting up.",
+            "vector_inference_status": (
+                model_backend.status.raw_status_data
+                if model_backend is not None
+                else None
+            ),
+        }, 503
 
     # stream request response (e.g., one token at a time) from backend to user
     response: requests.Response = requests.request(
@@ -133,19 +144,6 @@ def reverse_proxy(_path):
 @openai_proxy_bp.route("/response_log")
 def response_log():
     return jsonify(example_response_log)
-
-
-@openai_proxy_bp.route("/vllm_worker_callback", methods=["POST"])
-def worker_callback():
-    """Register worker API URL."""
-    data = request.json
-    assert data is not None
-
-    model_job_id = str(int(data["slurm_job_id"]))
-    api_base_url = data["api_base_url"]
-    scaling_manager.set_backend_url(model_job_id, api_base_url)
-
-    return jsonify({"status": "updated"}), 200
 
 
 def auto_scaling_manager_thread_fn(scaling_manager: AutoScalingManager):

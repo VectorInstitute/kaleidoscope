@@ -5,10 +5,17 @@ These integrations are stateful and should be concurrency-safe.
 """
 
 from abc import ABC, abstractmethod
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 ModelName = str
 SLURMJobID = str
+
+
+class LLMBackendStatus(NamedTuple):
+    """Represent status of an LLM Backend."""
+
+    base_url: str | None
+    raw_status_data: Any | None = None
 
 
 class LLMBackend(NamedTuple):
@@ -17,13 +24,16 @@ class LLMBackend(NamedTuple):
     A job is either not ready (starting up) or ready.
     Jobs that were preempted or stopped should be deleted.
 
-    base_url is None denotes that the job is pending.
+    `is_pending` should be True only if the backend would be ready in
+    the near future and does not need to be replaced.
 
-    slurm_job_id must be unique.
+    `slurm_job_id` must be unique.
+
     """
 
     model_name: ModelName
-    base_url: str | None
+    status: LLMBackendStatus
+    is_pending: bool
 
     # Must be unique.
     slurm_job_id: SLURMJobID
@@ -31,7 +41,12 @@ class LLMBackend(NamedTuple):
     @property
     def is_ready(self) -> bool:
         """Returns whether this backend is ready."""
-        return self.base_url is not None
+        return self.status.base_url is not None
+
+    @property
+    def base_url(self) -> str | None:
+        """Alias for base_url."""
+        return self.status.base_url
 
 
 class AbstractShellCommandExecutor(ABC):
@@ -59,9 +74,8 @@ class AbstractLLMBackendLauncher(ABC):
     `create_backend` should return as soon as a slurm_job_id is obtained, and
     should return a LLMBackend instance where is_ready evaluates to False.
 
-    Backend would inform manager about its status and base_url
-    via a callback route. This "launcher" class is only for launching,
-    not for retrieving the base_url.
+    The manager would periodically invoke get_backend_status
+    to refresh api base url, and determine if backend was preempted.
     """
 
     def __init__(self):
@@ -77,8 +91,14 @@ class AbstractLLMBackendLauncher(ABC):
         """
 
     @abstractmethod
-    def get_backend_status(self, backend: LLMBackend) -> bool:
-        """Verify if backend is still available and not preempted.
+    def get_backend_status(self, backend: LLMBackend) -> LLMBackendStatus:
+        """Return status and API Base URL for backend if ready and not preempted.
+
+        Params:
+            backend: LLMBackend to query.
+
+        Returns:
+            LLMBackendStatus.
 
         Design note: not all backend types (e.g., Kubernetes) use SLURM Job ID.
         Request backend instead of job just job_id for greater flexibility.

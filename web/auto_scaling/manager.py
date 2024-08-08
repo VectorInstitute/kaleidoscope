@@ -122,12 +122,6 @@ class AutoScalingManager:
 
         return choice(backends_ready)
 
-    def set_backend_url(self, backend_id: SLURMJobID, base_url: str | None) -> None:
-        """Set URL for LLM backend given the slurm job id of that backend."""
-        with self._backend_registry_lock:
-            backend = self._backends[backend_id]
-            self._backends[backend_id] = backend._replace(base_url=base_url)
-
     def _deregister_backend(self, slurm_job_id: SLURMJobID) -> None:
         """Delete a backend that is no longer available.
 
@@ -184,9 +178,10 @@ class AutoScalingManager:
 
         # De-register all backends that are not valid.
         for backend, backend_status in zip(list(backends), backend_statuses):
-            if not backend_status:
+            if (not backend.is_pending) and (backend_status.base_url is None):
                 self._logger.info(
-                    f"Backend {backend.slurm_job_id} might have been preempted."
+                    f"Backend {backend.slurm_job_id} might have been preempted. "
+                    f"Status: {backend_status}"
                 )
                 self._backend_launcher.delete_backend(backend)
                 self._deregister_backend(backend.slurm_job_id)
