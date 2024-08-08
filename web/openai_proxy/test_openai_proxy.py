@@ -23,7 +23,7 @@ example_messages: list[Any] = [
     "is_streaming,model_state",
     itertools.product(
         [True, False],
-        [ModelState("Mistral-7B-Instruct-v0.2", is_backend_ready=True)],
+        [ModelState("/model-weights/Mistral-7B-Instruct-v0.2", is_backend_ready=True)],
     ),
 )
 def test_openai_request_ready(
@@ -34,7 +34,7 @@ def test_openai_request_ready(
 
     With reference to platform.openai.com/docs/api-reference/streaming
     """
-    client = openai.OpenAI(api_key="EMPTY", base_url="http://localhost:25765/v1")
+    client = openai.OpenAI(api_key="EMPTY", base_url="http://vremote:25567/v1")
 
     output = client.chat.completions.create(
         model=model_state.model_name,
