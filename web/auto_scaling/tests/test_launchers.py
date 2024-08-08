@@ -5,7 +5,11 @@ import re
 import pytest
 
 from web.auto_scaling.backend_launchers import SLURMCLILauncher
-from web.auto_scaling.interfaces import AbstractShellCommandExecutor, LLMBackend
+from web.auto_scaling.interfaces import (
+    AbstractShellCommandExecutor,
+    LLMBackend,
+    LLMBackendStatus,
+)
 
 EXAMPLE_API_URL = "http://localhost:8001/"
 
@@ -40,7 +44,7 @@ class DummyShellCommandExecutor(AbstractShellCommandExecutor):
         for pattern, output_template in self.templates.items():
             match = re.match(pattern, command, re.DOTALL)
             if match is not None:
-                return output_template.format(**match.groupdict())
+                return output_template
 
         return self.fallback_output
 
@@ -49,14 +53,19 @@ class DummyShellCommandExecutor(AbstractShellCommandExecutor):
 def basic_executor() -> DummyShellCommandExecutor:
     """Basic executor that gives output similar to SLURM CLI."""
     templates = {
-        r"bash.+launch_server.*": "Example Text\n" "  Submitted batch job 1001 \n",
-        r"scontrol show job (1002)": "slurm_load_jobs error: Invalid job id specified",
-        r"scontrol show job (1001)": "JobId=1001"
-        " JobName=example\nAccount=vector\n"
-        " JobState=RUNNING "
-        "Example Text\n",
-        r"scontrol show job (1010)": "JobId=1010\n JobState=PENDING Example Text\n",
-        r"scontrol show job (1011)": "JobId=1011\n JobState=PREEMPTEDExample Text\n",
+        r".*launch.*": ('\n\n {"slurm_job_id": "1001", "base_url":  "UNAVAILABLE"} \n'),
+        r".*status --json-mode 1002$": (
+            '\n{"model_status": "LOG_FILE_NOT_FOUND", "base_url": "UNAVAILABLE"}'
+        ),
+        r".*status --json-mode 1001$": (
+            '\n{"model_status": "READY", "base_url": "' + EXAMPLE_API_URL + '"}'
+        ),
+        r".*status --json-mode 1010$": (
+            '\n{"model_status": "READY", "base_url": "' + EXAMPLE_API_URL + '"}'
+        ),
+        r".*status --json-mode 1011$": (
+            '\n{"model_status": "PENDING", "base_url": "UNAVAILABLE"}'
+        ),
     }
     return DummyShellCommandExecutor(templates=templates)
 
@@ -69,7 +78,7 @@ def test_launch_model_backend_valid(basic_executor):
 
     assert len(basic_executor.query_history) == 1
     cli_query_str = " ".join(basic_executor.query_history[0])
-    assert "--model-family mixtral" in cli_query_str
+    assert "mixtral" in cli_query_str
     assert "--model-variant 8x22B-Instruct-v0.1" in cli_query_str
 
 
@@ -99,20 +108,37 @@ def test_get_model_backend_status(basic_executor):
     launcher = SLURMCLILauncher(cli_executor=basic_executor)
 
     # READY or PENDING
-    assert launcher.get_backend_status(LLMBackend("model", EXAMPLE_API_URL, "1001"))
-    assert launcher.get_backend_status(LLMBackend("model", None, "1010"))
+    for job_id in ["1001", "1010"]:
+        assert (
+            launcher.get_backend_status(
+                LLMBackend("model", LLMBackendStatus(None), True, job_id)
+            ).base_url
+            == EXAMPLE_API_URL
+        )
 
     # Invalid or otherwise
-    assert not launcher.get_backend_status(LLMBackend("model", EXAMPLE_API_URL, "1002"))
-    assert not launcher.get_backend_status(LLMBackend("model", EXAMPLE_API_URL, "1011"))
+    assert (
+        launcher.get_backend_status(
+            LLMBackend("model", LLMBackendStatus(EXAMPLE_API_URL), False, "1002")
+        ).base_url
+        is None
+    )
+    assert (
+        launcher.get_backend_status(
+            LLMBackend("model", LLMBackendStatus(EXAMPLE_API_URL), False, "1011")
+        ).base_url
+        is None
+    )
 
 
 @pytest.mark.parametrize(("base_url",), [(EXAMPLE_API_URL,), (None,)])
 def test_delete_model_backend(basic_executor, base_url):
     """Test deleting a model backend."""
     launcher = SLURMCLILauncher(cli_executor=basic_executor)
-    launcher.delete_backend(LLMBackend("model", base_url, "1001"))
+    launcher.delete_backend(
+        LLMBackend("model", LLMBackendStatus(base_url), False, "1001")
+    )
 
     assert len(basic_executor.query_history) == 1
     cli_query_str = " ".join(basic_executor.query_history[0])
-    assert cli_query_str == "scancel 1001"
+    assert cli_query_str.split(" ")[-2:] == ["shutdown", "1001"]

@@ -9,7 +9,7 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from ..executors import LocalShellCommandExecutor
 from ..interfaces import (
@@ -120,6 +120,18 @@ class SLURMCLILauncher(AbstractLLMBackendLauncher):
         """Given vec_inf command (e.g., status job_id), return full CLI arg list."""
         return [*self.base_vec_inf_args, *vec_inf_command.split(" ")]
 
+    def _load_json_output(self, shell_output: str) -> Any:
+        """Safe loading for JSON in shell output.
+
+        Returns:
+            JSON parser output if available, or None.
+        """
+        data_text = shell_output.splitlines()[-1].strip()
+        try:
+            return json.loads(data_text)
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Cannot parse JSON: {e} \n{shell_output}")
+
     def create_backend(self, model_name: ModelName) -> LLMBackend:
         """Request Backend creation.
 
@@ -148,7 +160,7 @@ class SLURMCLILauncher(AbstractLLMBackendLauncher):
         executor_output = self.cli_executor.run_shell_command(launch_args)
 
         # Extract slurm job id from Vector Inference output
-        launch_output_data = json.loads(executor_output)
+        launch_output_data = self._load_json_output(executor_output)
         slurm_job_id = str(int(launch_output_data["slurm_job_id"]))
         return LLMBackend(
             model_name=model_name,
@@ -171,7 +183,7 @@ class SLURMCLILauncher(AbstractLLMBackendLauncher):
         )
 
         executor_output = self.cli_executor.run_shell_command(query_args)
-        backend_status_data = json.loads(executor_output)
+        backend_status_data = self._load_json_output(executor_output)
         backend_base_url: str | None = backend_status_data["base_url"]
 
         # Apply heuristics to set backend_base_url to None if invalid.
