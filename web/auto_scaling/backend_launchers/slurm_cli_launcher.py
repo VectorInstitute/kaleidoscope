@@ -133,7 +133,7 @@ class SLURMCLILauncher(AbstractLLMBackendLauncher):
         # must validate and filter out shell escapes.
         assert re.match(MODEL_VARIANT_PATTERN, model_config.model_variant) is not None
         launch_command = (
-            f"launch {model_config.model_family}"
+            f"launch --json-mode {model_config.model_family}"
             f" --model-variant {model_config.model_variant}"
         )
         if self.slurm_qos is not None:
