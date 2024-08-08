@@ -14,6 +14,7 @@ export PROXY_BASE_URL=http://`hostname`:${PROXY_PORT}
 export SSH_USERNAME=llm
 export SSH_HOST=vremote
 export SSH_PORT=22
+export WORKER_SLURM_QOS=llm
 echo Set OpenAI API Base URL to ${PROXY_BASE_URL}/v1
 python3 -m web.openai_proxy.routes
 ```
