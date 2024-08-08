@@ -127,6 +127,7 @@ class SLURMCLILauncher(AbstractLLMBackendLauncher):
             JSON parser output if available, or None.
         """
         data_text = shell_output.splitlines()[-1].strip()
+        data_text = data_text.replace("'", '"')
         try:
             return json.loads(data_text)
         except json.JSONDecodeError as e:

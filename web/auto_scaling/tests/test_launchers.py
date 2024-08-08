@@ -55,7 +55,7 @@ def basic_executor() -> DummyShellCommandExecutor:
     templates = {
         r".*launch.*": ('\n\n {"slurm_job_id": "1001", "base_url":  "UNAVAILABLE"} \n'),
         r".*status --json-mode 1002$": (
-            '\n{"model_status": "LOG_FILE_NOT_FOUND", "base_url": "UNAVAILABLE"}'
+            "\n{'model_status': 'LOG_FILE_NOT_FOUND', 'base_url': 'UNAVAILABLE'}"
         ),
         r".*status --json-mode 1001$": (
             '\n{"model_status": "READY", "base_url": "' + EXAMPLE_API_URL + '"}'
