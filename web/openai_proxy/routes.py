@@ -16,6 +16,7 @@ openai_proxy_bp = Blueprint("v1", __name__)
 scaling_manager = AutoScalingManager(
     min_update_interval=timedelta(seconds=10),
     max_num_historic_records=10,
+    slurm_qos=os.environ.get("WORKER_SLURM_QOS"),
 )
 
 logging.basicConfig(level=logging.INFO)

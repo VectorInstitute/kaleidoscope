@@ -29,6 +29,7 @@ class AutoScalingManager:
         min_update_interval: timedelta = MIN_UPDATE_INTERVAL,
         max_num_historic_records: int = MAX_NUM_HISTORIC_RECORDS,
         max_query_concurrency: int = MAX_CONCURRENCY,
+        slurm_qos: str | None = None,
     ):
         self._min_update_interval = min_update_interval
 
@@ -53,7 +54,7 @@ class AutoScalingManager:
         )
 
         cli_executor = LocalShellCommandExecutor()
-        self._backend_launcher = SLURMCLILauncher(cli_executor)
+        self._backend_launcher = SLURMCLILauncher(cli_executor, slurm_qos=slurm_qos)
         self._max_query_concurrency = max_query_concurrency
 
         self._logger = logging.getLogger(__name__)
