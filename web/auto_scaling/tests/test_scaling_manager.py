@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from web.auto_scaling.manager import AutoScalingManager, LLMBackend
 from web.auto_scaling.interfaces import LLMBackendStatus
+from web.auto_scaling.manager import AutoScalingManager, LLMBackend
 
 MODEL_AVAILABLE_URL = "http://model_available:8000/v1"
 MODEL_AVAILABLE_URL_ALT = "http://model_available_alt:8000/v1"
