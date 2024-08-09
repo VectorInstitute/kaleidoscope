@@ -15,6 +15,8 @@ export SSH_USERNAME=llm
 export SSH_HOST=vremote
 export SSH_PORT=22
 export WORKER_SLURM_QOS=llm
+export MIN_UPDATE_INTERVAL_SECONDS=10
+export MAX_NUM_HISTORIC_RECORDS=360
 echo Set OpenAI API Base URL to ${PROXY_BASE_URL}/v1
 python3 -m web.openai_proxy.routes
 ```

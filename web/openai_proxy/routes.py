@@ -14,8 +14,10 @@ from ..auto_scaling import AutoScalingManager
 
 openai_proxy_bp = Blueprint("v1", __name__)
 scaling_manager = AutoScalingManager(
-    min_update_interval=timedelta(seconds=10),
-    max_num_historic_records=10,
+    min_update_interval=timedelta(
+        seconds=int(os.environ.get("MIN_UPDATE_INTERVAL_SECONDS", 10)),
+    ),
+    max_num_historic_records=int(os.environ.get("MAX_NUM_HISTORIC_RECORDS", 360)),
     slurm_qos=os.environ.get("WORKER_SLURM_QOS"),
 )
 
