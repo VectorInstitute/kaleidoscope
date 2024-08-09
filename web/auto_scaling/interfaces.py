@@ -41,7 +41,7 @@ class LLMBackend(NamedTuple):
     @property
     def is_pending(self) -> bool:
         """Returns whether this backend will be ready in the future."""
-        return self.status in ["PENDING", "LAUNCHING", None]
+        return self.status.status_text in ["PENDING", "LAUNCHING", None]
 
     @property
     def is_ready(self) -> bool:
