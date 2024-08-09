@@ -102,8 +102,10 @@ class AutoScalingManager:
             log_request: bool, whether to log request to the model.
 
         Returns:
-            LLMBackend where is_ready is True.
-            None if no such backend is available.
+            LLMBackend where is_ready is True unless all
+            backends for this model are not ready.
+
+            None if no backend is available at all.
         """
         # Validate model_name
         if VectorInferenceModelConfig.from_model_name(model_name) is None:
@@ -113,13 +115,19 @@ class AutoScalingManager:
             with self._request_counter_lock:
                 self.request_counter[model_name] += 1
 
+        # Return a "ready" backend whenever possible.
+        # Otherwise, try to return a pending backend.
+        # Return None if there is no pending or ready backend.
         backends = [
             self._backends[backend_id]
             for backend_id in self._backend_ids_by_model[model_name]
         ]
+        if len(backends) == 0:
+            return None
+
         backends_ready = [backend for backend in backends if backend.is_ready]
         if len(backends_ready) == 0:
-            return None
+            return backends[0]
 
         return choice(backends_ready)
 
