@@ -12,7 +12,7 @@ from random import choice
 
 from .backend_launchers import SLURMCLILauncher, VectorInferenceModelConfig
 from .executors import LocalShellCommandExecutor
-from .interfaces import LLMBackend, ModelName, SLURMJobID
+from .interfaces import LLMBackend, LLMBackendStatus, ModelName, SLURMJobID
 
 MIN_UPDATE_INTERVAL = timedelta(minutes=1.0)
 MAX_NUM_HISTORIC_RECORDS = 10
@@ -126,6 +126,8 @@ class AutoScalingManager:
     def _deregister_backend(self, slurm_job_id: SLURMJobID) -> None:
         """Delete a backend that is no longer available.
 
+        Invoking this command does not stop the job.
+
         Example: the backend might be preempted.
         """
         with self._backend_registry_lock:
@@ -134,6 +136,20 @@ class AutoScalingManager:
                     self._backend_ids_by_model[model_name].remove(slurm_job_id)
 
             self._backends.pop(slurm_job_id, None)
+
+    def _update_backend_status(
+        self, slurm_job_id: SLURMJobID, status: LLMBackendStatus
+    ) -> LLMBackend:
+        """Update the status of the given backend.
+
+        Returns the updated backend instance.
+        """
+        with self._backend_registry_lock:
+            backend = self._backends[slurm_job_id]
+            backend = backend._replace(status=status)
+            self._backends[slurm_job_id] = backend
+
+        return backend
 
     def add_backend(self, backend: LLMBackend) -> None:
         """Add a LLM backend to registry.
@@ -179,6 +195,7 @@ class AutoScalingManager:
 
         # De-register all backends that are not valid.
         for backend, backend_status in zip(list(backends), backend_statuses):
+            backend = self._update_backend_status(backend.slurm_job_id, backend_status)
             if (not backend.is_pending) and (backend_status.base_url is None):
                 self._logger.info(
                     f"Backend {backend.slurm_job_id} might have been preempted. "
