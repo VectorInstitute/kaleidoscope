@@ -15,6 +15,7 @@ class LLMBackendStatus(NamedTuple):
     """Represent status of an LLM Backend."""
 
     base_url: str | None
+    status_text: str | None = None
     raw_status_data: Any | None = None
 
 
@@ -33,10 +34,14 @@ class LLMBackend(NamedTuple):
 
     model_name: ModelName
     status: LLMBackendStatus
-    is_pending: bool
 
     # Must be unique.
     slurm_job_id: SLURMJobID
+
+    @property
+    def is_pending(self) -> bool:
+        """Returns whether this backend will be ready in the future."""
+        return self.status in ["PENDING", "LAUNCHING"]
 
     @property
     def is_ready(self) -> bool:

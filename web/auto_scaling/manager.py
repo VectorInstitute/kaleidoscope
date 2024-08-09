@@ -197,17 +197,17 @@ class AutoScalingManager:
                 thread_pool.map(self._backend_launcher.get_backend_status, backends),
             )
 
-        self._logger.info(f"backends: {self._backends}")
-        self._logger.info(f"_backend_ids_by_model: {self._backend_ids_by_model}")
-        self._logger.info(f"requests_per_second: {self.requests_per_second}")
+        self._logger.debug(f"backends: {self._backends}")
+        self._logger.debug(f"_backend_ids_by_model: {self._backend_ids_by_model}")
+        self._logger.debug(f"requests_per_second: {self.requests_per_second}")
 
         # De-register all backends that are not valid.
         for backend, backend_status in zip(list(backends), backend_statuses):
             backend = self._update_backend_status(backend.slurm_job_id, backend_status)
-            if (not backend.is_pending) and (backend_status.base_url is None):
+            if (not backend.is_ready) and (not backend.is_pending):
                 self._logger.info(
-                    f"Backend {backend.slurm_job_id} might have been preempted. "
-                    f"Status: {backend_status}"
+                    f"Backend {backend.slurm_job_id} is neither ready nor pending. "
+                    f"Status: {backend_status}; Deleting this backend."
                 )
                 self._backend_launcher.delete_backend(backend)
                 self._deregister_backend(backend.slurm_job_id)
