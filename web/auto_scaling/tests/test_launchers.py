@@ -111,7 +111,7 @@ def test_get_model_backend_status(basic_executor):
     for job_id in ["1001", "1010"]:
         assert (
             launcher.get_backend_status(
-                LLMBackend("model", LLMBackendStatus(None), True, job_id)
+                LLMBackend("model", LLMBackendStatus(None), job_id)
             ).base_url
             == EXAMPLE_API_URL
         )
@@ -119,13 +119,13 @@ def test_get_model_backend_status(basic_executor):
     # Invalid or otherwise
     assert (
         launcher.get_backend_status(
-            LLMBackend("model", LLMBackendStatus(EXAMPLE_API_URL), False, "1002")
+            LLMBackend("model", LLMBackendStatus(EXAMPLE_API_URL), "1002")
         ).base_url
         is None
     )
     assert (
         launcher.get_backend_status(
-            LLMBackend("model", LLMBackendStatus(EXAMPLE_API_URL), False, "1011")
+            LLMBackend("model", LLMBackendStatus(EXAMPLE_API_URL), "1011")
         ).base_url
         is None
     )
@@ -135,9 +135,7 @@ def test_get_model_backend_status(basic_executor):
 def test_delete_model_backend(basic_executor, base_url):
     """Test deleting a model backend."""
     launcher = SLURMCLILauncher(cli_executor=basic_executor)
-    launcher.delete_backend(
-        LLMBackend("model", LLMBackendStatus(base_url), False, "1001")
-    )
+    launcher.delete_backend(LLMBackend("model", LLMBackendStatus(base_url), "1001"))
 
     assert len(basic_executor.query_history) == 1
     cli_query_str = " ".join(basic_executor.query_history[0])

@@ -165,7 +165,6 @@ class SLURMCLILauncher(AbstractLLMBackendLauncher):
         slurm_job_id = str(int(launch_output_data["slurm_job_id"]))
         return LLMBackend(
             model_name=model_name,
-            is_pending=True,
             status=LLMBackendStatus(base_url=None),
             slurm_job_id=slurm_job_id,
         )

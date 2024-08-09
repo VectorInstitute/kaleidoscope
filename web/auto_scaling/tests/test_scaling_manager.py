@@ -27,19 +27,16 @@ def scaling_manager(scaling_manager_empty: AutoScalingManager) -> AutoScalingMan
         "1000": LLMBackend(
             "Mistral-available",
             LLMBackendStatus(base_url=MODEL_AVAILABLE_URL),
-            is_pending=False,
             slurm_job_id="1000",
         ),
         "1001": LLMBackend(
             "Mistral-available",
             LLMBackendStatus(base_url=MODEL_AVAILABLE_URL),
-            is_pending=True,
             slurm_job_id="1001",
         ),
         "1010": LLMBackend(
             "Mistral-pending",
-            LLMBackendStatus(base_url=None),
-            is_pending=True,
+            LLMBackendStatus(base_url=None, status_text="PENDING"),
             slurm_job_id="1010",
         ),
     }
@@ -85,7 +82,7 @@ def test_update_request_metrics(scaling_manager):
 def test_update_backend_status(scaling_manager):
     """Test setting backend URL after requesting one."""
     llm_backend_response = scaling_manager.get_llm_backend("Mistral-pending")
-    assert llm_backend_response is None
+    assert not llm_backend_response.is_ready
 
     backend = scaling_manager._backends["1010"]
     scaling_manager._backends["1010"] = backend._replace(
